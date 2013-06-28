@@ -7,13 +7,16 @@ struct DDSPixelFormat
 {
     quint32 size; // Structure size; set to 32 (bytes).
     quint32 flags; // Values which indicate what type of data is in the surface.
-    enum DDSPixelFormatFlags { DDPF_ALPHAPIXELS = 0x01, // Texture contains alpha data; dwRGBAlphaBitMask contains valid data.
-                               DDPF_ALPHA = 0x02, // Used in some older DDS files for alpha channel only uncompressed data (dwRGBBitCount contains the alpha channel bitcount; dwABitMask contains valid data)
-                               DDPF_FOURCC = 0x4, // Texture contains compressed RGB data; fourCC contains valid data.
-                               DDPF_RGB = 0x40, // Texture contains uncompressed RGB data; rgbBitCount and the RGB masks (rBitMask, gBitMask, bBitMask) contain valid data.
-                               DDPF_YUV = 0x200, // Used in some older DDS files for YUV uncompressed data (rgbBitCount contains the YUV bit count; rBitMask contains the Y mask, gBitMask contains the U mask, bBitMask contains the V mask)
-                               DDPF_LUMINANCE = 0x20000 // Used in some older DDS files for single channel color uncompressed data (dwRGBBitCount contains the luminance channel bit count; dwRBitMask contains the channel mask). Can be combined with DDPF_ALPHAPIXELS for a two channel DDS file.
-                                            };
+    enum DDSPixelFormatFlags {
+        DDPF_ALPHAPIXELS    = 0x00000001, // Texture contains alpha data; dwRGBAlphaBitMask contains valid data.
+        DDPF_ALPHA          = 0x00000002, // Used in some older DDS files for alpha channel only uncompressed data (dwRGBBitCount contains the alpha channel bitcount; dwABitMask contains valid data)
+        DDPF_FOURCC         = 0x00000004, // Texture contains compressed RGB data; fourCC contains valid data.
+        DDPF_PALETTEINDEXED8= 0x00000020, // [NYI](Legacy?)The surface is 8-bit color indexed.
+        DDPF_RGB            = 0x00000040, // Texture contains uncompressed RGB data; rgbBitCount and the RGB masks (rBitMask, gBitMask, bBitMask) contain valid data.
+        DDPF_YUV            = 0x00000200, // Used in some older DDS files for YUV uncompressed data (rgbBitCount contains the YUV bit count; rBitMask contains the Y mask, gBitMask contains the U mask, bBitMask contains the V mask)
+        DDPF_LUMINANCE      = 0x00020000, // Used in some older DDS files for single channel color uncompressed data (dwRGBBitCount contains the luminance channel bit count; dwRBitMask contains the channel mask). Can be combined with DDPF_ALPHAPIXELS for a two channel DDS file.
+        DDPF_NORMAL         = 0x80000000  // [NYI](Unusable?)Nvidia specific
+    };
 
     quint32 fourCC; // Four-character codes for specifying compressed or custom formats. Possible values include: DXT1, DXT2, DXT3, DXT4, or DXT5. A FourCC of DX10 indicates the prescense of the DDS_HEADER_DXT10 extended header, and the dxgiFormat member of that structure indicates the true format. When using a four-character code, flags must include DDPF_FOURCC.
     quint32 rgbBitCount; // Number of bits in an RGB (possibly including alpha) format. Valid when dwFlags includes DDPF_RGB, DDPF_LUMINANCE, or DDPF_YUV.

@@ -2,9 +2,9 @@ import qbs.base 1.0
 
 DynamicLibrary {
     name : "qdds"
-	
-	Depends { name: "cpp" }
-    Depends { name: "Qt"; submodules: ["gui"] }
+
+    Depends { name: "cpp" }
+    Depends { name: "Qt"; submodules: ["core", "gui"] }
 
     files : [
         "dds.h",
@@ -13,10 +13,10 @@ DynamicLibrary {
         "qdxt.h",
         "qdxt.cpp"
     ]
-	
-	Group {
+
+    Group {
         name: "dds.rc"
         condition: qbs.targetOS.contains("windows")
         files: "dds.rc"
-	}
+    }
 }

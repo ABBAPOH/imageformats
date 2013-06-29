@@ -52,9 +52,8 @@ bool readData(QDataStream & s, const DDSHeader & dds, QImage &img)
         aBitMask = dds.pixelFormat.aBitMask;
         alphaShift = shift(aBitMask);
     }
-//    qDebug() << "shifts" << redShift << greenShift << blueShift << alphaShift;
+
     if (flags & DDSPixelFormat::DDPF_RGB) {
-//        qDebug("read rgb image");
         if (dds.pixelFormat.rgbBitCount != 32) {
             qWarning() << "can't read image with bit count " << dds.pixelFormat.rgbBitCount;
             return false;
@@ -72,7 +71,6 @@ bool readData(QDataStream & s, const DDSHeader & dds, QImage &img)
                 int green = (color & gBitMask) >> greenShift;
                 int blue = (color & bBitMask) >> blueShift;
                 int alpha = (color & aBitMask) >> alphaShift;
-//                qDebug() << red<< green<< blue<< alpha;
                 img.setPixel(j, i, qRgba(red, green, blue, alpha));
             }
     }
@@ -83,7 +81,6 @@ bool readData(QDataStream & s, const DDSHeader & dds, QImage &img)
 
 bool DDSHandler::read(QImage *outImage)
 {
-//    qDebug() << "DDSHandler::read";
     QDataStream s(device());
     s.setByteOrder(QDataStream::LittleEndian);
 
@@ -107,7 +104,6 @@ bool DDSHandler::read(QImage *outImage)
 
 bool DDSHandler::write(const QImage &outImage)
 {
-//    qDebug("DDSHandler::write");
     QDataStream s( device() );
     s.setByteOrder(QDataStream::LittleEndian);
 

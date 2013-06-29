@@ -104,7 +104,6 @@ void setAplphaDXT5(QRgb * rgbArr, quint64 alphas)
 
 QImage QDXT::loadDXT1(QDataStream & s, quint32 width, quint32 height)
 {
-    qDebug("QDXT::loadDXT1");
     QImage img(width, height, QImage::Format_ARGB32);
 
     for (quint32 i = 0; i < height/4; i++)
@@ -131,7 +130,6 @@ QImage QDXT::loadDXT1(QDataStream & s, quint32 width, quint32 height)
 
 QImage QDXT::loadDXT5(QDataStream & s, quint32 width, quint32 height)
 {
-    qDebug("QDXT::loadDXT5");
     QImage img(width, height, QImage::Format_ARGB32);
 
     for (quint32 i = 0; i < height/4; i++)

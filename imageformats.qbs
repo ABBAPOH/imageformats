@@ -4,4 +4,7 @@ Project {
     SubProject {
         filePath: "src/src.qbs"
     }
+    SubProject {
+        filePath: "tests/tests.qbs"
+    }
 }

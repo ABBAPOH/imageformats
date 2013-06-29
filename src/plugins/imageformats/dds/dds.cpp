@@ -74,8 +74,6 @@ bool readData(QDataStream & s, const DDSHeader & dds, QImage &img)
                 img.setPixel(j, i, qRgba(red, green, blue, alpha));
             }
     }
-//    img = QImage(dds.width, dds.height, QImage::Format_ARGB32);
-//    return loadDXT5(s, dds, img);
     return true;
 }
 
@@ -107,11 +105,12 @@ bool DDSHandler::write(const QImage &outImage)
     QDataStream s( device() );
     s.setByteOrder(QDataStream::LittleEndian);
 
-    s << *(quint32*)"DDS ";
-//    s << 'D';
-//    s << 'D';
-//    s << 'S';
-//    s << ' ';
+    // Magic
+    s << 'D';
+    s << 'D';
+    s << 'S';
+    s << ' ';
+
     // Filling header
     DDSHeader dds;
     // Filling header
@@ -143,13 +142,8 @@ bool DDSHandler::write(const QImage &outImage)
     dds.pixelFormat.bBitMask = 0x000000ff;
 
     s << dds;
-//    const uchar * data = outImage.constBits();
-//    for (int i = 0; i < 4*outImage.width()*outImage.height(); i++) {
-//        s << data[i];
-//    }
     for (int width = 0; width < outImage.width(); width++)
         for (int height = 0; height < outImage.height(); height++) {
-//        s << outImage.pixel(width, height);
         QRgb pixel = outImage.pixel(height, width);;
         quint32 color;
         quint8 alpha = qAlpha(pixel);

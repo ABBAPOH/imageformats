@@ -59,20 +59,20 @@ struct DDSHeader
         DDSCAPS2_VOLUME          = 0x200000
     };
 
-    quint32           size;
-    quint32           flags;
-    quint32           height;
-    quint32           width;
-    quint32           linearSize;
-    quint32           depth;
-    quint32           mipMapCount;
-    quint32           reserved1[11];
-    DDSPixelFormat    pixelFormat;
-    quint32           caps;
-    quint32           caps2;
-    quint32           caps3;
-    quint32           caps4;
-    quint32           reserved2;
+    quint32 size;
+    quint32 flags;
+    quint32 height;
+    quint32 width;
+    quint32 linearSize;
+    quint32 depth;
+    quint32 mipMapCount;
+    quint32 reserved1[11];
+    DDSPixelFormat pixelFormat;
+    quint32 caps;
+    quint32 caps2;
+    quint32 caps3;
+    quint32 caps4;
+    quint32 reserved2;
 };
 
 QDataStream & operator>>(QDataStream &s, DDSHeader &header);

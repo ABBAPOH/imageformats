@@ -1,7 +1,7 @@
 #ifndef DDSHEADER_H
 #define DDSHEADER_H
 
-#include <qglobal.h>
+#include <QtCore/QDataStream>
 
 struct DDSPixelFormat
 {
@@ -25,6 +25,9 @@ struct DDSPixelFormat
     quint32 bBitMask; // Blue (or V) mask for reading color data. For instance, given the A8R8G8B8 format, the blue mask would be 0x000000ff.
     quint32 aBitMask; // Alpha mask for reading alpha data. flags must include DDPF_ALPHAPIXELS or DDPF_ALPHA. For instance, given the A8R8G8B8 format, the alpha mask would be 0xff000000.
 };
+
+QDataStream & operator>>(QDataStream &s, DDSPixelFormat &pixelFormat);
+QDataStream & operator<<(QDataStream &s, const DDSPixelFormat &pixelFormat);
 
 struct DDSHeader
 {
@@ -58,5 +61,8 @@ struct DDSHeader
     quint32           caps4;
     quint32           reserved2; // Unused.
 };
+
+QDataStream & operator>>(QDataStream &s, DDSHeader &header);
+QDataStream & operator<<(QDataStream &s, const DDSHeader &header);
 
 #endif // DDSHEADER_H

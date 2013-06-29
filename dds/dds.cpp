@@ -3,77 +3,8 @@
 #include "qdxt.h"
 
 #include <QtGui/QImage>
-#include <QtCore/QDataStream>
 
 #include <QDebug>
-
-static QDataStream & operator>>(QDataStream &s, DDSPixelFormat &pixelFormat)
-{
-    s >> pixelFormat.size;
-    s >> pixelFormat.flags;
-    s >> pixelFormat.fourCC;
-    s >> pixelFormat.rgbBitCount;
-    s >> pixelFormat.rBitMask;
-    s >> pixelFormat.gBitMask;
-    s >> pixelFormat.bBitMask;
-    s >> pixelFormat.aBitMask;
-    return s;
-}
-
-static QDataStream & operator<<(QDataStream &s, const DDSPixelFormat &pixelFormat)
-{
-    s << pixelFormat.size;
-    s << pixelFormat.flags;
-    s << pixelFormat.fourCC;
-    s << pixelFormat.rgbBitCount;
-    s << pixelFormat.rBitMask;
-    s << pixelFormat.gBitMask;
-    s << pixelFormat.bBitMask;
-    s << pixelFormat.aBitMask;
-    return s;
-}
-
-static QDataStream & operator>>(QDataStream &s, DDSHeader &header)
-{
-    s >> header.size;
-    s >> header.flags;
-    s >> header.height;
-    s >> header.width;
-    s >> header.linearSize;
-    s >> header.depth;
-    s >> header.mipMapCount;
-    for (int i = 0; i< 11; i++) {
-        s >> header.reserved1[i];
-    }
-    s >> header.pixelFormat;
-    s >> header.caps;
-    s >> header.caps2;
-    s >> header.caps3;
-    s >> header.caps4;
-    s >> header.reserved2;
-    return s;
-}
-
-static QDataStream & operator<<(QDataStream &s, const DDSHeader &header)
-{
-    s << header.size;
-    s << header.flags;
-    s << header.height;
-    s << header.width;
-    s << header.linearSize;
-    s << header.depth;
-    s << header.mipMapCount;
-    for (int i = 0; i< 11; i++) {
-        s << header.reserved1[i];
-    }
-    s << header.pixelFormat;
-    s << header.caps;
-    s << header.caps2;
-    s << header.caps3;
-    s << header.caps4;
-    s << header.reserved2;
-    return s;
-}
 
 DDSHandler::DDSHandler()
 {
@@ -263,26 +194,26 @@ QStringList DDSPlugin::keys() const
 QImageIOPlugin::Capabilities DDSPlugin::capabilities(QIODevice *device, const QByteArray &format) const
 {
     if (format == "dds" || format == "DDS")
-		return Capabilities(CanRead | CanWrite);
-	if (!format.isEmpty())
-		return 0;
-	if (!device->isOpen())
-		return 0;
-	
-	Capabilities cap;
+        return Capabilities(CanRead | CanWrite);
+    if (!format.isEmpty())
+        return 0;
+    if (!device->isOpen())
+        return 0;
+
+    Capabilities cap;
     if (device->isReadable() && DDSHandler::canRead(device))
-		cap |= CanRead;
-	if (device->isWritable())
-		cap |= CanWrite;
-	return cap;
+        cap |= CanRead;
+    if (device->isWritable())
+        cap |= CanWrite;
+    return cap;
 }
 
 QImageIOHandler *DDSPlugin::create(QIODevice *device, const QByteArray &format) const
 {
     QImageIOHandler *handler = new DDSHandler;
-	handler->setDevice(device);
-	handler->setFormat(format);
-	return handler;
+    handler->setDevice(device);
+    handler->setFormat(format);
+    return handler;
 }
 
 #if QT_VERSION < 0x050000

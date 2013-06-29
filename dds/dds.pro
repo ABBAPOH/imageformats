@@ -8,4 +8,5 @@ HEADERS += dds.h \
     ddsheader.h \
     qdxt.h
 SOURCES += dds.cpp \
+    ddsheader.cpp \
     qdxt.cpp

@@ -1,33 +1,29 @@
-#include "qdxt.h"
+#include "dxt.h"
 #include <qglobal.h>
 
-QDXT::QDXT()
-{
-}
-
-void decodeColor(quint16 color, quint8 & red, quint8 & green, quint8 & blue)
+static inline void decodeColor(quint16 color, quint8 & red, quint8 & green, quint8 & blue)
 {
     red = ((color >> 11) & 0x1f) << 3;
     green = ((color >> 5) & 0x3f) << 2;
     blue = (color & 0x1f) << 3;
 }
 
-quint8 calcC2(quint8 c0, quint8 c1)
+static inline quint8 calcC2(quint8 c0, quint8 c1)
 {
     return 2*c0/3 + c1/3;
 }
 
-quint8 calcC2a(quint8 c0, quint8 c1)
+static inline quint8 calcC2a(quint8 c0, quint8 c1)
 {
     return c0/2 + c1/2;
 }
 
-quint8 calcC3(quint8 c0, quint8 c1)
+static inline quint8 calcC3(quint8 c0, quint8 c1)
 {
     return c0/3 + 2*c1/3;
 }
 
-QRgb qRgba(QRgb rgb, int a)
+static inline QRgb rgba(QRgb rgb, int a)
 {
     return qRgba(qRed(rgb), qGreen(rgb), qBlue(rgb), a);
 }
@@ -97,7 +93,7 @@ void setAplphaDXT5(QRgb * rgbArr, quint64 alphas)
     alphas >>= 16;
     for (int i = 0; i < 16; i++) {
         quint8 index = alphas & 0x07;
-        rgbArr[i] = qRgba(rgbArr[i], a[index]);
+        rgbArr[i] = rgba(rgbArr[i], a[index]);
         alphas = alphas >> 3;
     }
 }

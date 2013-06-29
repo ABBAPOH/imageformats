@@ -7,7 +7,7 @@ win32:RC_FILE += dds.rc
 
 HEADERS += dds.h \
     ddsheader.h \
-    qdxt.h
+    dxt.h
 SOURCES += dds.cpp \
     ddsheader.cpp \
-    qdxt.cpp
+    dxt.cpp

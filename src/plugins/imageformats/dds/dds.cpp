@@ -1,6 +1,6 @@
 #include "dds.h"
 #include "ddsheader.h"
-#include "qdxt.h"
+#include "dxt.h"
 
 #include <QtGui/QImage>
 

@@ -6,24 +6,24 @@
 struct DDSPixelFormat
 {
     enum DDSPixelFormatFlags {
-        DDPF_ALPHAPIXELS     = 0x00000001, // Texture contains alpha data; dwRGBAlphaBitMask contains valid data.
-        DDPF_ALPHA           = 0x00000002, // Used in some older DDS files for alpha channel only uncompressed data (dwRGBBitCount contains the alpha channel bitcount; dwABitMask contains valid data)
-        DDPF_FOURCC          = 0x00000004, // Texture contains compressed RGB data; fourCC contains valid data.
-        DDPF_PALETTEINDEXED8 = 0x00000020, // [NYI](Legacy?)The surface is 8-bit color indexed.
-        DDPF_RGB             = 0x00000040, // Texture contains uncompressed RGB data; rgbBitCount and the RGB masks (rBitMask, gBitMask, bBitMask) contain valid data.
-        DDPF_YUV             = 0x00000200, // Used in some older DDS files for YUV uncompressed data (rgbBitCount contains the YUV bit count; rBitMask contains the Y mask, gBitMask contains the U mask, bBitMask contains the V mask)
-        DDPF_LUMINANCE       = 0x00020000, // Used in some older DDS files for single channel color uncompressed data (dwRGBBitCount contains the luminance channel bit count; dwRBitMask contains the channel mask). Can be combined with DDPF_ALPHAPIXELS for a two channel DDS file.
-        DDPF_NORMAL          = 0x80000000  // [NYI](Unusable?)Nvidia specific
+        DDPF_ALPHAPIXELS     = 0x00000001,
+        DDPF_ALPHA           = 0x00000002,
+        DDPF_FOURCC          = 0x00000004,
+        DDPF_PALETTEINDEXED8 = 0x00000020,
+        DDPF_RGB             = 0x00000040,
+        DDPF_YUV             = 0x00000200,
+        DDPF_LUMINANCE       = 0x00020000,
+        DDPF_NORMAL          = 0x80000000
     };
 
-    quint32 size; // Structure size; set to 32 (bytes).
-    quint32 flags; // Values which indicate what type of data is in the surface.
-    quint32 fourCC; // Four-character codes for specifying compressed or custom formats. Possible values include: DXT1, DXT2, DXT3, DXT4, or DXT5. A FourCC of DX10 indicates the prescense of the DDS_HEADER_DXT10 extended header, and the dxgiFormat member of that structure indicates the true format. When using a four-character code, flags must include DDPF_FOURCC.
-    quint32 rgbBitCount; // Number of bits in an RGB (possibly including alpha) format. Valid when dwFlags includes DDPF_RGB, DDPF_LUMINANCE, or DDPF_YUV.
-    quint32 rBitMask; // Red (or lumiannce or Y) mask for reading color data. For instance, given the A8R8G8B8 format, the red mask would be 0x00ff0000.
-    quint32 gBitMask; // Green (or U) mask for reading color data. For instance, given the A8R8G8B8 format, the green mask would be 0x0000ff00.
-    quint32 bBitMask; // Blue (or V) mask for reading color data. For instance, given the A8R8G8B8 format, the blue mask would be 0x000000ff.
-    quint32 aBitMask; // Alpha mask for reading alpha data. flags must include DDPF_ALPHAPIXELS or DDPF_ALPHA. For instance, given the A8R8G8B8 format, the alpha mask would be 0xff000000.
+    quint32 size;
+    quint32 flags;
+    quint32 fourCC;
+    quint32 rgbBitCount;
+    quint32 rBitMask;
+    quint32 gBitMask;
+    quint32 bBitMask;
+    quint32 aBitMask;
 };
 
 QDataStream & operator>>(QDataStream &s, DDSPixelFormat &pixelFormat);
@@ -32,36 +32,47 @@ QDataStream & operator<<(QDataStream &s, const DDSPixelFormat &pixelFormat);
 struct DDSHeader
 {
     enum DDSFlags {
-        DDSD_CAPS        = 0x000001, // Required in every .dds file.
-        DDSD_HEIGHT      = 0x000002, // Required in every .dds file.
-        DDSD_WIDTH       = 0x000004, // Required in every .dds file.
-        DDSD_PITCH       = 0x000008, // Required when pitch is provided for an uncompressed texture.
-        DDSD_PIXELFORMAT = 0x001000, // Required in every .dds file.
-        DDSD_MIPMAPCOUNT = 0x020000, // Required in a mipmapped texture.
-        DDSD_LINEARSIZE  = 0x080000, // Required when pitch is provided for a compressed texture.
-        DDSD_DEPTH       = 0x800000 // Required in a depth texture.
+        DDSD_CAPS        = 0x000001,
+        DDSD_HEIGHT      = 0x000002,
+        DDSD_WIDTH       = 0x000004,
+        DDSD_PITCH       = 0x000008,
+        DDSD_PIXELFORMAT = 0x001000,
+        DDSD_MIPMAPCOUNT = 0x020000,
+        DDSD_LINEARSIZE  = 0x080000,
+        DDSD_DEPTH       = 0x800000
     };
 
     enum DDSCapsFlags {
-        DDSCAPS_COMPLEX = 0x000008, // Optional; must be used on any file that contains more than one surface (a mipmap, a cubic environment map, or volume texture).
-        DDSCAPS_TEXTURE = 0x001000, // Required
-        DDSCAPS_MIPMAP  = 0x400000 // Optional; should be used for a mipmap.
+        DDSCAPS_COMPLEX = 0x000008,
+        DDSCAPS_TEXTURE = 0x001000,
+        DDSCAPS_MIPMAP  = 0x400000
     };
 
-    quint32           size; // Size of structure. This member must be set to 124.
-    quint32           flags; // Flags to indicate which members contain valid data.
-    quint32           height; // Surface height (in pixels).
-    quint32           width; // Surface width (in pixels).
-    quint32           linearSize; // The number of bytes per scan line in an uncompressed texture; the total number of bytes in the top level texture for a compressed texture. The pitch must be quint32 aligned.
-    quint32           depth; // Depth of a volume texture (in pixels), otherwise unused.
-    quint32           mipMapCount; // Number of mipmap levels, otherwise unused.
-    quint32           reserved1[11]; // Unused.
-    DDSPixelFormat    pixelFormat; // The pixel format (see DDSPixelFormat).
-    quint32           caps; // Specifies the complexity of the surfaces stored.
-    quint32           caps2; // Additional detail about the surfaces stored.
+    enum DDSCaps2Flags {
+        DDSCAPS2_CUBEMAP           = 0x0200,
+        DDSCAPS2_CUBEMAP_POSITIVEX = 0x0400,
+        DDSCAPS2_CUBEMAP_NEGATIVEX = 0x0800,
+        DDSCAPS2_CUBEMAP_POSITIVEY = 0x1000,
+        DDSCAPS2_CUBEMAP_NEGATIVEY = 0x2000,
+        DDSCAPS2_CUBEMAP_POSITIVEZ = 0x4000,
+        DDSCAPS2_CUBEMAP_NEGATIVEZ = 0x8000,
+        DDSCAPS2_VOLUME          = 0x200000
+    };
+
+    quint32           size;
+    quint32           flags;
+    quint32           height;
+    quint32           width;
+    quint32           linearSize;
+    quint32           depth;
+    quint32           mipMapCount;
+    quint32           reserved1[11];
+    DDSPixelFormat    pixelFormat;
+    quint32           caps;
+    quint32           caps2;
     quint32           caps3;
     quint32           caps4;
-    quint32           reserved2; // Unused.
+    quint32           reserved2;
 };
 
 QDataStream & operator>>(QDataStream &s, DDSHeader &header);

@@ -5,11 +5,15 @@
 
 namespace QDXT {
 
-QImage loadDXT1(QDataStream & s, quint32 width, quint32 height);
-QImage loadDXT2(QDataStream & s, quint32 width, quint32 height);
-QImage loadDXT3(QDataStream & s, quint32 width, quint32 height);
-QImage loadDXT4(QDataStream & s, quint32 width, quint32 height);
-QImage loadDXT5(QDataStream & s, quint32 width, quint32 height);
+enum Version {
+    One = 1,
+    Two = 2,
+    Three = 3,
+    Four = 4,
+    Five = 5
+};
+
+QImage loadDXT(Version version, QDataStream & s, quint32 width, quint32 height);
 
 } // namespace QDXT
 

@@ -5,6 +5,7 @@
 #include <QtGui/QImage>
 
 #include <QDebug>
+#include <qendian.h>
 
 DDSHandler::DDSHandler()
 {
@@ -33,16 +34,10 @@ bool readData(QDataStream & s, const DDSHeader & dds, QImage &img)
 {
     quint32 flags = dds.pixelFormat.flags;
     if (flags & DDSPixelFormat::DDPF_FOURCC) {
-        if (memcmp(&dds.pixelFormat.fourCC, "DXT1", 4) == 0)
-            img = QDXT::loadDXT1(s, dds.width, dds.height);
-        if (memcmp(&dds.pixelFormat.fourCC, "DXT2", 4) == 0)
-            img = QDXT::loadDXT2(s, dds.width, dds.height);
-        if (memcmp(&dds.pixelFormat.fourCC, "DXT3", 4) == 0)
-            img = QDXT::loadDXT3(s, dds.width, dds.height);
-        if (memcmp(&dds.pixelFormat.fourCC, "DXT4", 4) == 0)
-            img = QDXT::loadDXT4(s, dds.width, dds.height);
-        if (memcmp(&dds.pixelFormat.fourCC, "DXT5", 4) == 0)
-            img = QDXT::loadDXT5(s, dds.width, dds.height);
+        if (memcmp(&dds.pixelFormat.fourCC, "DXT", 3) == 0) {
+            int version = (qToBigEndian<quint32>(dds.pixelFormat.fourCC) & 0xff) - '0';
+            img = QDXT::loadDXT(QDXT::Version(version), s, dds.width, dds.height);
+        }
     }
 
     quint32 rBitMask = dds.pixelFormat.rBitMask;

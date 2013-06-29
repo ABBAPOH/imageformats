@@ -23,11 +23,6 @@ static inline quint8 calcC3(quint8 c0, quint8 c1)
     return c0/3 + 2*c1/3;
 }
 
-static inline QRgb rgba(QRgb rgb, int a)
-{
-    return qRgba(qRed(rgb), qGreen(rgb), qBlue(rgb), a);
-}
-
 static void DXTFillColors(QRgb * result, quint16 c0, quint16 c1, quint32 table, bool dxt1a = false)
 {
     quint8 r[4];
@@ -68,26 +63,20 @@ static void DXTFillColors(QRgb * result, quint16 c0, quint16 c1, quint32 table, 
     }
 }
 
-static void setAplphaDXT2(QRgb * rgbArr, quint64 alphas)
+static void setAplphaDXT23(QRgb * rgbArr, quint64 alphas, bool premultiplied)
 {
     for (int i = 0; i < 16; i++) {
         quint8 alpha = 16*(alphas & 0x0f);
         QRgb rgb = rgbArr[i];
-        rgbArr[i] = qRgba(qRed(rgb)*alpha/0xff, qGreen(rgb)*alpha/0xff, qBlue(rgb)*alpha/0xff, alpha);
+        if (premultiplied) // DXT2
+            rgbArr[i] = qRgba(qRed(rgb)*alpha/0xff, qGreen(rgb)*alpha/0xff, qBlue(rgb)*alpha/0xff, alpha);
+        else // DXT3
+            rgbArr[i] = qRgba(qRed(rgb), qGreen(rgb), qBlue(rgb), alpha);
         alphas = alphas >> 4;
     }
 }
 
-static void setAplphaDXT3(QRgb * rgbArr, quint64 alphas)
-{
-    for (int i = 0; i < 16; i++) {
-        quint8 alpha = 16*(alphas & 0x0f);
-        rgbArr[i] = rgba(rgbArr[i], alpha);
-        alphas = alphas >> 4;
-    }
-}
-
-static void setAplphaDXT45(QRgb * rgbArr, quint64 alphas, bool premultiplied = false)
+static void setAplphaDXT45(QRgb * rgbArr, quint64 alphas, bool premultiplied)
 {
     quint8 a[8];
     a[0] = alphas & 0xff;
@@ -120,128 +109,49 @@ static void setAplphaDXT45(QRgb * rgbArr, quint64 alphas, bool premultiplied = f
     }
 }
 
-QImage QDXT::loadDXT1(QDataStream & s, quint32 width, quint32 height)
+QImage QDXT::loadDXT(QDXT::Version version, QDataStream &s, quint32 width, quint32 height)
 {
-    QImage img(width, height, QImage::Format_ARGB32);
+    QImage::Format format = (version == Two || version == Four) ?
+                QImage::Format_ARGB32_Premultiplied : QImage::Format_ARGB32;
 
-    for (quint32 i = 0; i < height/4; i++)
-        for (quint32 j = 0; j < width/4; j++) {
-            quint16 c0, c1;  // color
-            quint32 table; // indexes for colors
-            s >> c0;
-            s >> c1;
-            s >> table;
-            QRgb arr[16];
-            DXTFillColors(arr, c0, c1, table, c0 <= c1);
+    QImage img(width, height, format);
 
-            for (int k = 0; k < 4; k++)
-                for (int l = 0; l < 4; l++) {
-                    img.setPixel(j*4+l, i*4+k, arr[k*4+l]);
-                }
-        }
-    return img;
-}
-
-QImage QDXT::loadDXT2(QDataStream &s, quint32 width, quint32 height)
-{
-    QImage img(width, height, QImage::Format_ARGB32_Premultiplied);
-
-    for (quint32 i = 0; i < height/4; i++)
+    for (quint32 i = 0; i < height/4; i++) {
         for (quint32 j = 0; j < width/4; j++) {
             quint64 alpha;
             quint16 c0, c1;
             quint32 table;
-            s >> alpha;
+            if (version != One)
+                s >> alpha;
             s >> c0;
             s >> c1;
             s >> table;
 
             QRgb arr[16];
-            DXTFillColors(arr, c0, c1, table);
-            setAplphaDXT2(arr, alpha);
+
+            DXTFillColors(arr, c0, c1, table, version == One && c0 <= c1);
+            switch (version) {
+            case Two:
+                setAplphaDXT23(arr, alpha, true);
+                break;
+            case Three:
+                setAplphaDXT23(arr, alpha, false);
+                break;
+            case Four:
+                setAplphaDXT45(arr, alpha, true);
+                break;
+            case Five:
+                setAplphaDXT45(arr, alpha, false);
+                break;
+            default:
+                break;
+            }
 
             for (int k = 0; k < 4; k++)
                 for (int l = 0; l < 4; l++) {
                    img.setPixel(j*4+l, i*4+k, arr[k*4+l]);
             }
         }
-    return img;
-}
-
-QImage QDXT::loadDXT3(QDataStream &s, quint32 width, quint32 height)
-{
-    QImage img(width, height, QImage::Format_ARGB32);
-
-    for (quint32 i = 0; i < height/4; i++)
-        for (quint32 j = 0; j < width/4; j++) {
-            quint64 alpha;
-            quint16 c0, c1;
-            quint32 table;
-            s >> alpha;
-            s >> c0;
-            s >> c1;
-            s >> table;
-
-            QRgb arr[16];
-            DXTFillColors(arr, c0, c1, table);
-            setAplphaDXT3(arr, alpha);
-
-            for (int k = 0; k < 4; k++)
-                for (int l = 0; l < 4; l++) {
-                   img.setPixel(j*4+l, i*4+k, arr[k*4+l]);
-            }
-        }
-    return img;
-}
-
-QImage QDXT::loadDXT4(QDataStream &s, quint32 width, quint32 height)
-{
-    QImage img(width, height, QImage::Format_ARGB32_Premultiplied);
-
-    for (quint32 i = 0; i < height/4; i++)
-        for (quint32 j = 0; j < width/4; j++) {
-            quint64 alpha;
-            quint16 c0, c1;
-            quint32 table;
-            s >> alpha;
-            s >> c0;
-            s >> c1;
-            s >> table;
-
-            QRgb arr[16];
-            DXTFillColors(arr, c0, c1, table);
-            setAplphaDXT45(arr, alpha, true);
-
-            for (int k = 0; k < 4; k++)
-                for (int l = 0; l < 4; l++) {
-                   img.setPixel(j*4+l, i*4+k, arr[k*4+l]);
-            }
-        }
-    return img;
-}
-
-QImage QDXT::loadDXT5(QDataStream & s, quint32 width, quint32 height)
-{
-    QImage img(width, height, QImage::Format_ARGB32);
-
-    for (quint32 i = 0; i < height/4; i++)
-        for (quint32 j = 0; j < width/4; j++) {
-            quint64 alpha; // together 128bit !!! calculate alpha!!!
-            quint16 c0, c1;  // color
-            quint32 table; // indexes for colors
-            s >> alpha;
-            s >> c0;
-            s >> c1;
-            s >> table;
-
-            QRgb arr[16];
-            DXTFillColors(arr, c0, c1, table);
-            setAplphaDXT45(arr, alpha);
-
-            for (int k = 0; k < 4; k++)
-                for (int l = 0; l < 4; l++) {
-                   img.setPixel(j*4+l, i*4+k, arr[k*4+l]);
-            }
-        }
+    }
     return img;
 }

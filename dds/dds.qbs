@@ -10,6 +10,7 @@ DynamicLibrary {
         "dds.h",
         "dds.cpp",
         "ddsheader.h",
+        "ddsheader.cpp",
         "qdxt.h",
         "qdxt.cpp"
     ]

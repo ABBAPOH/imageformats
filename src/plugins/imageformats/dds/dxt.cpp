@@ -68,6 +68,16 @@ static void DXTFillColors(QRgb * result, quint16 c0, quint16 c1, quint32 table, 
     }
 }
 
+static void setAplphaDXT2(QRgb * rgbArr, quint64 alphas)
+{
+    for (int i = 0; i < 16; i++) {
+        quint8 alpha = 16*(alphas & 0x0f);
+        QRgb rgb = rgbArr[i];
+        rgbArr[i] = qRgba(qRed(rgb)*alpha/0xff, qGreen(rgb)*alpha/0xff, qBlue(rgb)*alpha/0xff, alpha);
+        alphas = alphas >> 4;
+    }
+}
+
 static void setAplphaDXT3(QRgb * rgbArr, quint64 alphas)
 {
     for (int i = 0; i < 16; i++) {
@@ -123,6 +133,32 @@ QImage QDXT::loadDXT1(QDataStream & s, quint32 width, quint32 height)
                 for (int l = 0; l < 4; l++) {
                     img.setPixel(j*4+l, i*4+k, arr[k*4+l]);
                 }
+        }
+    return img;
+}
+
+QImage QDXT::loadDXT2(QDataStream &s, quint32 width, quint32 height)
+{
+    QImage img(width, height, QImage::Format_ARGB32_Premultiplied);
+
+    for (quint32 i = 0; i < height/4; i++)
+        for (quint32 j = 0; j < width/4; j++) {
+            quint64 alpha;
+            quint16 c0, c1;
+            quint32 table;
+            s >> alpha;
+            s >> c0;
+            s >> c1;
+            s >> table;
+
+            QRgb arr[16];
+            DXTFillColors(arr, c0, c1, table);
+            setAplphaDXT2(arr, alpha);
+
+            for (int k = 0; k < 4; k++)
+                for (int l = 0; l < 4; l++) {
+                   img.setPixel(j*4+l, i*4+k, arr[k*4+l]);
+            }
         }
     return img;
 }

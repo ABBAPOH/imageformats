@@ -33,8 +33,10 @@ bool readData(QDataStream & s, const DDSHeader & dds, QImage &img)
 {
     quint32 flags = dds.pixelFormat.flags;
     if (flags & DDSPixelFormat::DDPF_FOURCC) {
-            if (memcmp(&dds.pixelFormat.fourCC, "DXT1", 4) == 0)
+        if (memcmp(&dds.pixelFormat.fourCC, "DXT1", 4) == 0)
             img = QDXT::loadDXT1(s, dds.width, dds.height);
+        if (memcmp(&dds.pixelFormat.fourCC, "DXT2", 4) == 0)
+            img = QDXT::loadDXT2(s, dds.width, dds.height);
         if (memcmp(&dds.pixelFormat.fourCC, "DXT3", 4) == 0)
             img = QDXT::loadDXT3(s, dds.width, dds.height);
         if (memcmp(&dds.pixelFormat.fourCC, "DXT5", 4) == 0)

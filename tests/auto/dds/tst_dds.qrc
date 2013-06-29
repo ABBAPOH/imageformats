@@ -2,7 +2,10 @@
     <qresource prefix="/">
         <file>data/DXT1.dds</file>
         <file>data/DXT1.png</file>
+        <file>data/DXT2.dds</file>
+        <file>data/DXT2.png</file>
         <file>data/DXT3.dds</file>
+        <file>data/DXT3.png</file>
         <file>data/DXT5.dds</file>
         <file>data/DXT5.png</file>
         <file>data/RGBA8.dds</file>

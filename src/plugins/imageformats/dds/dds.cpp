@@ -64,8 +64,8 @@ bool readData(QDataStream & s, const DDSHeader & dds, QImage &img)
         } else {
             img = QImage(dds.width, dds.height, QImage::Format_RGB32);
         }
-        for (int i = 0; i < dds.width; i++)
-            for (int j = 0; j < dds.height; j++) {
+        for (quint32 i = 0; i < dds.width; i++)
+            for (quint32 j = 0; j < dds.height; j++) {
                 quint32 color;
                 s >> color;
                 int red = (color & rBitMask) >> redShift;

@@ -7,8 +7,8 @@ class QDXT
 {
 public:
     QDXT();
-    static QImage loadDXT1(QDataStream & s, int width, int height);
-    static QImage loadDXT5(QDataStream & s, int width, int height);
+    static QImage loadDXT1(QDataStream & s, quint32 width, quint32 height);
+    static QImage loadDXT5(QDataStream & s, quint32 width, quint32 height);
 };
 
 #endif // QDXT_H

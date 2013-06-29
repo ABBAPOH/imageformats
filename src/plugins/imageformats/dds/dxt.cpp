@@ -87,7 +87,7 @@ static void setAplphaDXT3(QRgb * rgbArr, quint64 alphas)
     }
 }
 
-void setAplphaDXT5(QRgb * rgbArr, quint64 alphas)
+static void setAplphaDXT45(QRgb * rgbArr, quint64 alphas, bool premultiplied = false)
 {
     quint8 a[8];
     a[0] = alphas & 0xff;
@@ -110,7 +110,12 @@ void setAplphaDXT5(QRgb * rgbArr, quint64 alphas)
     alphas >>= 16;
     for (int i = 0; i < 16; i++) {
         quint8 index = alphas & 0x07;
-        rgbArr[i] = rgba(rgbArr[i], a[index]);
+        quint8 alpha = a[index];
+        QRgb rgb = rgbArr[i];
+        if (premultiplied) // DXT4
+            rgbArr[i] = qRgba(qRed(rgb)*alpha/0xff, qGreen(rgb)*alpha/0xff, qBlue(rgb)*alpha/0xff, alpha);
+        else // DXT5
+            rgbArr[i] = qRgba(qRed(rgb), qGreen(rgb), qBlue(rgb), alpha);
         alphas = alphas >> 3;
     }
 }
@@ -189,6 +194,32 @@ QImage QDXT::loadDXT3(QDataStream &s, quint32 width, quint32 height)
     return img;
 }
 
+QImage QDXT::loadDXT4(QDataStream &s, quint32 width, quint32 height)
+{
+    QImage img(width, height, QImage::Format_ARGB32_Premultiplied);
+
+    for (quint32 i = 0; i < height/4; i++)
+        for (quint32 j = 0; j < width/4; j++) {
+            quint64 alpha;
+            quint16 c0, c1;
+            quint32 table;
+            s >> alpha;
+            s >> c0;
+            s >> c1;
+            s >> table;
+
+            QRgb arr[16];
+            DXTFillColors(arr, c0, c1, table);
+            setAplphaDXT45(arr, alpha, true);
+
+            for (int k = 0; k < 4; k++)
+                for (int l = 0; l < 4; l++) {
+                   img.setPixel(j*4+l, i*4+k, arr[k*4+l]);
+            }
+        }
+    return img;
+}
+
 QImage QDXT::loadDXT5(QDataStream & s, quint32 width, quint32 height)
 {
     QImage img(width, height, QImage::Format_ARGB32);
@@ -205,7 +236,7 @@ QImage QDXT::loadDXT5(QDataStream & s, quint32 width, quint32 height)
 
             QRgb arr[16];
             DXTFillColors(arr, c0, c1, table);
-            setAplphaDXT5(arr, alpha);
+            setAplphaDXT45(arr, alpha);
 
             for (int k = 0; k < 4; k++)
                 for (int l = 0; l < 4; l++) {

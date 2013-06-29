@@ -39,6 +39,8 @@ bool readData(QDataStream & s, const DDSHeader & dds, QImage &img)
             img = QDXT::loadDXT2(s, dds.width, dds.height);
         if (memcmp(&dds.pixelFormat.fourCC, "DXT3", 4) == 0)
             img = QDXT::loadDXT3(s, dds.width, dds.height);
+        if (memcmp(&dds.pixelFormat.fourCC, "DXT4", 4) == 0)
+            img = QDXT::loadDXT4(s, dds.width, dds.height);
         if (memcmp(&dds.pixelFormat.fourCC, "DXT5", 4) == 0)
             img = QDXT::loadDXT5(s, dds.width, dds.height);
     }

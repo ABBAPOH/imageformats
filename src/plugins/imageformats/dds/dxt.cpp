@@ -28,9 +28,8 @@ static inline QRgb rgba(QRgb rgb, int a)
     return qRgba(qRed(rgb), qGreen(rgb), qBlue(rgb), a);
 }
 
-QRgb * DXTFillColors(quint16 c0, quint16 c1, quint32 table, bool dxt1a = false)
+static void DXTFillColors(QRgb * result, quint16 c0, quint16 c1, quint32 table, bool dxt1a = false)
 {
-    QRgb * result = new QRgb[16];
     quint8 r[4];
     quint8 g[4];
     quint8 b[4];
@@ -67,7 +66,6 @@ QRgb * DXTFillColors(quint16 c0, quint16 c1, quint32 table, bool dxt1a = false)
         int alpha = a[index];
         result[k*4+l] = qRgba(red, green, blue, alpha);
     }
-    return result;
 }
 
 void setAplphaDXT5(QRgb * rgbArr, quint64 alphas)
@@ -109,17 +107,16 @@ QImage QDXT::loadDXT1(QDataStream & s, quint32 width, quint32 height)
             s >> c0;
             s >> c1;
             s >> table;
-            QRgb * arr = 0;
+            QRgb arr[16];
             if (c0 > c1)
-                arr = DXTFillColors(c0, c1, table, false);
+                DXTFillColors(arr, c0, c1, table, false);
             else
-                arr = DXTFillColors(c0, c1, table, true);
+                DXTFillColors(arr, c0, c1, table, true);
 
             for (int k = 0; k < 4; k++)
                 for (int l = 0; l < 4; l++) {
                     img.setPixel(j*4+l, i*4+k, arr[k*4+l]);
                 }
-            delete arr;
         }
     return img;
 }
@@ -138,14 +135,14 @@ QImage QDXT::loadDXT5(QDataStream & s, quint32 width, quint32 height)
             s >> c1;
             s >> table;
 
-            QRgb * arr = DXTFillColors(c0, c1, table);
+            QRgb arr[16];
+            DXTFillColors(arr, c0, c1, table);
             setAplphaDXT5(arr, alpha);
 
             for (int k = 0; k < 4; k++)
                 for (int l = 0; l < 4; l++) {
                    img.setPixel(j*4+l, i*4+k, arr[k*4+l]);
             }
-            delete arr;
         }
     return img;
 }

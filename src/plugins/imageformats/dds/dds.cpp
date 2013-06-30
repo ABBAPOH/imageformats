@@ -7,6 +7,16 @@
 #include <QDebug>
 #include <qendian.h>
 
+// All magic numbers are little-endian as long as dds format has little
+// endian byte order
+static const quint32 ddsMagic = 0x20534444; // "DDS "
+
+static const quint32 dxt1Magic = 0x31545844; // "DXT1"
+static const quint32 dxt2Magic = 0x32545844; // "DXT2"
+static const quint32 dxt3Magic = 0x33545844; // "DXT3"
+static const quint32 dxt4Magic = 0x34545844; // "DXT4"
+static const quint32 dxt5Magic = 0x35545844; // "DXT5"
+
 DDSHandler::DDSHandler()
 {
 }
@@ -34,9 +44,24 @@ bool readData(QDataStream & s, const DDSHeader & dds, QImage &img)
 {
     quint32 flags = dds.pixelFormat.flags;
     if (flags & DDSPixelFormat::DDPF_FOURCC) {
-        if (memcmp(&dds.pixelFormat.fourCC, "DXT", 3) == 0) {
-            int version = (qToBigEndian<quint32>(dds.pixelFormat.fourCC) & 0xff) - '0';
-            img = QDXT::loadDXT(QDXT::Version(version), s, dds.width, dds.height);
+        switch (dds.pixelFormat.fourCC) {
+        case dxt1Magic:
+            img = QDXT::loadDXT(QDXT::One, s, dds.width, dds.height);
+            break;
+        case dxt2Magic:
+            img = QDXT::loadDXT(QDXT::Two, s, dds.width, dds.height);
+            break;
+        case dxt3Magic:
+            img = QDXT::loadDXT(QDXT::Three, s, dds.width, dds.height);
+            break;
+        case dxt4Magic:
+            img = QDXT::loadDXT(QDXT::Four, s, dds.width, dds.height);
+            break;
+        case dxt5Magic:
+            img = QDXT::loadDXT(QDXT::Five, s, dds.width, dds.height);
+            break;
+        default:
+            break;
         }
     }
 
@@ -105,11 +130,7 @@ bool DDSHandler::write(const QImage &outImage)
     QDataStream s( device() );
     s.setByteOrder(QDataStream::LittleEndian);
 
-    // Magic
-    s << 'D';
-    s << 'D';
-    s << 'S';
-    s << ' ';
+    s << ddsMagic;
 
     // Filling header
     DDSHeader dds;
@@ -172,7 +193,6 @@ bool DDSHandler::canRead(QIODevice *device)
 
     return device->peek(4) == "DDS ";
 }
-
 
 // ===================== DDSPlugin =====================
 

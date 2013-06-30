@@ -198,12 +198,12 @@ bool DDSHandler::canRead(QIODevice *device)
 
 QStringList DDSPlugin::keys() const
 {
-    return QStringList() << "dds" << "DDS";
+    return QStringList() << "dds";
 }
 
 QImageIOPlugin::Capabilities DDSPlugin::capabilities(QIODevice *device, const QByteArray &format) const
 {
-    if (format == "dds" || format == "DDS")
+    if (format.toLower() == "dds")
         return Capabilities(CanRead | CanWrite);
     if (!format.isEmpty())
         return 0;

@@ -203,11 +203,9 @@ QStringList DDSPlugin::keys() const
 
 QImageIOPlugin::Capabilities DDSPlugin::capabilities(QIODevice *device, const QByteArray &format) const
 {
-    if (format.toLower() == "dds")
-        return Capabilities(CanRead | CanWrite);
-    if (!format.isEmpty())
+    if (!device || !device->isOpen())
         return 0;
-    if (!device->isOpen())
+    if (format.toLower() != "dds")
         return 0;
 
     Capabilities cap;

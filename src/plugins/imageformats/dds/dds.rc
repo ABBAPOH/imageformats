@@ -1,4 +1,4 @@
-﻿#if !defined(Q_CC_BOR)
+#if !defined(Q_CC_BOR)
 # if defined(UNDER_CE) && UNDER_CE >= 400
 #  include <winbase.h>
 # else

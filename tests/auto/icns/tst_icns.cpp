@@ -8,7 +8,6 @@ class IcnsTest: public QObject
 private slots:
     void readImage_data();
     void readImage();
-    void testIcns();
 };
 
 static bool compareImages(const QImage &first, const QImage &second)
@@ -56,21 +55,6 @@ void IcnsTest::readImage()
     QCOMPARE(image.size(), size);
     QVERIFY(compareImages(image, QImage(sourcePath)) == true);
     */
-}
-
-void IcnsTest::testIcns()
-{
-    QImageReader reader("://data/andromeda.icns");
-    QVERIFY(reader.canRead());
-    for (int i = 0; i < reader.imageCount(); ++i) {
-        reader.jumpToImage(i);
-        QImage image = reader.read();
-        image.save(QDir::tempPath().append(QString("/tst_icns/Icns%1.png").arg(i)));
-    }
-    reader.jumpToImage(0);
-    QImage image = reader.read();
-    QVERIFY(!image.isNull());
-//    QCOMPARE(image.size(), size);
 }
 
 QTEST_MAIN(IcnsTest)

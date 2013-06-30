@@ -32,10 +32,12 @@ bool DDSHandler::canRead() const
 
 int shift(quint32 mask)
 {
-    int result = 32;
-    while (mask != 0) {
-        result--;
-        mask <<= 1;
+    if (mask == 0)
+        return 0;
+    int result = 0;
+    while ( (mask & 1) == 0 ) {
+        result++;
+        mask >>= 1;
     }
     return result;
 }
@@ -63,7 +65,11 @@ bool readData(QDataStream & s, const DDSHeader & dds, QImage &img)
         default:
             break;
         }
+        return true;
     }
+
+    bool hasAlpha = dds.pixelFormat.flags & DDSPixelFormat::DDPF_ALPHAPIXELS ||
+            dds.pixelFormat.flags & DDSPixelFormat::DDPF_ALPHA;
 
     quint32 rBitMask = dds.pixelFormat.rBitMask;
     quint32 gBitMask = dds.pixelFormat.gBitMask;
@@ -71,31 +77,33 @@ bool readData(QDataStream & s, const DDSHeader & dds, QImage &img)
     int redShift = shift(rBitMask);
     int greenShift = shift(gBitMask);
     int blueShift = shift(bBitMask);
-    quint32 aBitMask = 0;
-    int alphaShift = 0;
-    if (dds.pixelFormat.flags & DDSPixelFormat::DDPF_ALPHAPIXELS) {
-        aBitMask = dds.pixelFormat.aBitMask;
-        alphaShift = shift(aBitMask);
-    }
+    quint32 aBitMask = hasAlpha ? aBitMask = dds.pixelFormat.aBitMask : 0;
+    int alphaShift = hasAlpha ? shift(aBitMask) : 0;
 
     if (flags & DDSPixelFormat::DDPF_RGB) {
-        if (dds.pixelFormat.rgbBitCount != 32) {
-            qWarning() << "can't read image with bit count " << dds.pixelFormat.rgbBitCount;
-            return false;
-        }
         if (dds.pixelFormat.flags & DDSPixelFormat::DDPF_ALPHAPIXELS) {
             img = QImage(dds.width, dds.height, QImage::Format_ARGB32);
         } else {
             img = QImage(dds.width, dds.height, QImage::Format_RGB32);
         }
+
         for (quint32 i = 0; i < dds.width; i++)
             for (quint32 j = 0; j < dds.height; j++) {
-                quint32 color;
-                s >> color;
+                quint32 color = 0;
+                double multiplier = 256.0/(1 << (dds.pixelFormat.rgbBitCount / 4));
+                for (unsigned i = 0; i < dds.pixelFormat.rgbBitCount/8; ++i) {
+                    quint8 tmp;
+                    s >> tmp;
+                    color = color + (quint32(tmp) << 8*i);
+                }
                 int red = (color & rBitMask) >> redShift;
                 int green = (color & gBitMask) >> greenShift;
                 int blue = (color & bBitMask) >> blueShift;
                 int alpha = (color & aBitMask) >> alphaShift;
+                red *= multiplier;
+                green *= multiplier;
+                blue *= multiplier;
+                alpha *= multiplier;
                 img.setPixel(j, i, qRgba(red, green, blue, alpha));
             }
     }

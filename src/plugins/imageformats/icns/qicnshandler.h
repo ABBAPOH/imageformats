@@ -15,14 +15,13 @@ public:
     QImage iconAt(int index);
 
 private:
-    void scanBlocks();
+    bool scanBlocks();
 
     QIODevice *m_iodevice;
     QDataStream m_stream;
 
     bool m_scanned;
     QVector<IcnsIconEntry> m_icons;
-    QVector<IcnsTOCEntry> m_toc;
 };
 
 class QIcnsHandler : public QImageIOHandler

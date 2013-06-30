@@ -6,24 +6,11 @@
 
 #include <QDebug>
 
-QDataStream &operator>>(QDataStream &in, IcnsHeader &p)
+QDataStream &operator>>(QDataStream &in, IcnsBlockHeader &p)
 {
-    in >> p.magic[0] >> p.magic[1] >> p.magic[2] >> p.magic[3];
-    in >> p.size;
-    return in;
-}
 
-QDataStream &operator>>(QDataStream &in, IcnsDataBlockHeader &p)
-{
-    in >> p.ostype[0] >> p.ostype[1] >> p.ostype[2] >> p.ostype[3];
-    in >> p.blockLength;
-    return in;
-}
-
-QDataStream &operator>>(QDataStream &in, IcnsTOCEntry &p)
-{
-    in >> p.ostype[0] >> p.ostype[1] >> p.ostype[2] >> p.ostype[3];
-    in >> p.size;
+    in.readRawData((char*)p.magic,sizeof(quint32));
+    in >> p.length;
     return in;
 }
 
@@ -35,90 +22,99 @@ IcnsReader::IcnsReader(QIODevice *iodevice)
     m_stream.setByteOrder(QDataStream::BigEndian);
 }
 
-void IcnsReader::scanBlocks()
+bool IcnsReader::scanBlocks()
 {
-    if(m_iodevice) {
-        qint64 oldPos = m_iodevice->pos();
+    Q_ASSERT(m_iodevice);
+    m_iodevice->seek(0);
 
-        bool canRead = true;
-        if(m_iodevice->seek(sizeof(IcnsHeader))) {
-            while(canRead) {
-                canRead = (!m_stream.atEnd() &&
-                           (m_iodevice->size() - m_iodevice->pos()) > sizeof(IcnsDataBlockHeader));
-                if(canRead) {
-                    IcnsDataBlockHeader blockHeader;
-                    m_stream >> blockHeader;
+    IcnsBlockHeader blockHeader;
 
-                    QByteArray magic((char *)blockHeader.ostype,4);
-                    if(magic == "TOC ") {
-                        // A Table of Contents file. Mmm... A table of contents! *drool*
-                        // Actually, it doesn't have any use for now, but who knows?
-                        quint32 tocDataLength = blockHeader.blockLength - sizeof(IcnsDataBlockHeader);
-                        quint32 tocEntriesNum = tocDataLength / sizeof(IcnsTOCEntry);
-                        for(uint i = 0; i < tocEntriesNum; i++) {
-                            IcnsTOCEntry tocEntry;
-                            m_stream >> tocEntry;
-                            m_toc << tocEntry;
-                        }
-                    }
-                    else if(magic == "icnV")
-                        // Icon Composer version - is there any use? Information?
-                        m_stream.skipRawData(4);
-                    else {
-                        // Assume it is an image format - map the image and skip to next block
-                        IcnsIconEntry icon;
-                        icon.header = blockHeader;
-                        icon.imageDataOffset = m_iodevice->pos();
-                        m_icons << icon;
-                        quint32 imageDataLength = icon.header.blockLength - sizeof(IcnsDataBlockHeader);
-                        m_stream.skipRawData(m_iodevice->pos() + imageDataLength);
-                    }
-                }
+    while (!m_stream.atEnd()) {
+
+        m_stream >> blockHeader;
+        if (m_stream.status() == QDataStream::ReadPastEnd)
+            return false;
+
+        switch (blockHeader.magic) {
+        case icns:
+            if (m_iodevice->size() != blockHeader.length)
+                return false;
+            break;
+        case TOC_: {
+            const quint32 tocEntriesN = (blockHeader.length - IcnsBlockHeaderSize) / IcnsBlockHeaderSize;
+            for(uint i = 0; i < tocEntriesN; i++) {
+                IcnsBlockHeader tocEntry;
+                m_stream >> tocEntry;
+
+                IcnsIconEntry icon;
+                icon.header = tocEntry;
+
+                const quint32 imgDataBaseOffset = (i == 0) ?
+                            (blockHeader.length + IcnsBlockHeaderSize*2) : // offset for the first icon
+                            (blockHeader.length + IcnsBlockHeaderSize); // offset of the first block
+                quint32 imgDataOffset = imgDataBaseOffset;
+                for(uint n = 0; n < i; n++)
+                    imgDataOffset += m_icons.at(n).header.length;
+
+                icon.imageDataOffset = imgDataOffset;
+                m_icons << icon;
             }
-            m_iodevice->seek(oldPos);
+            break;
         }
-        m_scanned = true;
+        case icnV:
+            m_stream.skipRawData(4);
+            break;
+        default: {
+            IcnsIconEntry icon;
+            icon.header = blockHeader;
+            icon.imageDataOffset = m_iodevice->pos();
+            m_icons << icon;
+            quint32 imageDataLength = icon.header.length - IcnsBlockHeaderSize;
+            m_stream.skipRawData(imageDataLength);
+            break;
+        }
+        }
     }
+    return true;
 }
 
 int IcnsReader::count()
 {
     if(!m_scanned)
-        scanBlocks();
+        m_scanned = scanBlocks();
     return m_icons.size();
 }
 
-#include <QFile>
 QImage IcnsReader::iconAt(int index)
 {
     QImage img;
 
     if(!m_scanned)
-        scanBlocks();
+        m_scanned = scanBlocks();
 
     IcnsIconEntry iconEntry = m_icons.at(index);
-    quint32 imageDataSize = iconEntry.header.blockLength - sizeof(iconEntry.header);
+    quint32 imageDataSize = iconEntry.header.length - IcnsBlockHeaderSize;
 
     if(m_iodevice->seek(iconEntry.imageDataOffset)) {
 
         const quint64 pngMagic = 0x89504E470D0A1A0A;
-        const quint64 readMagic = qFromBigEndian<quint64>((const uchar*)m_iodevice->peek(8).constData());;
+
+        quint64 readMagic = 0;
+        m_stream.readRawData((char*)readMagic,sizeof(quint64));
+
         const bool isPngImage = (readMagic == pngMagic);
 
-//        if(isPngImage) {
+        if(isPngImage) {
             QByteArray imageData;
             imageData.resize(imageDataSize);
             m_stream.readRawData(imageData.data(), imageDataSize);
-            QFile f(QString("/Users/arch/Desktop/folder2/%1").arg(index));
-            f.open(QIODevice::WriteOnly);
-            f.write(imageData);
             qDebug() << imageData;
             return QImage::fromData(imageData, "png");
-//        }
-//        else
-//        {
+        }
+        else
+        {
             //To do
-//        }
+        }
     }
 
     return img;

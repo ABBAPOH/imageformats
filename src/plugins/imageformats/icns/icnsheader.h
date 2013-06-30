@@ -3,27 +3,23 @@
 
 #include <QtCore/QtGlobal>
 
-struct IcnsHeader
+struct IcnsBlockHeader
 {
-    quint8 magic[4];
-    quint32 size;
+    quint32 magic;
+    quint32 length;
 };
 
-struct IcnsDataBlockHeader
-{
-    quint8 ostype[4];
-    quint32 blockLength;
-};
+#define IcnsBlockHeaderSize 8
 
-struct IcnsTOCEntry
-{
-    quint8 ostype[4];
-    quint32 size;
+enum IcnsMagic {
+    icns = 0x69636E73,
+    TOC_ = 0x544F4320,
+    icnV = 0x69636E56
 };
 
 struct IcnsIconEntry
 {
-    IcnsDataBlockHeader header;
+    IcnsBlockHeader header;
     quint32 imageDataOffset; // Calculate it from the beginning of the file/device
     // quint32 imageDataSize = header.blockLength - sizeof(header)
 };

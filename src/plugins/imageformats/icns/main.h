@@ -12,9 +12,5 @@ class QIcnsPlugin : public QImageIOPlugin
 public:
     Capabilities capabilities(QIODevice *device, const QByteArray &format) const;
     QImageIOHandler *create(QIODevice *device, const QByteArray &format = QByteArray()) const;
+    QStringList keys() const { return QStringList() << "icns"; }
 };
-
-#if QT_VERSION < 0x050000
-Q_EXPORT_STATIC_PLUGIN(IcnsPlugin)
-Q_EXPORT_PLUGIN2(icns, IcnsPlugin)
-#endif

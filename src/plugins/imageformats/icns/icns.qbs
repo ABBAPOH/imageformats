@@ -2,6 +2,7 @@ import qbs.base 1.0
 
 DynamicLibrary {
     name : "qicns"
+    destinationDirectory: "imageformats"
 
     Depends { name: "cpp" }
     Depends { name: "Qt"; submodules: ["core", "gui"] }

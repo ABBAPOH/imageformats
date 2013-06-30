@@ -4,4 +4,7 @@ Project {
     SubProject {
         filePath: "dds/dds.qbs"
     }
+    SubProject {
+        filePath: "icns/icns.qbs"
+    }
 }

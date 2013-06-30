@@ -49,7 +49,7 @@ void IcnsReader::scanBlocks()
                     IcnsDataBlockHeader blockHeader;
                     m_stream >> blockHeader;
 
-                    QByteArray magic(*blockHeader.ostype,4);
+                    QByteArray magic((char *)blockHeader.ostype,4);
                     if(magic == "TOC ") {
                         // A Table of Contents file. Mmm... A table of contents! *drool*
                         // Actually, it doesn't have any use for now, but who knows?
@@ -88,6 +88,7 @@ int IcnsReader::count()
     return m_icons.size();
 }
 
+#include <QFile>
 QImage IcnsReader::iconAt(int index)
 {
     QImage img;
@@ -104,16 +105,20 @@ QImage IcnsReader::iconAt(int index)
         const quint64 readMagic = qFromBigEndian<quint64>((const uchar*)m_iodevice->peek(8).constData());;
         const bool isPngImage = (readMagic == pngMagic);
 
-        if(isPngImage) {
+//        if(isPngImage) {
             QByteArray imageData;
             imageData.resize(imageDataSize);
             m_stream.readRawData(imageData.data(), imageDataSize);
+            QFile f(QString("/Users/arch/Desktop/folder2/%1").arg(index));
+            f.open(QIODevice::WriteOnly);
+            f.write(imageData);
+            qDebug() << imageData;
             return QImage::fromData(imageData, "png");
-        }
-        else
-        {
+//        }
+//        else
+//        {
             //To do
-        }
+//        }
     }
 
     return img;

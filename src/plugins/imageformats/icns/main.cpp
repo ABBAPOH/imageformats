@@ -24,3 +24,9 @@ QImageIOHandler *QIcnsPlugin::create(QIODevice *device, const QByteArray &format
     handler->setFormat(format);
     return handler;
 }
+
+#if QT_VERSION < 0x050000
+Q_EXPORT_STATIC_PLUGIN(QIcnsPlugin)
+Q_EXPORT_PLUGIN2(icns, QIcnsPlugin)
+#endif
+

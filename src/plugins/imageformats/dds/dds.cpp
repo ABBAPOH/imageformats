@@ -102,7 +102,8 @@ bool readData(QDataStream & s, const DDSHeader & dds, QImage &img)
     masks[Alpha] = hasAlpha ? dds.pixelFormat.aBitMask : 0;
     for (int i = 0; i < ColorCount; ++i) {
         shifts[i] = shift(masks[i]);
-        multipliers[i] = 256.0/(1 << length(masks[i]));
+        multipliers[i] = 8.0/(length(masks[i]));
+        qDebug() << QString::number(masks[i], 16) << shifts[i] << multipliers[i] << length(masks[i]);
     }
 
     if (flags & DDSPixelFormat::DDPF_RGB) {
@@ -112,20 +113,21 @@ bool readData(QDataStream & s, const DDSHeader & dds, QImage &img)
             img = QImage(dds.width, dds.height, QImage::Format_RGB32);
         }
 
-        for (quint32 i = 0; i < dds.width; i++)
-            for (quint32 j = 0; j < dds.height; j++) {
+        for (quint32 y = 0; y < dds.height; y++) {
+            for (quint32 x = 0; x < dds.width; x++) {
                 quint32 color = 0;
-                for (unsigned i = 0; i < dds.pixelFormat.rgbBitCount/8; ++i) {
+                for (unsigned bit = 0; bit < dds.pixelFormat.rgbBitCount/8; ++bit) {
                     quint8 tmp;
                     s >> tmp;
-                    color = color + (quint32(tmp) << 8*i);
+                    color = color + (quint32(tmp) << 8*bit);
                 }
                 int colors[ColorCount];
-                for (int i = 0; i < ColorCount; ++i) {
-                    colors[i] = ((color & masks[i]) >> shifts[i]) * multipliers[i];
+                for (int c = 0; c < ColorCount; ++c) {
+                    colors[c] = ((color & masks[c]) >> shifts[c]) * multipliers[c];
                 }
-                img.setPixel(j, i, qRgba(colors[Red], colors[Green], colors[Blue], colors[Alpha]));
+                img.setPixel(x, y, qRgba(colors[Red], colors[Green], colors[Blue], colors[Alpha]));
             }
+        }
     }
     return true;
 }

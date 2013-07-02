@@ -13,7 +13,9 @@
         <file>data/RGBA4444.dds</file>
         <file>data/RGBA4444.png</file>
         <file>data/RGB565.dds</file>
+        <file>data/RGB565.png</file>
         <file>data/RGBA5551.dds</file>
+        <file>data/RGBA5551.png</file>
         <file>data/RGBA8.dds</file>
         <file>data/RGBA8.png</file>
     </qresource>

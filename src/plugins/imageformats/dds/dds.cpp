@@ -47,6 +47,19 @@ static int bits(quint32 mask)
     return result;
 }
 
+static quint32 readValue(QDataStream &s, quint32 size)
+{
+    Q_ASSERT(size == 8 || size == 16 || size == 24 || size == 32);
+
+    quint32 value = 0;
+    for (unsigned bit = 0; bit < size/8; ++bit) {
+        quint8 tmp;
+        s >> tmp;
+        value = value + (quint32(tmp) << 8*bit);
+    }
+    return value;
+}
+
 DDSHandler::DDSHandler()
 {
 }
@@ -112,12 +125,7 @@ bool readData(QDataStream & s, const DDSHeader & dds, QImage &img)
 
         for (quint32 y = 0; y < dds.height; y++) {
             for (quint32 x = 0; x < dds.width; x++) {
-                quint32 value = 0;
-                for (unsigned bit = 0; bit < dds.pixelFormat.rgbBitCount/8; ++bit) {
-                    quint8 tmp;
-                    s >> tmp;
-                    value = value + (quint32(tmp) << 8*bit);
-                }
+                quint32 value = ::readValue(s, dds.pixelFormat.rgbBitCount);
                 int colors[ColorCount];
                 for (int c = 0; c < ColorCount; ++c) {
                     if (bits[c] > 8) {

@@ -25,6 +25,28 @@ enum Colors {
     ColorCount
 };
 
+static int shift(quint32 mask)
+{
+    if (mask == 0)
+        return 0;
+
+    int result = 0;
+    while (!((mask >> result) & 1))
+        result++;
+    return result;
+}
+
+static int bits(quint32 mask)
+{
+    int result = 0;
+    while (mask) {
+       if (mask & 1)
+           result++;
+       mask >>= 1;
+    }
+    return result;
+}
+
 DDSHandler::DDSHandler()
 {
 }
@@ -36,28 +58,6 @@ bool DDSHandler::canRead() const
         return true;
     }
     return false;
-}
-
-int shift(quint32 mask)
-{
-    if (mask == 0)
-        return 0;
-
-    int result = 0;
-    while (!((mask >> result) & 1))
-        result++;
-    return result;
-}
-
-int length(quint32 mask)
-{
-    int result = 0;
-    while (mask) {
-       if (mask & 1)
-           result++;
-       mask >>= 1;
-    }
-    return result;
 }
 
 bool readData(QDataStream & s, const DDSHeader & dds, QImage &img)
@@ -98,7 +98,7 @@ bool readData(QDataStream & s, const DDSHeader & dds, QImage &img)
     masks[Alpha] = hasAlpha ? dds.pixelFormat.aBitMask : 0;
     for (int i = 0; i < ColorCount; ++i) {
         shifts[i] = ::shift(masks[i]);
-        bits[i] = ::length(masks[i]);
+        bits[i] = ::bits(masks[i]);
         // move mask to the left
         masks[i] = (masks[i] >> shifts[i]) << (8 - bits[i]);
     }

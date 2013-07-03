@@ -117,11 +117,9 @@ bool readData(QDataStream & s, const DDSHeader & dds, QImage &img)
     }
 
     if (flags & DDSPixelFormat::DDPF_RGB || hasAlpha) {
-        if (hasAlpha) {
-            img = QImage(dds.width, dds.height, QImage::Format_ARGB32);
-        } else {
-            img = QImage(dds.width, dds.height, QImage::Format_RGB32);
-        }
+        const QImage::Format format = hasAlpha ? QImage::Format_ARGB32 : QImage::Format_RGB32;
+
+        img = QImage(dds.width, dds.height, format);
 
         for (quint32 y = 0; y < dds.height; y++) {
             for (quint32 x = 0; x < dds.width; x++) {

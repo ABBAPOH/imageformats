@@ -42,26 +42,22 @@ int shift(quint32 mask)
 {
     if (mask == 0)
         return 0;
+
     int result = 0;
-    while ( (mask & 1) == 0 ) {
+    while (!((mask >> result) & 1))
         result++;
-        mask >>= 1;
-    }
     return result;
 }
 
 int length(quint32 mask)
 {
-    if (mask == 0)
-        return 0;
-
-    quint32 oldMask = mask;
-    int leftShift = 0;
-    while ( (mask & 0x80000000) == 0 ) {
-        leftShift++;
-        mask <<= 1;
+    int result = 0;
+    while (mask) {
+       if (mask & 1)
+           result++;
+       mask >>= 1;
     }
-    return 32 - leftShift - shift(oldMask);
+    return result;
 }
 
 bool readData(QDataStream & s, const DDSHeader & dds, QImage &img)
@@ -94,18 +90,17 @@ bool readData(QDataStream & s, const DDSHeader & dds, QImage &img)
             dds.pixelFormat.flags & DDSPixelFormat::DDPF_ALPHA;
 
     quint32 masks[ColorCount];
-    int shifts[ColorCount];
-    double multipliers[ColorCount];
+    quint8 shifts[ColorCount];
+    quint8 bits[ColorCount];
     masks[Red] = dds.pixelFormat.rBitMask;
     masks[Green] = dds.pixelFormat.gBitMask;
     masks[Blue] = dds.pixelFormat.bBitMask;
     masks[Alpha] = hasAlpha ? dds.pixelFormat.aBitMask : 0;
     for (int i = 0; i < ColorCount; ++i) {
         shifts[i] = ::shift(masks[i]);
-
-        int length = ::length(masks[i]);
-        quint32 maxValue = (1 << length) - 1;
-        multipliers[i] = 255.0 / maxValue;
+        bits[i] = ::length(masks[i]);
+        // move mask to the left
+        masks[i] = (masks[i] >> shifts[i]) << (8 - bits[i]);
     }
 
     if (flags & DDSPixelFormat::DDPF_RGB) {
@@ -117,16 +112,25 @@ bool readData(QDataStream & s, const DDSHeader & dds, QImage &img)
 
         for (quint32 y = 0; y < dds.height; y++) {
             for (quint32 x = 0; x < dds.width; x++) {
-                quint32 color = 0;
+                quint32 value = 0;
                 for (unsigned bit = 0; bit < dds.pixelFormat.rgbBitCount/8; ++bit) {
                     quint8 tmp;
                     s >> tmp;
-                    color = color + (quint32(tmp) << 8*bit);
+                    value = value + (quint32(tmp) << 8*bit);
                 }
                 int colors[ColorCount];
                 for (int c = 0; c < ColorCount; ++c) {
-                    quint32 colorValue = (color & masks[c]) >> shifts[c];
-                    colors[c] =  colorValue * multipliers[c];
+                    if (bits[c] > 8) {
+                        // truncate unneseccary bits
+                        colors[c] = value >> (bits[c] - 8);
+                    } else {
+                        // move color to the left
+                        quint8 color = value >> shifts[c] << (8 - bits[c]) & masks[c];
+                        if (color)
+                            colors[c] = color * 0xff / masks[c];
+                        else
+                            colors[c] = 0;
+                    }
                 }
                 img.setPixel(x, y, qRgba(colors[Red], colors[Green], colors[Blue], colors[Alpha]));
             }

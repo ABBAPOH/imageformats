@@ -116,8 +116,8 @@ bool readData(QDataStream & s, const DDSHeader & dds, QImage &img)
         masks[i] = (masks[i] >> shifts[i]) << (8 - bits[i]);
     }
 
-    if (flags & DDSPixelFormat::DDPF_RGB) {
-        if (dds.pixelFormat.flags & DDSPixelFormat::DDPF_ALPHAPIXELS) {
+    if (flags & DDSPixelFormat::DDPF_RGB || hasAlpha) {
+        if (hasAlpha) {
             img = QImage(dds.width, dds.height, QImage::Format_ARGB32);
         } else {
             img = QImage(dds.width, dds.height, QImage::Format_RGB32);

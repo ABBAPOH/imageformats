@@ -37,14 +37,14 @@ void DDSTest::readImage_data()
     QTest::newRow("3") << QString("DXT3") << QSize(64, 64);
     QTest::newRow("4") << QString("DXT4") << QSize(64, 64);
     QTest::newRow("5") << QString("DXT5") << QSize(64, 64);
-    QTest::newRow("6") << QString("RGBA4444") << QSize(64, 64);
-    QTest::newRow("7") << QString("RGBA8") << QSize(64, 64);
-    QTest::newRow("8") << QString("RGB565") << QSize(64, 64);
-    QTest::newRow("9") << QString("RGBA5551") << QSize(64, 64);
+    QTest::newRow("6") << QString("L8") << QSize(64, 64);
+    QTest::newRow("7") << QString("L8A8") << QSize(64, 64);
+    QTest::newRow("8") << QString("RGB5A1") << QSize(64, 64);
+    QTest::newRow("9") << QString("RGB8") << QSize(64, 64);
     QTest::newRow("10") << QString("RGB10A2") << QSize(64, 64);
-    QTest::newRow("11") << QString("L8") << QSize(64, 64);
-    QTest::newRow("12") << QString("L8A8") << QSize(64, 64);
-    QTest::newRow("13") << QString("RGB8") << QSize(64, 64);
+    QTest::newRow("11") << QString("RGB565") << QSize(64, 64);
+    QTest::newRow("12") << QString("RGBA4") << QSize(64, 64);
+    QTest::newRow("13") << QString("RGBA8") << QSize(64, 64);
 }
 
 void DDSTest::readImage()

@@ -14,17 +14,17 @@
         <file>data/L8.png</file>
         <file>data/L8A8.dds</file>
         <file>data/L8A8.png</file>
-        <file>data/RGB565.dds</file>
-        <file>data/RGB565.png</file>
+        <file>data/RGB5A1.dds</file>
+        <file>data/RGB5A1.png</file>
         <file>data/RGB8.dds</file>
         <file>data/RGB8.png</file>
         <file>data/RGB10A2.dds</file>
         <file>data/RGB10A2.png</file>
+        <file>data/RGB565.dds</file>
+        <file>data/RGB565.png</file>
+        <file>data/RGBA4.dds</file>
+        <file>data/RGBA4.png</file>
         <file>data/RGBA8.dds</file>
         <file>data/RGBA8.png</file>
-        <file>data/RGBA4444.dds</file>
-        <file>data/RGBA4444.png</file>
-        <file>data/RGBA5551.dds</file>
-        <file>data/RGBA5551.png</file>
     </qresource>
 </RCC>

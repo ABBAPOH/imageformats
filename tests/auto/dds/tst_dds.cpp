@@ -41,6 +41,7 @@ void DDSTest::readImage_data()
     QTest::newRow("7") << QString("RGBA8") << QSize(64, 64);
     QTest::newRow("8") << QString("RGB565") << QSize(64, 64);
     QTest::newRow("9") << QString("RGBA5551") << QSize(64, 64);
+    QTest::newRow("10") << QString("RGB10A2") << QSize(64, 64);
 }
 
 void DDSTest::readImage()

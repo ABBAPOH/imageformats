@@ -73,6 +73,52 @@ bool DDSHandler::canRead() const
     return false;
 }
 
+static bool readRGBA(QDataStream & s, const DDSHeader & dds, QImage &img, bool hasAlpha)
+{
+    quint32 masks[ColorCount];
+    quint8 shifts[ColorCount];
+    quint8 bits[ColorCount];
+    masks[Red] = dds.pixelFormat.rBitMask;
+    masks[Green] = dds.pixelFormat.gBitMask;
+    masks[Blue] = dds.pixelFormat.bBitMask;
+    masks[Alpha] = hasAlpha ? dds.pixelFormat.aBitMask : 0;
+    for (int i = 0; i < ColorCount; ++i) {
+        shifts[i] = ::shift(masks[i]);
+        bits[i] = ::bits(masks[i]);
+
+        // move mask to the left
+        if (bits[i] <= 8)
+            masks[i] = (masks[i] >> shifts[i]) << (8 - bits[i]);
+    }
+
+    const QImage::Format format = hasAlpha ? QImage::Format_ARGB32 : QImage::Format_RGB32;
+
+    img = QImage(dds.width, dds.height, format);
+
+    for (quint32 y = 0; y < dds.height; y++) {
+        for (quint32 x = 0; x < dds.width; x++) {
+            quint32 value = ::readValue(s, dds.pixelFormat.rgbBitCount);
+            quint8 colors[ColorCount];
+            for (int c = 0; c < ColorCount; ++c) {
+                if (bits[c] > 8) {
+                    // truncate unneseccary bits
+                    colors[c] = (value & masks[c]) >> shifts[c] >> (bits[c] - 8);
+                } else {
+                    // move color to the left
+                    quint8 color = value >> shifts[c] << (8 - bits[c]) & masks[c];
+                    if (color)
+                        colors[c] = color * 0xff / masks[c];
+                    else
+                        colors[c] = 0;
+                }
+            }
+            img.setPixel(x, y, qRgba(colors[Red], colors[Green], colors[Blue], colors[Alpha]));
+        }
+    }
+
+    return true;
+}
+
 bool readData(QDataStream & s, const DDSHeader & dds, QImage &img)
 {
     quint32 flags = dds.pixelFormat.flags;
@@ -102,49 +148,10 @@ bool readData(QDataStream & s, const DDSHeader & dds, QImage &img)
     bool hasAlpha = dds.pixelFormat.flags & DDSPixelFormat::DDPF_ALPHAPIXELS ||
             dds.pixelFormat.flags & DDSPixelFormat::DDPF_ALPHA;
 
-    quint32 masks[ColorCount];
-    quint8 shifts[ColorCount];
-    quint8 bits[ColorCount];
-    masks[Red] = dds.pixelFormat.rBitMask;
-    masks[Green] = dds.pixelFormat.gBitMask;
-    masks[Blue] = dds.pixelFormat.bBitMask;
-    masks[Alpha] = hasAlpha ? dds.pixelFormat.aBitMask : 0;
-    for (int i = 0; i < ColorCount; ++i) {
-        shifts[i] = ::shift(masks[i]);
-        bits[i] = ::bits(masks[i]);
+    if (flags & DDSPixelFormat::DDPF_RGB || hasAlpha)
+        return readRGBA(s, dds, img, hasAlpha);
 
-        // move mask to the left
-        if (bits[i] <= 8)
-            masks[i] = (masks[i] >> shifts[i]) << (8 - bits[i]);
-    }
-
-    if (flags & DDSPixelFormat::DDPF_RGB || hasAlpha) {
-        const QImage::Format format = hasAlpha ? QImage::Format_ARGB32 : QImage::Format_RGB32;
-
-        img = QImage(dds.width, dds.height, format);
-
-        for (quint32 y = 0; y < dds.height; y++) {
-            for (quint32 x = 0; x < dds.width; x++) {
-                quint32 value = ::readValue(s, dds.pixelFormat.rgbBitCount);
-                quint8 colors[ColorCount];
-                for (int c = 0; c < ColorCount; ++c) {
-                    if (bits[c] > 8) {
-                        // truncate unneseccary bits
-                        colors[c] = (value & masks[c]) >> shifts[c] >> (bits[c] - 8);
-                    } else {
-                        // move color to the left
-                        quint8 color = value >> shifts[c] << (8 - bits[c]) & masks[c];
-                        if (color)
-                            colors[c] = color * 0xff / masks[c];
-                        else
-                            colors[c] = 0;
-                    }
-                }
-                img.setPixel(x, y, qRgba(colors[Red], colors[Green], colors[Blue], colors[Alpha]));
-            }
-        }
-    }
-    return true;
+    return false;
 }
 
 bool DDSHandler::read(QImage *outImage)

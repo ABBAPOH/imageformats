@@ -112,8 +112,10 @@ bool readData(QDataStream & s, const DDSHeader & dds, QImage &img)
     for (int i = 0; i < ColorCount; ++i) {
         shifts[i] = ::shift(masks[i]);
         bits[i] = ::bits(masks[i]);
+
         // move mask to the left
-        masks[i] = (masks[i] >> shifts[i]) << (8 - bits[i]);
+        if (bits[i] <= 8)
+            masks[i] = (masks[i] >> shifts[i]) << (8 - bits[i]);
     }
 
     if (flags & DDSPixelFormat::DDPF_RGB || hasAlpha) {
@@ -124,11 +126,11 @@ bool readData(QDataStream & s, const DDSHeader & dds, QImage &img)
         for (quint32 y = 0; y < dds.height; y++) {
             for (quint32 x = 0; x < dds.width; x++) {
                 quint32 value = ::readValue(s, dds.pixelFormat.rgbBitCount);
-                int colors[ColorCount];
+                quint8 colors[ColorCount];
                 for (int c = 0; c < ColorCount; ++c) {
                     if (bits[c] > 8) {
                         // truncate unneseccary bits
-                        colors[c] = value >> (bits[c] - 8);
+                        colors[c] = (value & masks[c]) >> shifts[c] >> (bits[c] - 8);
                     } else {
                         // move color to the left
                         quint8 color = value >> shifts[c] << (8 - bits[c]) & masks[c];

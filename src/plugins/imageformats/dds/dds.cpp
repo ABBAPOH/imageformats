@@ -73,7 +73,7 @@ bool DDSHandler::canRead() const
     return false;
 }
 
-static bool readRGBA(QDataStream & s, const DDSHeader & dds, QImage &img, bool hasAlpha)
+static bool readRGBAorLuminance(QDataStream & s, const DDSHeader & dds, QImage &img, bool hasAlpha)
 {
     quint32 masks[ColorCount];
     quint8 shifts[ColorCount];
@@ -99,6 +99,7 @@ static bool readRGBA(QDataStream & s, const DDSHeader & dds, QImage &img, bool h
         for (quint32 x = 0; x < dds.width; x++) {
             quint32 value = ::readValue(s, dds.pixelFormat.rgbBitCount);
             quint8 colors[ColorCount];
+
             for (int c = 0; c < ColorCount; ++c) {
                 if (bits[c] > 8) {
                     // truncate unneseccary bits
@@ -112,6 +113,12 @@ static bool readRGBA(QDataStream & s, const DDSHeader & dds, QImage &img, bool h
                         colors[c] = 0;
                 }
             }
+
+            if ( (dds.flags & DDSPixelFormat::DDPF_LUMINANCE) ) {
+                colors[Green] = colors[Red];
+                colors[Blue] = colors[Red];
+            }
+
             img.setPixel(x, y, qRgba(colors[Red], colors[Green], colors[Blue], colors[Alpha]));
         }
     }
@@ -148,8 +155,10 @@ bool readData(QDataStream & s, const DDSHeader & dds, QImage &img)
     bool hasAlpha = dds.pixelFormat.flags & DDSPixelFormat::DDPF_ALPHAPIXELS ||
             dds.pixelFormat.flags & DDSPixelFormat::DDPF_ALPHA;
 
-    if (flags & DDSPixelFormat::DDPF_RGB || hasAlpha)
-        return readRGBA(s, dds, img, hasAlpha);
+    if (flags & DDSPixelFormat::DDPF_RGB ||
+            flags & DDSPixelFormat::DDPF_LUMINANCE ||
+            hasAlpha)
+        return readRGBAorLuminance(s, dds, img, hasAlpha);
 
     return false;
 }

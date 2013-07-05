@@ -8,6 +8,8 @@ class DDSTest: public QObject
 private slots:
     void readImage_data();
     void readImage();
+    void testMipmaps_data();
+    void testMipmaps();
 };
 
 static bool compareImages(const QImage &first, const QImage &second)
@@ -61,6 +63,38 @@ void DDSTest::readImage()
     QVERIFY(!image.isNull());
     QCOMPARE(image.size(), size);
     QVERIFY(compareImages(image, QImage(sourcePath)) == true);
+
+}
+
+void DDSTest::testMipmaps_data()
+{
+    QTest::addColumn<QString>("fileName");
+    QTest::addColumn<QSize>("size");
+    QTest::addColumn<int>("imageCount");
+
+    QTest::newRow("1") << QString("mipmaps") << QSize(64, 64) << 7;
+}
+
+void DDSTest::testMipmaps()
+{
+    QFETCH(QString, fileName);
+    QFETCH(QSize, size);
+    QFETCH(int, imageCount);
+
+    QString path = QString(":/data/%1.dds").arg(fileName);
+    QImageReader reader(path);
+    QVERIFY(reader.canRead());
+    QCOMPARE(reader.imageCount(), imageCount);
+
+    for (int i = 0; i < reader.imageCount(); ++i) {
+        reader.jumpToImage(i);
+        QImage image = reader.read();
+        QCOMPARE(image.size(), size / (1 << i));
+        QVERIFY(!image.isNull());
+        QString sourcePath = QString(":/data/%1 %2.png").arg(fileName).arg(i);
+        QVERIFY(compareImages(image, QImage(sourcePath)) == true);
+    }
+
 }
 
 QTEST_MAIN(DDSTest)

@@ -60,7 +60,9 @@ static quint32 readValue(QDataStream &s, quint32 size)
     return value;
 }
 
-DDSHandler::DDSHandler()
+DDSHandler::DDSHandler() :
+    m_currentImage(0),
+    m_hasData(false)
 {
 }
 
@@ -75,6 +77,8 @@ bool DDSHandler::canRead() const
 
 static bool readValueBased(QDataStream & s, const DDSHeader & dds, QImage &img, bool hasAlpha)
 {
+    quint32 flags = dds.pixelFormat.flags;
+
     quint32 masks[ColorCount];
     quint8 shifts[ColorCount];
     quint8 bits[ColorCount];
@@ -114,10 +118,10 @@ static bool readValueBased(QDataStream & s, const DDSHeader & dds, QImage &img, 
                 }
             }
 
-            if ( (dds.flags & DDSPixelFormat::DDPF_LUMINANCE) ) {
+            if ( (flags & DDSPixelFormat::DDPF_LUMINANCE) ) {
                 colors[Green] = colors[Red];
                 colors[Blue] = colors[Red];
-            } else if ( (dds.flags & DDSPixelFormat::DDPF_YUV) ) {
+            } else if ( (flags & DDSPixelFormat::DDPF_YUV) ) {
                 quint8 Y = colors[Red];
                 quint8 U = colors[Green];
                 quint8 V = colors[Blue];
@@ -153,7 +157,7 @@ static bool readPaletteBased(QDataStream & s, const DDSHeader & dds, QImage &img
     return s.status() == QDataStream::Ok;
 }
 
-bool readData(QDataStream & s, const DDSHeader & dds, QImage &img)
+bool readLayer(QDataStream & s, const DDSHeader & dds, QImage &img)
 {
     quint32 flags = dds.pixelFormat.flags;
     if (flags & DDSPixelFormat::DDPF_FOURCC) {
@@ -179,8 +183,8 @@ bool readData(QDataStream & s, const DDSHeader & dds, QImage &img)
         return true;
     }
 
-    bool hasAlpha = dds.pixelFormat.flags & DDSPixelFormat::DDPF_ALPHAPIXELS ||
-            dds.pixelFormat.flags & DDSPixelFormat::DDPF_ALPHA;
+    bool hasAlpha = flags & DDSPixelFormat::DDPF_ALPHAPIXELS ||
+            flags & DDSPixelFormat::DDPF_ALPHA;
 
     if (flags & DDSPixelFormat::DDPF_RGB ||
             flags & DDSPixelFormat::DDPF_YUV ||
@@ -195,24 +199,12 @@ bool readData(QDataStream & s, const DDSHeader & dds, QImage &img)
 
 bool DDSHandler::read(QImage *outImage)
 {
-    QDataStream s(device());
-    s.setByteOrder(QDataStream::LittleEndian);
-
-    // Read image header.
-    DDSHeader dds;
-    quint32 magic;
-    s >> magic;
-    s >> dds;
-
-    QImage img;
-    bool result = readData(s, dds, img);
-
-    if (result == false) {
-        qWarning() << "Error loading dds file.";
+    ensureRead();
+    if (m_mipmaps.isEmpty())
         return false;
-    }
 
-    *outImage = img;
+    *outImage = m_mipmaps.at(m_currentImage);
+
     return true;
 }
 
@@ -270,6 +262,21 @@ bool DDSHandler::write(const QImage &outImage)
     return true;
 }
 
+int DDSHandler::imageCount() const
+{
+    ensureRead();
+    return m_mipmaps.count();
+}
+
+bool DDSHandler::jumpToImage(int imageNumber)
+{
+    if (imageNumber >= imageCount())
+        return false;
+
+    m_currentImage = imageNumber;
+    return true;
+}
+
 QByteArray DDSHandler::name() const
 {
     return "dds";
@@ -283,6 +290,40 @@ bool DDSHandler::canRead(QIODevice *device)
     }
 
     return device->peek(4) == "DDS ";
+}
+
+void DDSHandler::ensureRead() const
+{
+    if (m_hasData)
+        return;
+
+    DDSHandler *that = const_cast<DDSHandler *>(this);
+
+    that->m_hasData = true;
+
+    QDataStream s(device());
+    s.setByteOrder(QDataStream::LittleEndian);
+
+    // Read image header.
+    DDSHeader dds;
+    quint32 magic;
+    s >> magic;
+    s >> dds;
+
+    quint32 w = dds.width, h = dds.height;
+    for (quint32 i = 0; i < qMax<quint32>(1, dds.mipMapCount); ++i) {
+        QImage img;
+        dds.width = w / (1 << i);
+        dds.height = h / (1 << i);
+        bool result = readLayer(s, dds, img);
+        that->m_mipmaps.append(img);
+
+        if (result == false) {
+            that->m_mipmaps.clear();
+            qWarning() << "Error loading dds file.";
+            return;
+        }
+    }
 }
 
 // ===================== DDSPlugin =====================

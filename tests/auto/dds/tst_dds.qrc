@@ -26,5 +26,7 @@
         <file>data/RGBA4.png</file>
         <file>data/RGBA8.dds</file>
         <file>data/RGBA8.png</file>
+        <file>data/index8.dds</file>
+        <file>data/index8.png</file>
     </qresource>
 </RCC>

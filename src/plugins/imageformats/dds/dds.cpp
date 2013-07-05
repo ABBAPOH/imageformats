@@ -133,6 +133,26 @@ static bool readValueBased(QDataStream & s, const DDSHeader & dds, QImage &img, 
     return true;
 }
 
+static bool readPaletteBased(QDataStream & s, const DDSHeader & dds, QImage &img)
+{
+    img = QImage(dds.width, dds.height, QImage::Format_Indexed8);
+    for (int i = 0; i < 256; ++i) {
+        quint8 r, g, b, a;
+        s >> r >> g >> b >> a;
+        img.setColor(i, qRgba(r, g, b, a));
+    }
+
+    for (quint32 y = 0; y < dds.height; y++) {
+        for (quint32 x = 0; x < dds.width; x++) {
+            quint8 index;
+            s >> index;
+            img.setPixel(x, y, index);
+        }
+    }
+
+    return s.status() == QDataStream::Ok;
+}
+
 bool readData(QDataStream & s, const DDSHeader & dds, QImage &img)
 {
     quint32 flags = dds.pixelFormat.flags;
@@ -167,6 +187,8 @@ bool readData(QDataStream & s, const DDSHeader & dds, QImage &img)
             flags & DDSPixelFormat::DDPF_LUMINANCE ||
             hasAlpha)
         return readValueBased(s, dds, img, hasAlpha);
+    if (flags & DDSPixelFormat::DDPF_PALETTEINDEXED8)
+        return readPaletteBased(s, dds, img);
 
     return false;
 }

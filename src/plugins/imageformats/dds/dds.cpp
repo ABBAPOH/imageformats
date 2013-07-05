@@ -73,7 +73,7 @@ bool DDSHandler::canRead() const
     return false;
 }
 
-static bool readRGBAorLuminance(QDataStream & s, const DDSHeader & dds, QImage &img, bool hasAlpha)
+static bool readValueBased(QDataStream & s, const DDSHeader & dds, QImage &img, bool hasAlpha)
 {
     quint32 masks[ColorCount];
     quint8 shifts[ColorCount];
@@ -117,6 +117,13 @@ static bool readRGBAorLuminance(QDataStream & s, const DDSHeader & dds, QImage &
             if ( (dds.flags & DDSPixelFormat::DDPF_LUMINANCE) ) {
                 colors[Green] = colors[Red];
                 colors[Blue] = colors[Red];
+            } else if ( (dds.flags & DDSPixelFormat::DDPF_YUV) ) {
+                quint8 Y = colors[Red];
+                quint8 U = colors[Green];
+                quint8 V = colors[Blue];
+                colors[Red] = Y + 1.13983 * (V - 128);
+                colors[Green] = Y - 0.39465 * (U - 128) - 0.58060 * (V - 128);
+                colors[Blue] = Y + 2.03211 * (U - 128);
             }
 
             img.setPixel(x, y, qRgba(colors[Red], colors[Green], colors[Blue], colors[Alpha]));
@@ -156,9 +163,10 @@ bool readData(QDataStream & s, const DDSHeader & dds, QImage &img)
             dds.pixelFormat.flags & DDSPixelFormat::DDPF_ALPHA;
 
     if (flags & DDSPixelFormat::DDPF_RGB ||
+            flags & DDSPixelFormat::DDPF_YUV ||
             flags & DDSPixelFormat::DDPF_LUMINANCE ||
             hasAlpha)
-        return readRGBAorLuminance(s, dds, img, hasAlpha);
+        return readValueBased(s, dds, img, hasAlpha);
 
     return false;
 }

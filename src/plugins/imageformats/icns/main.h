@@ -10,8 +10,6 @@ class QIcnsPlugin : public QImageIOPlugin
 #endif
 
 public:
-    QIcnsPlugin();
-    ~QIcnsPlugin();
     Capabilities capabilities(QIODevice *device, const QByteArray &format) const;
     QImageIOHandler *create(QIODevice *device, const QByteArray &format = QByteArray()) const;
 #if QT_VERSION < 0x050000

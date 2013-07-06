@@ -1,15 +1,5 @@
 #include "main.h"
 
-QIcnsPlugin::QIcnsPlugin()
-{
-
-}
-
-QIcnsPlugin::~QIcnsPlugin()
-{
-
-}
-
 QImageIOPlugin::Capabilities QIcnsPlugin::capabilities(QIODevice *device, const QByteArray &format) const
 {
     if (format == "icns")
@@ -39,4 +29,3 @@ QImageIOHandler *QIcnsPlugin::create(QIODevice *device, const QByteArray &format
 Q_EXPORT_STATIC_PLUGIN(QIcnsPlugin)
 Q_EXPORT_PLUGIN2(icns, QIcnsPlugin)
 #endif
-

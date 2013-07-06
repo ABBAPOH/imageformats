@@ -96,21 +96,21 @@ QImage IcnsReader::iconAt(int index)
 
     if(m_iodevice->seek(iconEntry.imageDataOffset)) {
 
-        quint64 readMagic = 0;
-        m_stream >> readMagic;
-        m_iodevice->seek(iconEntry.imageDataOffset);
+        QByteArray read8bytesMagic = m_iodevice->peek(8).toHex().toUpper();
+        QByteArray read12bytesMagic = m_iodevice->peek(12).toHex().toUpper();
 
-        const quint64 pngMagic = 0x89504E470D0A1A0A;
-        const bool isPngImage = (readMagic == pngMagic);
+        const char* jp2Magic = "0000000C6A5020200D0A870A";
+        const char* pngMagic = "89504E470D0A1A0A";
+        const bool isPngImage = (read8bytesMagic == pngMagic);
+        const bool isJP2Image = (read12bytesMagic == jp2Magic);
 
-        if(isPngImage) {
-            QByteArray imageData;
-            imageData.resize(imageDataSize);
-            m_stream.readRawData(imageData.data(), imageDataSize);
-            return QImage::fromData(imageData, "png");
+        if(isPngImage)
+            return QImage::fromData(m_iodevice->peek(imageDataSize), "png");
+        else if(isJP2Image) {
+            //To do: JPEG 2000 (need another plugin for that?)
         }
         else {
-            //To do: JPEG 2000 (need another plugin for that?), others
+            //To do: subformats
         }
     }
 
@@ -133,14 +133,10 @@ bool QIcnsHandler::read(QImage *outImage)
 {
     qDebug("QIcnsHandler::read() call, m_currentIconIndex=%i", m_currentIconIndex);
 
-    bool bSuccess = false;
-    QImage img = m_reader->iconAt(m_currentIconIndex);
+    QImage img = m_reader->iconAt(m_currentIconIndex);    
+    *outImage = img;
 
-    if (!img.isNull()) {
-        bSuccess = true;
-        *outImage = img;
-    }
-    return bSuccess;
+    return !img.isNull();
 }
 
 QByteArray QIcnsHandler::name() const

@@ -8,8 +8,7 @@
 
 QDataStream &operator>>(QDataStream &in, IcnsBlockHeader &p)
 {
-
-    in.readRawData((char*)p.magic,sizeof(quint32));
+    in >> p.magic;
     in >> p.length;
     return in;
 }
@@ -17,9 +16,9 @@ QDataStream &operator>>(QDataStream &in, IcnsBlockHeader &p)
 IcnsReader::IcnsReader(QIODevice *iodevice)
 {
     m_iodevice = iodevice;
-    m_scanned = false;
     m_stream.setDevice(m_iodevice);
     m_stream.setByteOrder(QDataStream::BigEndian);
+    m_scanned = false;
 }
 
 bool IcnsReader::scanBlocks()
@@ -51,15 +50,15 @@ bool IcnsReader::scanBlocks()
 
                 const quint32 imgDataBaseOffset = (i == 0) ?
                             (blockHeader.length + IcnsBlockHeaderSize*2) : // offset for the first icon
-                            (blockHeader.length + IcnsBlockHeaderSize); // offset of the first block
+                            (blockHeader.length + IcnsBlockHeaderSize);    // offset of the first block
                 quint32 imgDataOffset = imgDataBaseOffset;
                 for(uint n = 0; n < i; n++)
                     imgDataOffset += m_icons.at(n).header.length;
 
-                icon.imageDataOffset = imgDataOffset;
+                icon.imageDataOffset = (i == 0) ? imgDataOffset : imgDataOffset + IcnsBlockHeaderSize;
                 m_icons << icon;
             }
-            break;
+            return true; // TOC scan gives enough data to discard scan of other blocks
         }
         case icnV:
             m_stream.skipRawData(4);
@@ -97,23 +96,21 @@ QImage IcnsReader::iconAt(int index)
 
     if(m_iodevice->seek(iconEntry.imageDataOffset)) {
 
-        const quint64 pngMagic = 0x89504E470D0A1A0A;
-
         quint64 readMagic = 0;
-        m_stream.readRawData((char*)readMagic,sizeof(quint64));
+        m_stream >> readMagic;
+        m_iodevice->seek(iconEntry.imageDataOffset);
 
+        const quint64 pngMagic = 0x89504E470D0A1A0A;
         const bool isPngImage = (readMagic == pngMagic);
 
         if(isPngImage) {
             QByteArray imageData;
             imageData.resize(imageDataSize);
             m_stream.readRawData(imageData.data(), imageDataSize);
-            qDebug() << imageData;
             return QImage::fromData(imageData, "png");
         }
-        else
-        {
-            //To do
+        else {
+            //To do: JPEG 2000 (need another plugin for that?), others
         }
     }
 
@@ -124,6 +121,7 @@ QImage IcnsReader::iconAt(int index)
 QIcnsHandler::QIcnsHandler(QIODevice *device)
 {
     m_reader = new IcnsReader(device);
+    m_currentIconIndex = 0;
 }
 
 QIcnsHandler::~QIcnsHandler()
@@ -133,12 +131,16 @@ QIcnsHandler::~QIcnsHandler()
 
 bool QIcnsHandler::read(QImage *outImage)
 {
-    qDebug() << "QIcnsHandler::read";
+    qDebug("QIcnsHandler::read() call, m_currentIconIndex=%i", m_currentIconIndex);
 
+    bool bSuccess = false;
     QImage img = m_reader->iconAt(m_currentIconIndex);
 
-    *outImage = img;
-    return true;
+    if (!img.isNull()) {
+        bSuccess = true;
+        *outImage = img;
+    }
+    return bSuccess;
 }
 
 QByteArray QIcnsHandler::name() const

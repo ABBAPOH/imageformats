@@ -16,6 +16,12 @@ DynamicLibrary {
     ]
 
     Group {
+        name: "icns.json"
+        condition: qbs.Qt.core.versionMajor >= 5
+        files: [ "icns.json" ]
+    }
+
+    Group {
         name: "icns.rc"
         condition: qbs.targetOS.contains("windows")
         files: "icns.rc"

@@ -1,5 +1,15 @@
 #include "main.h"
 
+QIcnsPlugin::QIcnsPlugin()
+{
+
+}
+
+QIcnsPlugin::~QIcnsPlugin()
+{
+
+}
+
 QImageIOPlugin::Capabilities QIcnsPlugin::capabilities(QIODevice *device, const QByteArray &format) const
 {
     if (format == "icns")

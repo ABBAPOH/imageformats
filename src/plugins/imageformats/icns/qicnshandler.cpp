@@ -35,7 +35,7 @@ bool IcnsReader::scanBlocks()
             return false;
 
         switch (blockHeader.magic) {
-        case icns:
+        case icnsfile:
             if (m_iodevice->size() != blockHeader.length)
                 return false;
             break;

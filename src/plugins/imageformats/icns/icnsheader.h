@@ -12,7 +12,7 @@ struct IcnsBlockHeader
 #define IcnsBlockHeaderSize 8
 
 enum IcnsMagic {
-    icns = 0x69636E73,
+    icnsfile = 0x69636E73,
     TOC_ = 0x544F4320,
     icnV = 0x69636E56
 };

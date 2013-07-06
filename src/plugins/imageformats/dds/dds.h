@@ -36,11 +36,13 @@ class DDSPlugin : public QImageIOPlugin
     Q_OBJECT
 
 #if QT_VERSION >= 0x050000
-    Q_PLUGIN_METADATA(IID "com.preveder.imageformats.DDSPlugin")
+    Q_PLUGIN_METADATA(IID "org.qt-project.Qt.QImageIOHandlerFactoryInterface" FILE "dds.json")
 #endif
 
 public:
-    QStringList keys() const;
+#if QT_VERSION < 0x050000
+    QStringList keys() const { return QStringList() << "dds"; };
+#endif
     Capabilities capabilities(QIODevice *device, const QByteArray &format) const;
     QImageIOHandler *create(QIODevice *device, const QByteArray &format = QByteArray()) const;
 };

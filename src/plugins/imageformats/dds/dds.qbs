@@ -17,6 +17,12 @@ DynamicLibrary {
     ]
 
     Group {
+        name: "dds.json"
+        condition: qbs.Qt.core.versionMajor >= 5
+        files: [ "dds.json" ]
+    }
+
+    Group {
         name: "dds.rc"
         condition: qbs.targetOS.contains("windows")
         files: "dds.rc"

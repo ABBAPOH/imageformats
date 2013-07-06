@@ -328,11 +328,6 @@ void DDSHandler::ensureRead() const
 
 // ===================== DDSPlugin =====================
 
-QStringList DDSPlugin::keys() const
-{
-    return QStringList() << "dds";
-}
-
 QImageIOPlugin::Capabilities DDSPlugin::capabilities(QIODevice *device, const QByteArray &format) const
 {
     if (!device || !device->isOpen())

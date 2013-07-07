@@ -1,8 +1,9 @@
 #include "qicnshandler.h"
 
 #include <QtGui/QImage>
-#include <QtCore/QtEndian>
 #include <QtCore/QDataStream>
+#include <QtCore/QRegularExpression>
+#include <QtCore/QRegularExpressionMatch>
 
 #include <QDebug>
 
@@ -15,19 +16,48 @@ QDataStream &operator>>(QDataStream &in, IcnsBlockHeader &p)
 
 IcnsReader::IcnsReader(QIODevice *iodevice)
 {
-    m_iodevice = iodevice;
-    m_stream.setDevice(m_iodevice);
+    Q_ASSERT(iodevice);
+    m_stream.setDevice(iodevice);
     m_stream.setByteOrder(QDataStream::BigEndian);
     m_scanned = false;
 }
 
+void IcnsReader::parseIconDetails(IcnsIconEntry &icon) {
+    qint64 oldPos = m_stream.device()->pos();
+    if(m_stream.device()->seek(icon.imageDataOffset)) {
+        if(m_stream.device()->peek(8).toHex() == "89504e470d0a1a0a")
+            icon.iconFormat = IconPNG;
+        else if(m_stream.device()->peek(12).toHex() == "0000000c6a5020200d0a870a")
+            icon.iconFormat = IconJP2;
+        else {
+            icon.iconFormat = IconUncompressed;
+            QByteArray magic = QByteArray::fromHex(QByteArray::number(icon.header.magic,16));
+            QRegularExpression pattern("^(?<junk>[^0-9]{0,4})(?<family>[a-z|A-Z]{1})(?<depth>\\d{0,2})(?<mask>[#mk]{0,2})$");
+            QRegularExpressionMatch match = pattern.match(magic);
+            const QString junk = match.captured("junk");
+            const QString family = match.captured("family");
+            const QString depth = match.captured("depth");
+            const QString mask = match.captured("mask");
+            icon.iconFamily = family.at(0).toLatin1();
+            icon.iconBitDepth = (depth.toUInt() == 0) ? 1 : depth.toUInt(); // mono or <depth>
+            icon.iconIsMask = !mask.isEmpty();
+            if(match.hasMatch()) {
+                qDebug() << "IcnsReader::parseIconDetails() parse:" << junk << family << depth << mask
+                         << icon.iconFamily << icon.iconBitDepth << icon.iconIsMask;
+            }
+            else
+                qDebug() << "IcnsReader::parseIconDetails() reg exp: no match for:" << magic;
+        }
+        m_stream.device()->seek(oldPos);
+    }
+}
+
 bool IcnsReader::scanBlocks()
 {
-    Q_ASSERT(m_iodevice);
-    m_iodevice->seek(0);
+    Q_ASSERT(m_stream.device());
+    m_stream.device()->seek(0);
 
     IcnsBlockHeader blockHeader;
-
     while (!m_stream.atEnd()) {
 
         m_stream >> blockHeader;
@@ -36,7 +66,7 @@ bool IcnsReader::scanBlocks()
 
         switch (blockHeader.magic) {
         case icnsfile:
-            if (m_iodevice->size() != blockHeader.length)
+            if (m_stream.device()->size() != blockHeader.length)
                 return false;
             break;
         case TOC_: {
@@ -56,6 +86,8 @@ bool IcnsReader::scanBlocks()
                     imgDataOffset += m_icons.at(n).header.length;
 
                 icon.imageDataOffset = (i == 0) ? imgDataOffset : imgDataOffset + IcnsBlockHeaderSize;
+                icon.imageDataSize = icon.header.length - IcnsBlockHeaderSize;
+                parseIconDetails(icon);
                 m_icons << icon;
             }
             return true; // TOC scan gives enough data to discard scan of other blocks
@@ -66,10 +98,11 @@ bool IcnsReader::scanBlocks()
         default: {
             IcnsIconEntry icon;
             icon.header = blockHeader;
-            icon.imageDataOffset = m_iodevice->pos();
+            icon.imageDataOffset = m_stream.device()->pos();
+            icon.imageDataSize = icon.header.length - IcnsBlockHeaderSize;
+            parseIconDetails(icon);
             m_icons << icon;
-            quint32 imageDataLength = icon.header.length - IcnsBlockHeaderSize;
-            m_stream.skipRawData(imageDataLength);
+            m_stream.skipRawData(icon.imageDataSize);
             break;
         }
         }
@@ -86,37 +119,28 @@ int IcnsReader::count()
 
 QImage IcnsReader::iconAt(int index)
 {
-    QImage img;
-
     if(!m_scanned)
         m_scanned = scanBlocks();
 
+    QImage img;
     IcnsIconEntry iconEntry = m_icons.at(index);
-    quint32 imageDataSize = iconEntry.header.length - IcnsBlockHeaderSize;
 
-    if(m_iodevice->seek(iconEntry.imageDataOffset)) {
-
-        QByteArray read8bytesMagic = m_iodevice->peek(8).toHex().toUpper();
-        QByteArray read12bytesMagic = m_iodevice->peek(12).toHex().toUpper();
-
-        const char* jp2Magic = "0000000C6A5020200D0A870A";
-        const char* pngMagic = "89504E470D0A1A0A";
-        const bool isPngImage = (read8bytesMagic == pngMagic);
-        const bool isJP2Image = (read12bytesMagic == jp2Magic);
-
-        if(isPngImage)
-            return QImage::fromData(m_iodevice->peek(imageDataSize), "png");
-        else if(isJP2Image) {
+    if(m_stream.device()->seek(iconEntry.imageDataOffset)) {
+        switch(iconEntry.iconFormat) {
+        case IconPNG:
+            return QImage::fromData(m_stream.device()->peek(iconEntry.imageDataSize), "png");
+            break;
+        case IconJP2:
             //To do: JPEG 2000 (need another plugin for that?)
-        }
-        else {
+            break;
+        default:
             //To do: subformats
+            break;
         }
     }
 
     return img;
 }
-
 
 QIcnsHandler::QIcnsHandler(QIODevice *device)
 {

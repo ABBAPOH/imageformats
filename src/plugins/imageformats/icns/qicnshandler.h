@@ -16,8 +16,8 @@ public:
 
 private:
     bool scanBlocks();
+    void parseIconDetails(IcnsIconEntry &icon);
 
-    QIODevice *m_iodevice;
     QDataStream m_stream;
 
     bool m_scanned;

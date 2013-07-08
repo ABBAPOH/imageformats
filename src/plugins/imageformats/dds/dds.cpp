@@ -280,7 +280,7 @@ bool DDSHandler::write(const QImage &outImage)
                 DDSHeader::DDSD_WIDTH | DDSHeader::DDSD_PIXELFORMAT;
     dds.height = outImage.height();
     dds.width = outImage.width();
-    dds.linearSize = 0;
+    dds.pitchOrLinearSize = 128;
     dds.depth = 0;
     dds.mipMapCount = 0;
     for (int i = 0; i< 11; i++) {

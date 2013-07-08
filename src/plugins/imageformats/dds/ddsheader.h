@@ -64,7 +64,7 @@ struct DDSHeader
     quint32 flags;
     quint32 height;
     quint32 width;
-    quint32 linearSize;
+    quint32 pitchOrLinearSize;
     quint32 depth;
     quint32 mipMapCount;
     quint32 reserved1[11];

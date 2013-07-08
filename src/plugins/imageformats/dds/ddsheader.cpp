@@ -326,7 +326,7 @@ QDataStream & operator>>(QDataStream &s, DDSHeader &header)
     s >> header.flags;
     s >> header.height;
     s >> header.width;
-    s >> header.linearSize;
+    s >> header.pitchOrLinearSize;
     s >> header.depth;
     s >> header.mipMapCount;
     for (int i = 0; i< 11; i++) {
@@ -348,7 +348,7 @@ QDataStream & operator<<(QDataStream &s, const DDSHeader &header)
     s << header.flags;
     s << header.height;
     s << header.width;
-    s << header.linearSize;
+    s << header.pitchOrLinearSize;
     s << header.depth;
     s << header.mipMapCount;
     for (int i = 0; i< 11; i++) {

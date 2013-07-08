@@ -2,9 +2,9 @@
 
 #include <QtGui/QImage>
 #include <QtCore/QDataStream>
+#if QT_VERSION >= 0x050000
 #include <QtCore/QRegularExpression>
-#include <QtCore/QRegularExpressionMatch>
-#include <math.h>
+#endif
 
 #include <QDebug>
 
@@ -92,16 +92,30 @@ void IcnsReader::parseIconDetails(IcnsIconEntry &icon) {
         else {
             icon.iconFormat = IconUncompressed;
             QByteArray magic = QByteArray::fromHex(QByteArray::number(icon.header.magic,16));
-            QRegularExpression pattern("^(?<junk>[\\D]{0,4})(?<group>[a-z|A-Z]{1})(?<depth>\\d{0,2})(?<mask>[#mk]{0,2})$");
-            QRegularExpressionMatch match = pattern.match(magic);
+            // Typical magic naming: <junk><group><depth><mask>;
+#if QT_VERSION >= 0x050000
+            const char* pattern = "^(?<junk>[\\D]{0,4})(?<group>[a-z|A-Z]{1})(?<depth>\\d{0,2})(?<mask>[#mk]{0,2})$";
+            QRegularExpression regexp(pattern);
+            QRegularExpressionMatch match = regexp.match(magic);
+            const bool hasMatch = match.hasMatch();
             const QString junk = match.captured("junk");
             const QString group = match.captured("group");
             const QString depth = match.captured("depth");
             const QString mask = match.captured("mask");
+#else
+            const char* pattern = "^([\\D]{0,4})([a-z|A-Z]{1})(\\d{0,2})([#mk]{0,2})$";
+            QRegExp regexp(pattern);
+            const bool hasMatch = (regexp.indexIn(magic) >= 0);
+            QStringList match = regexp.capturedTexts();
+            const QString junk = match.at(1);
+            const QString group = match.at(2);
+            const QString depth = match.at(3);
+            const QString mask = match.at(4);
+#endif
             icon.iconGroup = group.at(0).toLatin1();
             icon.iconIsMask = !mask.isEmpty();
             icon.iconBitDepth = (mask == "#") ? 1 : depth.toUInt();
-            if(match.hasMatch()) {
+            if(hasMatch) {
                 qDebug() << "IcnsReader::parseIconDetails() parse:" << junk << group << depth << mask
                          << icon.iconGroup << icon.iconBitDepth << icon.iconIsMask;
             }

@@ -1,6 +1,5 @@
 #include "qicnshandler.h"
 
-#include <math.h>
 #include <QtGui/QImage>
 #include <QtCore/QDataStream>
 #if QT_VERSION >= 0x050000
@@ -84,47 +83,36 @@ QByteArray decompressRLE24(const QByteArray &encodedBytes, quint32 expectedPixel
 }
 
 void IcnsReader::parseIconDetails(IcnsIconEntry &icon) {
-    qint64 oldPos = m_stream.device()->pos();
-    if(m_stream.device()->seek(icon.imageDataOffset)) {
-        if(m_stream.device()->peek(8).toHex() == "89504e470d0a1a0a")
-            icon.iconFormat = IconPNG;
-        else if(m_stream.device()->peek(12).toHex() == "0000000c6a5020200d0a870a")
-            icon.iconFormat = IconJP2;
-        else {
-            icon.iconFormat = IconUncompressed;
-            QByteArray magic = QByteArray::fromHex(QByteArray::number(icon.header.magic,16));
-            // Typical magic naming: <junk><group><depth><mask>;
+    QByteArray magic = QByteArray::fromHex(QByteArray::number(icon.header.magic,16));
+    // Typical magic naming: <junk><group><depth><mask>;
 #if QT_VERSION >= 0x050000
-            const char* pattern = "^(?<junk>[\\D]{0,4})(?<group>[a-z|A-Z]{1})(?<depth>\\d{0,2})(?<mask>[#mk]{0,2})$";
-            QRegularExpression regexp(pattern);
-            QRegularExpressionMatch match = regexp.match(magic);
-            const bool hasMatch = match.hasMatch();
-            const QString junk = match.captured("junk");
-            const QString group = match.captured("group");
-            const QString depth = match.captured("depth");
-            const QString mask = match.captured("mask");
+    const char* pattern = "^(?<junk>[\\D]{0,4})(?<group>[a-z|A-Z]{1})(?<depth>\\d{0,2})(?<mask>[#mk]{0,2})$";
+    QRegularExpression regexp(pattern);
+    QRegularExpressionMatch match = regexp.match(magic);
+    const bool hasMatch = match.hasMatch();
+    const QString junk = match.captured("junk");
+    const QString group = match.captured("group");
+    const QString depth = match.captured("depth");
+    const QString mask = match.captured("mask");
 #else
-            const char* pattern = "^([\\D]{0,4})([a-z|A-Z]{1})(\\d{0,2})([#mk]{0,2})$";
-            QRegExp regexp(pattern);
-            const bool hasMatch = (regexp.indexIn(magic) >= 0);
-            QStringList match = regexp.capturedTexts();
-            const QString junk = (1 <= match.size()) ? match.at(1) : "";
-            const QString group = (2 <= match.size()) ? match.at(2) : "";
-            const QString depth = (3 <= match.size()) ? match.at(3) : "";
-            const QString mask = (4 <= match.size()) ? match.at(4) : "";
+    const char* pattern = "^([\\D]{0,4})([a-z|A-Z]{1})(\\d{0,2})([#mk]{0,2})$";
+    QRegExp regexp(pattern);
+    const bool hasMatch = (regexp.indexIn(magic) >= 0);
+    QStringList match = regexp.capturedTexts();
+    const QString junk = (1 <= match.size()) ? match.at(1) : "";
+    const QString group = (2 <= match.size()) ? match.at(2) : "";
+    const QString depth = (3 <= match.size()) ? match.at(3) : "";
+    const QString mask = (4 <= match.size()) ? match.at(4) : "";
 #endif
-            icon.iconGroup = group.at(0).toLatin1();
-            icon.iconIsMask = !mask.isEmpty();
-            icon.iconBitDepth = (mask == "#") ? 1 : depth.toUInt();
-            if(hasMatch) {
-                qDebug() << "IcnsReader::parseIconDetails() parse:" << junk << group << depth << mask
-                         << icon.iconGroup << icon.iconBitDepth << icon.iconIsMask;
-            }
-            else
-                qDebug() << "IcnsReader::parseIconDetails() reg exp: no match for:" << magic;
-        }
-        m_stream.device()->seek(oldPos);
+    icon.iconGroup = group.at(0).toLatin1();
+    icon.iconIsMask = !mask.isEmpty();
+    icon.iconBitDepth = (mask == "#") ? 1 : depth.toUInt();
+    if(hasMatch) {
+        qDebug() << "IcnsReader::parseIconDetails() parse:" << junk << group << depth << mask
+                 << icon.iconGroup << icon.iconBitDepth << icon.iconIsMask;
     }
+    else
+        qDebug() << "IcnsReader::parseIconDetails() reg exp: no match for:" << magic;
 }
 
 bool IcnsReader::scanBlocks()
@@ -201,95 +189,100 @@ QImage IcnsReader::iconAt(int index)
     IcnsIconEntry iconEntry = m_icons.at(index);
 
     if(m_stream.device()->seek(iconEntry.imageDataOffset)) {
-        switch(iconEntry.iconFormat) {
-        case IconPNG:
-            return QImage::fromData(m_stream.device()->peek(iconEntry.imageDataSize), "png");
-            break;
-        case IconJP2:
-            // To do: JPEG 2000 (need another plugin for that?)
-            break;
-        default: { // Uncompressed/bitmaps:
-            if(iconEntry.iconBitDepth <= 0 || iconEntry.iconGroup == 0) {
-                qWarning() << "IcnsReader::iconAt(): Icon:" << index
-                           << "Unsupported icon type:" << iconEntry.header.magic;
+        quint32 width = 0;
+        quint32 height = 0;
+        switch(iconEntry.iconGroup) {
+        case IconGroupHDCompressed: {
+            if(m_stream.device()->peek(8).toHex() == "89504e470d0a1a0a") {
+                // if PNG magic
+                return QImage::fromData(m_stream.device()->peek(iconEntry.imageDataSize), "png");
+            }
+            else if(m_stream.device()->peek(12).toHex() == "0000000c6a5020200d0a870a") {
+                // if JPEG 2000 magic
+                // To do: JPEG 2000 (need another plugin for that?)
+                return img;
             }
             else {
-                // To do: subformats
-                quint32 width = 0;
-                quint32 height = 0;
-                switch(iconEntry.iconGroup) {
-                case IconGroup16x12: {
-                    width = 16;
-                    height = 12;
-                    break;
-                }
-                case IconGroup16x16: {
-                    width = 16;
-                    height = 16;
-                    break;
-                }
-                case IconGroup32x32Old:
-                case IconGroup32x32: {
-                    width = 32;
-                    height = 32;
-                    break;
-                }
-                case IconGroup48x48: {
-                    width = 48;
-                    height = 48;
-                    break;
-                }
-                case IconGroup128x128: {
-                    width = 128;
-                    height = 128;
-                    break;
-                }
-                default:
-                    qWarning() << "IcnsReader::iconAt(): Icon:" << index
-                               << "Unsupported icon group:" << iconEntry.iconGroup;
-                }
-                //const float bytesPerPixel = ((float)iconEntry.iconBitDepth / 8);
-                switch(iconEntry.iconBitDepth) {
-                case IconMono: {
-                    img = QImage(width, height, QImage::Format_RGB32);
-                    quint8 byte = 0;
-                    quint32 pixel = 0;
-                    for(uint y = 0; y < height; y++) {
-                        for(uint x = 0; x < width; x++) {
-                            if(pixel % 8 == 0)
-                                m_stream >> byte;
-                            const quint8 mask = ((1 << 1) - 1) << 7; // left 1
-                            quint8 value = (byte & mask) ? 0x00 : 0xFF;
-                            byte = byte << 1;
-                            img.setPixel(x,y,qRgb(value,value,value));
-                            pixel++;
-                            // todo: if(iconEntry.iconIsMask) {}
-                        }
-                    }
-                    break;
-                }
-                case IconRLE24: {
-                    // 32-bit icons are packed into RLE24, needs hardcoding for icon sizes:
-                    // dimensions can't be extracted from the size of the data
-                    img = QImage(width, height, QImage::Format_RGB32);
-                    QByteArray RLE24 = m_stream.device()->peek(iconEntry.imageDataSize);
-                    QByteArray decompressed = decompressRLE24(RLE24, width*height);
-                    QDataStream stream(decompressed);
-                    for(uint y = 0; y < height; y++) {
-                        for(uint x = 0; x < width; x++) {
-                            quint8 red, green, blue, alpha; // alpha is ignored there
-                            stream >> red >> green >> blue >> alpha;
-                            img.setPixel(x,y,qRgb(red,green,blue));
-                        }
-                    }
-                    break;
-                }
-                default: {
-                    qWarning() << "IcnsReader::iconAt(): Icon:" << index
-                               << "Unsupported icon bit depth:" << iconEntry.iconBitDepth;
-                }
+                qWarning() << "IcnsReader::iconAt(): Icon:" << index
+                           << "Unsupported icon format for icon entry ID:" << iconEntry.header.magic;
+                // new not yet supported format?
+                return img;
+            }
+            break;
+        }
+        // Uncompressed/bitmaps:
+        case IconGroup16x12: {
+            width = 16;
+            height = 12;
+            break;
+        }
+        case IconGroup16x16: {
+            width = 16;
+            height = 16;
+            break;
+        }
+        case IconGroup32x32Old:
+        case IconGroup32x32: {
+            width = 32;
+            height = 32;
+            break;
+        }
+        case IconGroup48x48: {
+            width = 48;
+            height = 48;
+            break;
+        }
+        case IconGroup128x128: {
+            width = 128;
+            height = 128;
+            break;
+        }
+        default: {
+            qWarning() << "IcnsReader::iconAt(): Icon:" << index
+                       << "Unsupported icon group:" << iconEntry.iconGroup;
+            return img;
+        }
+        }
+        // To do: more subformats!
+        //const float bytesPerPixel = ((float)iconEntry.iconBitDepth / 8);
+        switch(iconEntry.iconBitDepth) {
+        case IconMono: {
+            img = QImage(width, height, QImage::Format_RGB32);
+            quint8 byte = 0;
+            quint32 pixel = 0;
+            for(uint y = 0; y < height; y++) {
+                for(uint x = 0; x < width; x++) {
+                    if(pixel % 8 == 0)
+                        m_stream >> byte;
+                    const quint8 mask = ((1 << 1) - 1) << 7; // left 1
+                    quint8 value = (byte & mask) ? 0x00 : 0xFF;
+                    byte = byte << 1;
+                    img.setPixel(x,y,qRgb(value,value,value));
+                    pixel++;
+                    // todo: if(iconEntry.iconIsMask) {}
                 }
             }
+            break;
+        }
+        case IconRLE24: {
+            // 32-bit icons are packed into RLE24, needs hardcoding for icon sizes:
+            // dimensions can't be extracted from the size of the data
+            img = QImage(width, height, QImage::Format_RGB32);
+            QByteArray RLE24 = m_stream.device()->peek(iconEntry.imageDataSize);
+            QByteArray decompressed = decompressRLE24(RLE24, width*height);
+            QDataStream stream(decompressed);
+            for(uint y = 0; y < height; y++) {
+                for(uint x = 0; x < width; x++) {
+                    quint8 red, green, blue, alpha; // alpha is ignored there
+                    stream >> red >> green >> blue >> alpha;
+                    img.setPixel(x,y,qRgb(red,green,blue));
+                }
+            }
+            break;
+        }
+        default: {
+            qWarning() << "IcnsReader::iconAt(): Icon:" << index
+                       << "Unsupported icon bit depth:" << iconEntry.iconBitDepth;
         }
         }
     }

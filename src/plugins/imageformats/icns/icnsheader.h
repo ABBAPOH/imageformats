@@ -24,20 +24,14 @@ enum IcnsMagic {
     odrp = 0x6f647270
 };
 
-enum IcnsIconFormat {
-    IconUncompressed = 0,
-    IconJP2 = 1,
-    IconPNG = 2
-};
-
 enum IcnsIconGroup {
-    IconGroup16x12      = 0x6D, // "m"
-    IconGroup16x16      = 0x73, // "s"
-    IconGroup32x32      = 0x6C, // "l"
-    IconGroup32x32Old   = 0x4E, // "N"
-    IconGroup48x48      = 0x68, // "h"
-    IconGroup128x128    = 0x33, // "t"
-    IconGroupCompressed = 0x63  // "c"
+    IconGroup16x12          = 0x6D, // "m"
+    IconGroup16x16          = 0x73, // "s"
+    IconGroup32x32          = 0x6C, // "l"
+    IconGroup32x32Old       = 0x4E, // "N"
+    IconGroup48x48          = 0x68, // "h"
+    IconGroup128x128        = 0x33, // "t"
+    IconGroupHDCompressed   = 0x63  // "c"
 };
 
 enum IcnsIconBitDepth {
@@ -51,8 +45,7 @@ enum IcnsIconBitDepth {
 struct IcnsIconEntry
 {
     IcnsBlockHeader header;         // Original block header
-    IcnsIconFormat  iconFormat;     // PNG, JP2 or uncompressed
-    quint8          iconGroup;      // For Uncompressed icons only (ASCII character number)
+    quint8          iconGroup;      // ASCII character number pointing to a format or size
     quint8          iconBitDepth;   // For Uncompressed icons only
     bool            iconIsMask;     // For Uncompressed icons only
     quint32         imageDataOffset;// Offset from the initial position of the file/device

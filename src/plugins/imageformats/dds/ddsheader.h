@@ -59,6 +59,7 @@ struct DDSHeader
         DDSCAPS2_VOLUME          = 0x200000
     };
 
+    quint32 magic;
     quint32 size;
     quint32 flags;
     quint32 height;

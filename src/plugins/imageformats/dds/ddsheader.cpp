@@ -321,6 +321,7 @@ QDataStream & operator<<(QDataStream &s, const DDSPixelFormat &pixelFormat)
 
 QDataStream & operator>>(QDataStream &s, DDSHeader &header)
 {
+    s >> header.magic;
     s >> header.size;
     s >> header.flags;
     s >> header.height;
@@ -342,6 +343,7 @@ QDataStream & operator>>(QDataStream &s, DDSHeader &header)
 
 QDataStream & operator<<(QDataStream &s, const DDSHeader &header)
 {
+    s << header.magic;
     s << header.size;
     s << header.flags;
     s << header.height;

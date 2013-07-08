@@ -3,6 +3,7 @@
 #define DDS_H
 
 #include <QtGui/QImageIOPlugin>
+#include "ddsheader.h"
 
 class DDSHandler : public QImageIOHandler
 {
@@ -21,12 +22,12 @@ public:
     static bool canRead(QIODevice *device);
 
 private:
-    void ensureRead() const;
+    void ensureHeaderCached() const;
 
 private:
-    QList<QImage> m_mipmaps;
+    DDSHeader header;
     int m_currentImage;
-    bool m_hasData;
+    bool m_headerCached;
 };
 
 // ===================== DDSPlugin =====================

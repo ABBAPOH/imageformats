@@ -17,6 +17,8 @@ static const quint32 dxt3Magic = 0x33545844; // "DXT3"
 static const quint32 dxt4Magic = 0x34545844; // "DXT4"
 static const quint32 dxt5Magic = 0x35545844; // "DXT5"
 
+static const qint64 headerSize = 128;
+
 enum Colors {
     Red = 0,
     Green,
@@ -62,7 +64,7 @@ static quint32 readValue(QDataStream &s, quint32 size)
 
 DDSHandler::DDSHandler() :
     m_currentImage(0),
-    m_hasData(false)
+    m_headerCached(false)
 {
 }
 
@@ -197,13 +199,69 @@ bool readLayer(QDataStream & s, const DDSHeader & dds, QImage &img)
     return false;
 }
 
+static qint64 mipmapSize(const DDSHeader &dds, int level)
+{
+    quint32 w = dds.width/(1 << level);
+    quint32 h = dds.height/(1 << level);
+
+    quint32 flags = dds.pixelFormat.flags;
+
+    if (flags & DDSPixelFormat::DDPF_FOURCC) {
+        switch (dds.pixelFormat.fourCC) {
+        case dxt1Magic:
+            return w*h*64/8/16;
+        case dxt2Magic:
+        case dxt3Magic:
+        case dxt4Magic:
+        case dxt5Magic:
+            return w*h*128/8/16;
+        default:
+            break;
+        }
+    }
+
+    bool hasAlpha = flags & DDSPixelFormat::DDPF_ALPHAPIXELS ||
+            flags & DDSPixelFormat::DDPF_ALPHA;
+
+    if (flags & DDSPixelFormat::DDPF_RGB ||
+            flags & DDSPixelFormat::DDPF_YUV ||
+            flags & DDSPixelFormat::DDPF_LUMINANCE ||
+            hasAlpha)
+        return w*h*dds.pixelFormat.rgbBitCount/8;
+
+    if (flags & DDSPixelFormat::DDPF_PALETTEINDEXED8)
+        return 256 + w*h*8;
+
+    return 0;
+}
+
+static qint64 mipmapOffset(const DDSHeader &dds, int level)
+{
+    qint64 result = 0;
+    for (int i = 0; i < level; ++i) {
+        result += mipmapSize(dds, i);
+    }
+    return result;
+}
+
 bool DDSHandler::read(QImage *outImage)
 {
-    ensureRead();
-    if (m_mipmaps.isEmpty())
-        return false;
+    ensureHeaderCached();
 
-    *outImage = m_mipmaps.at(m_currentImage);
+    if (!device()->isSequential()) {
+        qint64 pos = headerSize + mipmapOffset(header, m_currentImage);
+        if (!device()->seek(pos))
+            return false;
+        QDataStream s(device());
+        s.setByteOrder(QDataStream::LittleEndian);
+        QImage img;
+        DDSHeader dds = header;
+        dds.width = header.width / (1 << m_currentImage);
+        dds.height = header.height / (1 << m_currentImage);
+        readLayer(s, dds, img);
+        *outImage = img;
+        return true;
+    }
 
     return true;
 }
@@ -213,11 +271,10 @@ bool DDSHandler::write(const QImage &outImage)
     QDataStream s( device() );
     s.setByteOrder(QDataStream::LittleEndian);
 
-    s << ddsMagic;
-
     // Filling header
     DDSHeader dds;
     // Filling header
+    dds.magic = ddsMagic;
     dds.size = 124;
     dds.flags = DDSHeader::DDSD_CAPS | DDSHeader::DDSD_HEIGHT |
                 DDSHeader::DDSD_WIDTH | DDSHeader::DDSD_PIXELFORMAT;
@@ -264,8 +321,8 @@ bool DDSHandler::write(const QImage &outImage)
 
 int DDSHandler::imageCount() const
 {
-    ensureRead();
-    return m_mipmaps.count();
+    ensureHeaderCached();
+    return qMax<quint32>(1, header.mipMapCount);
 }
 
 bool DDSHandler::jumpToImage(int imageNumber)
@@ -289,41 +346,29 @@ bool DDSHandler::canRead(QIODevice *device)
         return false;
     }
 
+    if (device->isSequential())
+        return false;
+
     return device->peek(4) == "DDS ";
 }
 
-void DDSHandler::ensureRead() const
+void DDSHandler::ensureHeaderCached() const
 {
-    if (m_hasData)
+    if (m_headerCached)
         return;
 
+    if (device()->isSequential())
+        return;
+
+    qint64 oldPos = device()->pos();
+    device()->seek(0);
+
     DDSHandler *that = const_cast<DDSHandler *>(this);
-
-    that->m_hasData = true;
-
     QDataStream s(device());
     s.setByteOrder(QDataStream::LittleEndian);
+    s >> that->header;
 
-    // Read image header.
-    DDSHeader dds;
-    quint32 magic;
-    s >> magic;
-    s >> dds;
-
-    quint32 w = dds.width, h = dds.height;
-    for (quint32 i = 0; i < qMax<quint32>(1, dds.mipMapCount); ++i) {
-        QImage img;
-        dds.width = w / (1 << i);
-        dds.height = h / (1 << i);
-        bool result = readLayer(s, dds, img);
-        that->m_mipmaps.append(img);
-
-        if (result == false) {
-            that->m_mipmaps.clear();
-            qWarning() << "Error loading dds file.";
-            return;
-        }
-    }
+    device()->seek(oldPos);
 }
 
 // ===================== DDSPlugin =====================

@@ -30,6 +30,24 @@ enum IcnsIconFormat {
     IconPNG = 2
 };
 
+enum IcnsIconGroup {
+    IconGroup16x12      = 0x6D, // "m"
+    IconGroup16x16      = 0x73, // "s"
+    IconGroup32x32      = 0x6C, // "l"
+    IconGroup32x32Old   = 0x4E, // "N"
+    IconGroup48x48      = 0x68, // "h"
+    IconGroup128x128    = 0x33, // "t"
+    IconGroupCompressed = 0x63  // "c"
+};
+
+enum IcnsIconBitDepth {
+    IconBitDepthInvalid = 0,
+    IconMono = 1,
+    Icon4bit = 4,
+    Icon8bit = 8,
+    IconRLE24 = 32
+};
+
 struct IcnsIconEntry
 {
     IcnsBlockHeader header;         // Original block header

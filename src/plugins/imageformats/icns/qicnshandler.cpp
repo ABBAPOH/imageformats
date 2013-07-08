@@ -1,5 +1,6 @@
 #include "qicnshandler.h"
 
+#include <math.h>
 #include <QtGui/QImage>
 #include <QtCore/QDataStream>
 #if QT_VERSION >= 0x050000
@@ -205,54 +206,80 @@ QImage IcnsReader::iconAt(int index)
             return QImage::fromData(m_stream.device()->peek(iconEntry.imageDataSize), "png");
             break;
         case IconJP2:
-            //To do: JPEG 2000 (need another plugin for that?)
+            // To do: JPEG 2000 (need another plugin for that?)
             break;
-        default: {
-            //Uncompressed/bitmaps:
+        default: { // Uncompressed/bitmaps:
             if(iconEntry.iconBitDepth <= 0 || iconEntry.iconGroup == 0) {
                 qWarning() << "IcnsReader::iconAt(): Icon:" << index
                            << "Unsupported icon type:" << iconEntry.header.magic;
             }
             else {
-                //To do: subformats
+                // To do: subformats
+                quint32 width = 0;
+                quint32 height = 0;
+                switch(iconEntry.iconGroup) {
+                case IconGroup16x12: {
+                    width = 16;
+                    height = 12;
+                    break;
+                }
+                case IconGroup16x16: {
+                    width = 16;
+                    height = 16;
+                    break;
+                }
+                case IconGroup32x32Old:
+                case IconGroup32x32: {
+                    width = 32;
+                    height = 32;
+                    break;
+                }
+                case IconGroup48x48: {
+                    width = 48;
+                    height = 48;
+                    break;
+                }
+                case IconGroup128x128: {
+                    width = 128;
+                    height = 128;
+                    break;
+                }
+                default:
+                    qWarning() << "IcnsReader::iconAt(): Icon:" << index
+                               << "Unsupported icon group:" << iconEntry.iconGroup;
+                }
+                //const float bytesPerPixel = ((float)iconEntry.iconBitDepth / 8);
                 switch(iconEntry.iconBitDepth) {
-                case 32: {
+                case IconMono: {
+                    img = QImage(width, height, QImage::Format_RGB32);
+                    quint8 byte = 0;
+                    quint32 pixel = 0;
+                    for(uint y = 0; y < height; y++) {
+                        for(uint x = 0; x < width; x++) {
+                            if(pixel % 8 == 0)
+                                m_stream >> byte;
+                            const quint8 mask = ((1 << 1) - 1) << 7; // left 1
+                            quint8 value = (byte & mask) ? 0x00 : 0xFF;
+                            byte = byte << 1;
+                            img.setPixel(x,y,qRgb(value,value,value));
+                            pixel++;
+                            // todo: if(iconEntry.iconIsMask) {}
+                        }
+                    }
+                    break;
+                }
+                case IconRLE24: {
                     // 32-bit icons are packed into RLE24, needs hardcoding for icon sizes:
                     // dimensions can't be extracted from the size of the data
-                    quint8 dimensions;
-                    switch (iconEntry.iconGroup) {
-                    case 0x74: { // "t" - 128x128
-                        dimensions = 128;
-                        break;
-                    }
-                    case 0x68: { // "h" - 48x48
-                        dimensions = 48;
-                        break;
-                    }
-                    case 0x6c: { // "l" - 32x32
-                        dimensions = 32;
-                        break;
-                    }
-                    case 0x73: { // "s" - 16x16
-                        dimensions = 16;
-                        break;
-                    }
-                    default:
-                        qWarning() << "IcnsReader::iconAt(): Icon:" << index
-                                   << "Unsupported 32-bit icon group:" << iconEntry.iconGroup;
-                    }
-                    if(dimensions) {
-                        img = QImage(dimensions, dimensions, QImage::Format_RGB32);
-                        QByteArray RLE24 = m_stream.device()->peek(iconEntry.imageDataSize);
-                        QByteArray decompressed = decompressRLE24(RLE24, dimensions*dimensions);
-                        QDataStream stream(decompressed);
-                        for(uint y = 0; y < dimensions; y++) {
-                            for(uint x = 0; x < dimensions; x++) {
-                                quint8 red, green, blue;
-                                stream >> red >> green >> blue;
-                                stream.skipRawData(1); //alpha
-                                img.setPixel(x,y,qRgb(red,green,blue));
-                            }
+                    img = QImage(width, height, QImage::Format_RGB32);
+                    QByteArray RLE24 = m_stream.device()->peek(iconEntry.imageDataSize);
+                    QByteArray decompressed = decompressRLE24(RLE24, width*height);
+                    QDataStream stream(decompressed);
+                    for(uint y = 0; y < height; y++) {
+                        for(uint x = 0; x < width; x++) {
+                            quint8 red, green, blue, alpha; // alpha is ignored there
+                            stream >> red >> green >> blue >> alpha;
+                            img.setPixel(x,y,qRgb(red,green,blue));
                         }
                     }
                     break;

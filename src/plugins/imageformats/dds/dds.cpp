@@ -209,12 +209,12 @@ static qint64 mipmapSize(const DDSHeader &dds, int level)
     if (flags & DDSPixelFormat::DDPF_FOURCC) {
         switch (dds.pixelFormat.fourCC) {
         case dxt1Magic:
-            return w*h*64/8/16;
+            return ((w+3)/4)*((h+3)/4)*8;
         case dxt2Magic:
         case dxt3Magic:
         case dxt4Magic:
         case dxt5Magic:
-            return w*h*128/8/16;
+            return ((w+3)/4)*((h+3)/4)*16;
         default:
             break;
         }

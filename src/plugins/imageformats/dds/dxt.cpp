@@ -116,8 +116,8 @@ QImage QDXT::loadDXT(QDXT::Version version, QDataStream &s, quint32 width, quint
 
     QImage img(width, height, format);
 
-    for (quint32 i = 0; i < height/4; i++) {
-        for (quint32 j = 0; j < width/4; j++) {
+    for (quint32 i = 0; i < (height + 3)/4; i++) {
+        for (quint32 j = 0; j < (width + 3)/4; j++) {
             quint64 alpha;
             quint16 c0, c1;
             quint32 table;
@@ -149,7 +149,9 @@ QImage QDXT::loadDXT(QDXT::Version version, QDataStream &s, quint32 width, quint
 
             for (int k = 0; k < 4; k++)
                 for (int l = 0; l < 4; l++) {
-                   img.setPixel(j*4+l, i*4+k, arr[k*4+l]);
+                    quint32 x = j*4 + l, y = i*4 + k;
+                    if (x < width && y < height)
+                        img.setPixel(x, y, arr[k*4+l]);
             }
         }
     }

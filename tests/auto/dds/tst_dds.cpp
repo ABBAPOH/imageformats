@@ -34,7 +34,7 @@ void DDSTest::readImage_data()
     QTest::addColumn<QString>("fileName");
     QTest::addColumn<QSize>("size");
 
-    QTest::newRow("1") << QString("DXT1") << QSize(64, 64);
+    QTest::newRow("1") << QString("DXT1") << QSize(50, 50);
     QTest::newRow("2") << QString("DXT2") << QSize(64, 64);
     QTest::newRow("3") << QString("DXT3") << QSize(64, 64);
     QTest::newRow("4") << QString("DXT4") << QSize(64, 64);

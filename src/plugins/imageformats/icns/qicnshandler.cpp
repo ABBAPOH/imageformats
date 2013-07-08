@@ -25,6 +25,7 @@ IcnsReader::IcnsReader(QIODevice *iodevice)
 
 QByteArray decompressRLE24(const QByteArray &encodedBytes, quint32 expectedPixelCount)
 {
+    // From libicns
     quint8	colorOffset = 0;
     uchar   colorValue = 0;
     quint8	runLength = 0;
@@ -35,9 +36,10 @@ QByteArray decompressRLE24(const QByteArray &encodedBytes, quint32 expectedPixel
     quint32 destIconDataSize = expectedPixelCount * 4;
     QByteArray destIconBytes(destIconDataSize,0);   // Decompressed Raw Icon Data
 
-    if(encodedBytes.isNull())
-        qWarning("icns_decode_rle24_data: rle decoder data in ptr is NULL!\n");
-    // Calculate required data storage (pixels * 4 channels)
+    if(encodedBytes.isEmpty()) {
+        qWarning("decompressRLE24(): encoded bytes are empty!");
+        return destIconBytes;
+    }
     qDebug("Compressed RLE data size is %d",encodedBytes.size());
     qDebug("Decompressed will be %d bytes (%d pixels)",(int)destIconDataSize,(int)expectedPixelCount);
     qDebug("Decoding RLE data into RGB pixels...");
@@ -48,8 +50,6 @@ QByteArray decompressRLE24(const QByteArray &encodedBytes, quint32 expectedPixel
         qDebug("4 byte null padding found in rle data!");
         dataOffset = 4;
     }
-    else
-        dataOffset = 0;
     // Data is stored in red run, green run,blue run
     // So we decompress to pixel format RGBA
     // RED:   byte[0], byte[4], byte[8]  ...
@@ -107,10 +107,10 @@ void IcnsReader::parseIconDetails(IcnsIconEntry &icon) {
             QRegExp regexp(pattern);
             const bool hasMatch = (regexp.indexIn(magic) >= 0);
             QStringList match = regexp.capturedTexts();
-            const QString junk = match.at(1);
-            const QString group = match.at(2);
-            const QString depth = match.at(3);
-            const QString mask = match.at(4);
+            const QString junk = (1 <= match.size()) ? match.at(1) : "";
+            const QString group = (2 <= match.size()) ? match.at(2) : "";
+            const QString depth = (3 <= match.size()) ? match.at(3) : "";
+            const QString mask = (4 <= match.size()) ? match.at(4) : "";
 #endif
             icon.iconGroup = group.at(0).toLatin1();
             icon.iconIsMask = !mask.isEmpty();

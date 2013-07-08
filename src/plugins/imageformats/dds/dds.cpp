@@ -373,6 +373,13 @@ void DDSHandler::ensureHeaderCached() const
 
 // ===================== DDSPlugin =====================
 
+#if QT_VERSION < 0x050000
+QStringList DDSPlugin::keys() const
+{
+    return QStringList() << "dds";
+}
+#endif
+
 QImageIOPlugin::Capabilities DDSPlugin::capabilities(QIODevice *device, const QByteArray &format) const
 {
     if (!device || !device->isOpen())

@@ -27,6 +27,23 @@ enum Colors {
     ColorCount
 };
 
+enum Type {
+    TypeUnknown = 0,
+    TypeDXT1,
+    TypeDXT2,
+    TypeDXT3,
+    TypeDXT4,
+    TypeDXT5,
+    TypeRGB,
+    TypeRGBA,
+    TypeAlpha,
+    TypeYUV,
+    TypeLuminance,
+    TypeLuminanceAlpha,
+    TypeIndexed8,
+    TypeCount
+};
+
 static int shift(quint32 mask)
 {
     if (mask == 0)
@@ -60,6 +77,47 @@ static quint32 readValue(QDataStream &s, quint32 size)
         value = value + (quint32(tmp) << 8*bit);
     }
     return value;
+}
+
+static Type getType(const DDSHeader &dds)
+{
+    quint32 flags = dds.pixelFormat.flags;
+    if (flags & DDSPixelFormat::DDPF_FOURCC) {
+        switch (dds.pixelFormat.fourCC) {
+        case dxt1Magic:
+            return TypeDXT1;
+        case dxt2Magic:
+            return TypeDXT2;
+        case dxt3Magic:
+            return TypeDXT3;
+        case dxt4Magic:
+            return TypeDXT4;
+        case dxt5Magic:
+            return TypeDXT5;
+        default:
+            break;
+        }
+    }
+
+    bool hasAlpha = flags & DDSPixelFormat::DDPF_ALPHAPIXELS ||
+            flags & DDSPixelFormat::DDPF_ALPHA;
+
+    if (flags & DDSPixelFormat::DDPF_RGB && hasAlpha)
+        return TypeRGBA;
+    else if (flags & DDSPixelFormat::DDPF_RGB && !hasAlpha)
+        return TypeRGB;
+    else if (flags & DDSPixelFormat::DDPF_YUV)
+        return TypeYUV;
+    else if (flags & DDSPixelFormat::DDPF_LUMINANCE && hasAlpha)
+        return TypeLuminanceAlpha;
+    else if (flags & DDSPixelFormat::DDPF_LUMINANCE && !hasAlpha)
+        return TypeLuminance;
+    else if (hasAlpha)
+        return TypeAlpha;
+    else if (flags & DDSPixelFormat::DDPF_PALETTEINDEXED8)
+        return TypeIndexed8;
+
+    return TypeUnknown;
 }
 
 DDSHandler::DDSHandler() :
@@ -161,40 +219,35 @@ static bool readPaletteBased(QDataStream & s, const DDSHeader & dds, QImage &img
 
 bool readLayer(QDataStream & s, const DDSHeader & dds, QImage &img)
 {
-    quint32 flags = dds.pixelFormat.flags;
-    if (flags & DDSPixelFormat::DDPF_FOURCC) {
-        switch (dds.pixelFormat.fourCC) {
-        case dxt1Magic:
-            img = QDXT::loadDXT(QDXT::One, s, dds.width, dds.height);
-            break;
-        case dxt2Magic:
-            img = QDXT::loadDXT(QDXT::Two, s, dds.width, dds.height);
-            break;
-        case dxt3Magic:
-            img = QDXT::loadDXT(QDXT::Three, s, dds.width, dds.height);
-            break;
-        case dxt4Magic:
-            img = QDXT::loadDXT(QDXT::Four, s, dds.width, dds.height);
-            break;
-        case dxt5Magic:
-            img = QDXT::loadDXT(QDXT::Five, s, dds.width, dds.height);
-            break;
-        default:
-            break;
-        }
+    switch (getType(dds)) {
+    case TypeDXT1:
+        img = QDXT::loadDXT(QDXT::One, s, dds.width, dds.height);
         return true;
-    }
-
-    bool hasAlpha = flags & DDSPixelFormat::DDPF_ALPHAPIXELS ||
-            flags & DDSPixelFormat::DDPF_ALPHA;
-
-    if (flags & DDSPixelFormat::DDPF_RGB ||
-            flags & DDSPixelFormat::DDPF_YUV ||
-            flags & DDSPixelFormat::DDPF_LUMINANCE ||
-            hasAlpha)
-        return readValueBased(s, dds, img, hasAlpha);
-    if (flags & DDSPixelFormat::DDPF_PALETTEINDEXED8)
+    case TypeDXT2:
+        img = QDXT::loadDXT(QDXT::Two, s, dds.width, dds.height);
+        return true;
+    case TypeDXT3:
+        img = QDXT::loadDXT(QDXT::Three, s, dds.width, dds.height);
+        return true;
+    case TypeDXT4:
+        img = QDXT::loadDXT(QDXT::Four, s, dds.width, dds.height);
+        return true;
+    case TypeDXT5:
+        img = QDXT::loadDXT(QDXT::Five, s, dds.width, dds.height);
+        return true;
+    case TypeRGB:
+    case TypeYUV:
+    case TypeLuminance:
+        return readValueBased(s, dds, img, false);
+    case TypeRGBA:
+    case TypeAlpha:
+    case TypeLuminanceAlpha:
+        return readValueBased(s, dds, img, true);
+    case TypeIndexed8:
         return readPaletteBased(s, dds, img);
+    default:
+        break;
+    }
 
     return false;
 }
@@ -204,34 +257,27 @@ static qint64 mipmapSize(const DDSHeader &dds, int level)
     quint32 w = dds.width/(1 << level);
     quint32 h = dds.height/(1 << level);
 
-    quint32 flags = dds.pixelFormat.flags;
-
-    if (flags & DDSPixelFormat::DDPF_FOURCC) {
-        switch (dds.pixelFormat.fourCC) {
-        case dxt1Magic:
-            return ((w+3)/4)*((h+3)/4)*8;
-        case dxt2Magic:
-        case dxt3Magic:
-        case dxt4Magic:
-        case dxt5Magic:
-            return ((w+3)/4)*((h+3)/4)*16;
-        default:
-            break;
-        }
-    }
-
-    bool hasAlpha = flags & DDSPixelFormat::DDPF_ALPHAPIXELS ||
-            flags & DDSPixelFormat::DDPF_ALPHA;
-
-    if (flags & DDSPixelFormat::DDPF_RGB ||
-            flags & DDSPixelFormat::DDPF_YUV ||
-            flags & DDSPixelFormat::DDPF_LUMINANCE ||
-            hasAlpha)
+    Type type = getType(dds);
+    switch (type) {
+    case TypeDXT1:
+        return ((w+3)/4)*((h+3)/4)*8;
+    case TypeDXT2:
+    case TypeDXT3:
+    case TypeDXT4:
+    case TypeDXT5:
+        return ((w+3)/4)*((h+3)/4)*16;
+    case TypeRGB:
+    case TypeRGBA:
+    case TypeAlpha:
+    case TypeYUV:
+    case TypeLuminance:
+    case TypeLuminanceAlpha:
         return w*h*dds.pixelFormat.rgbBitCount/8;
-
-    if (flags & DDSPixelFormat::DDPF_PALETTEINDEXED8)
+    case TypeIndexed8:
         return 256 + w*h*8;
-
+    default:
+        break;
+    }
     return 0;
 }
 

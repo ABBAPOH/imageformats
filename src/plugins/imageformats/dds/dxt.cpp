@@ -1,6 +1,14 @@
 #include "dxt.h"
 #include <qglobal.h>
 
+enum Version {
+    One = 1,
+    Two = 2,
+    Three = 3,
+    Four = 4,
+    Five = 5
+};
+
 static inline void decodeColor(quint16 color, quint8 & red, quint8 & green, quint8 & blue)
 {
     red = ((color >> 11) & 0x1f) << 3;
@@ -109,7 +117,7 @@ static void setAplphaDXT45(QRgb * rgbArr, quint64 alphas, bool premultiplied)
     }
 }
 
-QImage QDXT::loadDXT(QDXT::Version version, QDataStream &s, quint32 width, quint32 height)
+static QImage loadDXT(Version version, QDataStream &s, quint32 width, quint32 height)
 {
     QImage::Format format = (version == Two || version == Four) ?
                 QImage::Format_ARGB32_Premultiplied : QImage::Format_ARGB32;
@@ -156,4 +164,29 @@ QImage QDXT::loadDXT(QDXT::Version version, QDataStream &s, quint32 width, quint
         }
     }
     return img;
+}
+
+QImage QDXT::loadDXT1(QDataStream &s, quint32 width, quint32 height)
+{
+    return loadDXT(One, s, width, height);
+}
+
+QImage QDXT::loadDXT2(QDataStream &s, quint32 width, quint32 height)
+{
+    return loadDXT(Two, s, width, height);
+}
+
+QImage QDXT::loadDXT3(QDataStream &s, quint32 width, quint32 height)
+{
+    return loadDXT(Three, s, width, height);
+}
+
+QImage QDXT::loadDXT4(QDataStream &s, quint32 width, quint32 height)
+{
+    return loadDXT(Four, s, width, height);
+}
+
+QImage QDXT::loadDXT5(QDataStream &s, quint32 width, quint32 height)
+{
+    return loadDXT(Five, s, width, height);
 }

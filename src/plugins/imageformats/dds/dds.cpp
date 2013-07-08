@@ -135,7 +135,7 @@ bool DDSHandler::canRead() const
     return false;
 }
 
-static bool readValueBased(QDataStream & s, const DDSHeader & dds, QImage &img, bool hasAlpha)
+static QImage readValueBased(QDataStream & s, const DDSHeader & dds, quint32 width, quint32 height, bool hasAlpha)
 {
     quint32 flags = dds.pixelFormat.flags;
 
@@ -157,10 +157,10 @@ static bool readValueBased(QDataStream & s, const DDSHeader & dds, QImage &img, 
 
     const QImage::Format format = hasAlpha ? QImage::Format_ARGB32 : QImage::Format_RGB32;
 
-    img = QImage(dds.width, dds.height, format);
+    QImage img(width, height, format);
 
-    for (quint32 y = 0; y < dds.height; y++) {
-        for (quint32 x = 0; x < dds.width; x++) {
+    for (quint32 y = 0; y < height; y++) {
+        for (quint32 x = 0; x < width; x++) {
             quint32 value = ::readValue(s, dds.pixelFormat.rgbBitCount);
             quint8 colors[ColorCount];
 
@@ -194,62 +194,57 @@ static bool readValueBased(QDataStream & s, const DDSHeader & dds, QImage &img, 
         }
     }
 
-    return true;
+    return img;
 }
 
-static bool readPaletteBased(QDataStream & s, const DDSHeader & dds, QImage &img)
+static QImage readPaletteBased(QDataStream & s, const DDSHeader &/*dds*/, quint32 width, quint32 height)
 {
-    img = QImage(dds.width, dds.height, QImage::Format_Indexed8);
+    QImage img(width, height, QImage::Format_Indexed8);
     for (int i = 0; i < 256; ++i) {
         quint8 r, g, b, a;
         s >> r >> g >> b >> a;
         img.setColor(i, qRgba(r, g, b, a));
     }
 
-    for (quint32 y = 0; y < dds.height; y++) {
-        for (quint32 x = 0; x < dds.width; x++) {
+    for (quint32 y = 0; y < height; y++) {
+        for (quint32 x = 0; x < width; x++) {
             quint8 index;
             s >> index;
             img.setPixel(x, y, index);
         }
     }
 
-    return s.status() == QDataStream::Ok;
+    return img;
 }
 
-bool readLayer(QDataStream & s, const DDSHeader & dds, QImage &img)
+QImage readLayer(QDataStream & s, const DDSHeader & dds, quint32 width, quint32 height)
 {
     switch (getType(dds)) {
     case TypeDXT1:
-        img = QDXT::loadDXT(QDXT::One, s, dds.width, dds.height);
-        return true;
+        return QDXT::loadDXT1(s, width, height);
     case TypeDXT2:
-        img = QDXT::loadDXT(QDXT::Two, s, dds.width, dds.height);
-        return true;
+        return QDXT::loadDXT2(s, width, height);
     case TypeDXT3:
-        img = QDXT::loadDXT(QDXT::Three, s, dds.width, dds.height);
-        return true;
+        return QDXT::loadDXT3(s, width, height);
     case TypeDXT4:
-        img = QDXT::loadDXT(QDXT::Four, s, dds.width, dds.height);
-        return true;
+        return QDXT::loadDXT4(s, width, height);
     case TypeDXT5:
-        img = QDXT::loadDXT(QDXT::Five, s, dds.width, dds.height);
-        return true;
+        return QDXT::loadDXT5(s, width, height);
     case TypeRGB:
     case TypeYUV:
     case TypeLuminance:
-        return readValueBased(s, dds, img, false);
+        return readValueBased(s, dds, width, height, false);
     case TypeRGBA:
     case TypeAlpha:
     case TypeLuminanceAlpha:
-        return readValueBased(s, dds, img, true);
+        return readValueBased(s, dds, width, height, true);
     case TypeIndexed8:
-        return readPaletteBased(s, dds, img);
+        return readPaletteBased(s, dds, width, height);
     default:
         break;
     }
 
-    return false;
+    return QImage();
 }
 
 static qint64 mipmapSize(const DDSHeader &dds, int level)
@@ -300,13 +295,13 @@ bool DDSHandler::read(QImage *outImage)
             return false;
         QDataStream s(device());
         s.setByteOrder(QDataStream::LittleEndian);
-        QImage img;
-        DDSHeader dds = header;
-        dds.width = header.width / (1 << m_currentImage);
-        dds.height = header.height / (1 << m_currentImage);
-        readLayer(s, dds, img);
-        *outImage = img;
-        return true;
+        quint32 width = header.width / (1 << m_currentImage);
+        quint32 height = header.height / (1 << m_currentImage);
+        QImage img = readLayer(s, header, width, height);
+        bool ok = s.status() == QDataStream::Ok && !img.isNull();
+        if (ok)
+            *outImage = img;
+        return ok;
     }
 
     return true;

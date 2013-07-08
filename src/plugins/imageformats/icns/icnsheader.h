@@ -34,7 +34,7 @@ struct IcnsIconEntry
 {
     IcnsBlockHeader header;         // Original block header
     IcnsIconFormat  iconFormat;     // PNG, JP2 or uncompressed
-    quint8          iconFamily;     // For Uncompressed icons only (ASCII character number)
+    quint8          iconGroup;      // For Uncompressed icons only (ASCII character number)
     quint8          iconBitDepth;   // For Uncompressed icons only
     bool            iconIsMask;     // For Uncompressed icons only
     quint32         imageDataOffset;// Offset from the initial position of the file/device

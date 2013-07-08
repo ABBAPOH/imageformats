@@ -4,6 +4,7 @@
 #include <QtCore/QDataStream>
 #include <QtCore/QRegularExpression>
 #include <QtCore/QRegularExpressionMatch>
+#include <math.h>
 
 #include <QDebug>
 
@@ -22,6 +23,65 @@ IcnsReader::IcnsReader(QIODevice *iodevice)
     m_scanned = false;
 }
 
+QByteArray decompressRLE24(const QByteArray &encodedBytes, quint32 expectedPixelCount)
+{
+    quint8	colorOffset = 0;
+    uchar   colorValue = 0;
+    quint8	runLength = 0;
+    quint32	dataOffset = 0;
+    quint32	pixelOffset = 0;
+    quint32	i = 0;
+    quint32 rawDataSize = encodedBytes.size();
+    quint32 destIconDataSize = expectedPixelCount * 4;
+    QByteArray destIconBytes(destIconDataSize,0);   // Decompressed Raw Icon Data
+
+    if(encodedBytes.isNull())
+        qWarning("icns_decode_rle24_data: rle decoder data in ptr is NULL!\n");
+    // Calculate required data storage (pixels * 4 channels)
+    qDebug("Compressed RLE data size is %d",encodedBytes.size());
+    qDebug("Decompressed will be %d bytes (%d pixels)",(int)destIconDataSize,(int)expectedPixelCount);
+    qDebug("Decoding RLE data into RGB pixels...");
+    // What's this??? In the 128x128 icons, we need to start 4 bytes
+    // ahead. There is often a NULL padding here for some reason. If
+    // we don't, the red channel will be off by 2 pixels, or worse
+    if( *((quint32*)encodedBytes.constData()) == 0x00000000 ) {
+        qDebug("4 byte null padding found in rle data!");
+        dataOffset = 4;
+    }
+    else
+        dataOffset = 0;
+    // Data is stored in red run, green run,blue run
+    // So we decompress to pixel format RGBA
+    // RED:   byte[0], byte[4], byte[8]  ...
+    // GREEN: byte[1], byte[5], byte[9]  ...
+    // BLUE:  byte[2], byte[6], byte[10] ...
+    // ALPHA: byte[3], byte[7], byte[11] do nothing with these bytes
+    for(colorOffset = 0; colorOffset < 3; colorOffset++) {
+        pixelOffset = 0;
+        while((pixelOffset < expectedPixelCount) && (dataOffset < rawDataSize)) {
+            if( (encodedBytes.data()[dataOffset] & 0x80) == 0) {
+                // Top bit is clear - run of various values to follow
+                runLength = (0xFF & encodedBytes.data()[dataOffset++]) + 1; // 1 <= len <= 128
+                for(i = 0; (i < runLength) && (pixelOffset < expectedPixelCount) && (dataOffset < rawDataSize); i++) {
+                    destIconBytes.data()[(pixelOffset * 4) + colorOffset] = encodedBytes.data()[dataOffset++];
+                    pixelOffset++;
+                }
+            }
+            else {
+                // Top bit is set - run of one value to follow
+                runLength = (0xFF & encodedBytes.data()[dataOffset++]) - 125; // 3 <= len <= 130
+                // Set the value to the color shifted to the correct bit offset
+                colorValue = encodedBytes.data()[dataOffset++];
+                for(i = 0; (i < runLength) && (pixelOffset < expectedPixelCount); i++) {
+                    destIconBytes.data()[(pixelOffset * 4) + colorOffset] = colorValue;
+                    pixelOffset++;
+                }
+            }
+        }
+    }
+    return destIconBytes;
+}
+
 void IcnsReader::parseIconDetails(IcnsIconEntry &icon) {
     qint64 oldPos = m_stream.device()->pos();
     if(m_stream.device()->seek(icon.imageDataOffset)) {
@@ -32,18 +92,18 @@ void IcnsReader::parseIconDetails(IcnsIconEntry &icon) {
         else {
             icon.iconFormat = IconUncompressed;
             QByteArray magic = QByteArray::fromHex(QByteArray::number(icon.header.magic,16));
-            QRegularExpression pattern("^(?<junk>[^0-9]{0,4})(?<family>[a-z|A-Z]{1})(?<depth>\\d{0,2})(?<mask>[#mk]{0,2})$");
+            QRegularExpression pattern("^(?<junk>[\\D]{0,4})(?<group>[a-z|A-Z]{1})(?<depth>\\d{0,2})(?<mask>[#mk]{0,2})$");
             QRegularExpressionMatch match = pattern.match(magic);
             const QString junk = match.captured("junk");
-            const QString family = match.captured("family");
+            const QString group = match.captured("group");
             const QString depth = match.captured("depth");
             const QString mask = match.captured("mask");
-            icon.iconFamily = family.at(0).toLatin1();
-            icon.iconBitDepth = (depth.toUInt() == 0) ? 1 : depth.toUInt(); // mono or <depth>
+            icon.iconGroup = group.at(0).toLatin1();
             icon.iconIsMask = !mask.isEmpty();
+            icon.iconBitDepth = (mask == "#") ? 1 : depth.toUInt();
             if(match.hasMatch()) {
-                qDebug() << "IcnsReader::parseIconDetails() parse:" << junk << family << depth << mask
-                         << icon.iconFamily << icon.iconBitDepth << icon.iconIsMask;
+                qDebug() << "IcnsReader::parseIconDetails() parse:" << junk << group << depth << mask
+                         << icon.iconGroup << icon.iconBitDepth << icon.iconIsMask;
             }
             else
                 qDebug() << "IcnsReader::parseIconDetails() reg exp: no match for:" << magic;
@@ -133,12 +193,65 @@ QImage IcnsReader::iconAt(int index)
         case IconJP2:
             //To do: JPEG 2000 (need another plugin for that?)
             break;
-        default:
-            //To do: subformats
-            break;
+        default: {
+            //Uncompressed/bitmaps:
+            if(iconEntry.iconBitDepth <= 0 || iconEntry.iconGroup == 0) {
+                qWarning() << "IcnsReader::iconAt(): Icon:" << index
+                           << "Unsupported icon type:" << iconEntry.header.magic;
+            }
+            else {
+                //To do: subformats
+                switch(iconEntry.iconBitDepth) {
+                case 32: {
+                    // 32-bit icons are packed into RLE24, needs hardcoding for icon sizes:
+                    // dimensions can't be extracted from the size of the data
+                    quint8 dimensions;
+                    switch (iconEntry.iconGroup) {
+                    case 0x74: { // "t" - 128x128
+                        dimensions = 128;
+                        break;
+                    }
+                    case 0x68: { // "h" - 48x48
+                        dimensions = 48;
+                        break;
+                    }
+                    case 0x6c: { // "l" - 32x32
+                        dimensions = 32;
+                        break;
+                    }
+                    case 0x73: { // "s" - 16x16
+                        dimensions = 16;
+                        break;
+                    }
+                    default:
+                        qWarning() << "IcnsReader::iconAt(): Icon:" << index
+                                   << "Unsupported 32-bit icon group:" << iconEntry.iconGroup;
+                    }
+                    if(dimensions) {
+                        img = QImage(dimensions, dimensions, QImage::Format_RGB32);
+                        QByteArray RLE24 = m_stream.device()->peek(iconEntry.imageDataSize);
+                        QByteArray decompressed = decompressRLE24(RLE24, dimensions*dimensions);
+                        QDataStream stream(decompressed);
+                        for(uint y = 0; y < dimensions; y++) {
+                            for(uint x = 0; x < dimensions; x++) {
+                                quint8 red, green, blue;
+                                stream >> red >> green >> blue;
+                                stream.skipRawData(1); //alpha
+                                img.setPixel(x,y,qRgb(red,green,blue));
+                            }
+                        }
+                    }
+                    break;
+                }
+                default: {
+                    qWarning() << "IcnsReader::iconAt(): Icon:" << index
+                               << "Unsupported icon bit depth:" << iconEntry.iconBitDepth;
+                }
+                }
+            }
+        }
         }
     }
-
     return img;
 }
 

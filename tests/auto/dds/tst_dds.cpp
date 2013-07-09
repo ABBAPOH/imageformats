@@ -48,6 +48,7 @@ void DDSTest::readImage_data()
     QTest::newRow("12") << QString("RGBA4") << QSize(64, 64);
     QTest::newRow("13") << QString("RGBA8") << QSize(64, 64);
     QTest::newRow("14") << QString("index8") << QSize(64, 64);
+    QTest::newRow("15") << QString("cubemap") << QSize(2048, 1536);
 }
 
 void DDSTest::readImage()
@@ -62,6 +63,7 @@ void DDSTest::readImage()
     QImage image = reader.read();
     QVERIFY(!image.isNull());
     QCOMPARE(image.size(), size);
+    image.save(QString("/Users/arch/Desktop/folder/%1.png").arg(fileName));
     QVERIFY(compareImages(image, QImage(sourcePath)) == true);
 
 }

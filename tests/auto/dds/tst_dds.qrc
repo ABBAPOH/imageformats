@@ -36,5 +36,7 @@
         <file>data/mipmaps 4.png</file>
         <file>data/mipmaps 5.png</file>
         <file>data/mipmaps 6.png</file>
+        <file>data/cubemap.dds</file>
+        <file>data/cubemap.png</file>
     </qresource>
 </RCC>

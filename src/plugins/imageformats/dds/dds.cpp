@@ -19,6 +19,16 @@ static const quint32 dxt5Magic = 0x35545844; // "DXT5"
 
 static const qint64 headerSize = 128;
 
+static int faceOffset[6][2] = { {2, 1}, {0, 1}, {1, 0}, {1, 2}, {1, 1}, {3, 1} };
+static int faceFlags[6] = {
+    DDSHeader::DDSCAPS2_CUBEMAP_POSITIVEX,
+    DDSHeader::DDSCAPS2_CUBEMAP_NEGATIVEX,
+    DDSHeader::DDSCAPS2_CUBEMAP_POSITIVEY,
+    DDSHeader::DDSCAPS2_CUBEMAP_NEGATIVEY,
+    DDSHeader::DDSCAPS2_CUBEMAP_POSITIVEZ,
+    DDSHeader::DDSCAPS2_CUBEMAP_NEGATIVEZ
+};
+
 enum Colors {
     Red = 0,
     Green,
@@ -84,6 +94,11 @@ static inline bool hasAlpha(const DDSHeader &dds)
     quint32 flags = dds.pixelFormat.flags;
     return flags & DDSPixelFormat::DDPF_ALPHAPIXELS ||
             flags & DDSPixelFormat::DDPF_ALPHA;
+}
+
+static inline bool isCubeMap(const DDSHeader &dds)
+{
+    return dds.caps2 & DDSHeader::DDSCAPS2_CUBEMAP;
 }
 
 static Type getType(const DDSHeader &dds)
@@ -253,6 +268,13 @@ QImage readLayer(QDataStream & s, const DDSHeader & dds, quint32 width, quint32 
     return QImage();
 }
 
+QImage readTexture(QDataStream & s, const DDSHeader & dds, int mipmapLevel)
+{
+    quint32 width = dds.width / (1 << mipmapLevel);
+    quint32 height = dds.height / (1 << mipmapLevel);
+    return readLayer(s, dds, width, height);
+}
+
 static qint64 mipmapSize(const DDSHeader &dds, int level)
 {
     quint32 w = dds.width/(1 << level);
@@ -291,6 +313,41 @@ static qint64 mipmapOffset(const DDSHeader &dds, int level)
     return result;
 }
 
+QImage readCubeMap(QDataStream & s, const DDSHeader & dds)
+{
+    bool hasAlpha = ::hasAlpha(dds);
+    QImage::Format format = hasAlpha ? QImage::Format_ARGB32 : QImage::Format_RGB32;
+    QImage img(4 * dds.width, 3 * dds.height, format);
+
+    img.fill(0);
+
+    int offset = s.device()->pos();
+    const int size = mipmapSize(dds, 0);
+
+    for (int i = 0; i < 6; i++) {
+        if (!(dds.caps2 & faceFlags[i]))
+            continue; // Skip face.
+
+        s.device()->seek(offset);
+        offset += size;
+
+        const QImage face = ::readLayer(s, dds, dds.width, dds.height);
+
+        // Compute face offsets.
+        int offset_x = faceOffset[i][0] * dds.width;
+        int offset_y = faceOffset[i][1] * dds.height;
+
+        // Copy face on the image.
+        for (quint32 y = 0; y < dds.height; y++) {
+            const QRgb *src = reinterpret_cast<const QRgb *>(face.scanLine(y));
+            QRgb *dst = reinterpret_cast<QRgb *>(img.scanLine( y + offset_y )) + offset_x;
+            memcpy(dst, src, sizeof(QRgb) * dds.width);
+        }
+    }
+
+    return img;
+}
+
 bool DDSHandler::read(QImage *outImage)
 {
     ensureHeaderCached();
@@ -301,9 +358,13 @@ bool DDSHandler::read(QImage *outImage)
             return false;
         QDataStream s(device());
         s.setByteOrder(QDataStream::LittleEndian);
-        quint32 width = header.width / (1 << m_currentImage);
-        quint32 height = header.height / (1 << m_currentImage);
-        QImage img = readLayer(s, header, width, height);
+
+        QImage img;
+        if (isCubeMap(header))
+            img = readCubeMap(s, header);
+        else
+            img = readTexture(s, header, m_currentImage);
+
         bool ok = s.status() == QDataStream::Ok && !img.isNull();
         if (ok)
             *outImage = img;

@@ -23,7 +23,7 @@ IcnsReader::IcnsReader(QIODevice *iodevice)
     m_scanned = false;
 }
 
-QByteArray decompressRLE24(const QByteArray &encodedBytes, quint32 expectedPixelCount)
+QByteArray IcnsDecompressRLE24(const QByteArray &encodedBytes, quint32 expectedPixelCount)
 {
     // From libicns
     quint8	colorOffset = 0;
@@ -269,7 +269,7 @@ QImage IcnsReader::iconAt(int index)
             // dimensions can't be extracted from the size of the data
             img = QImage(width, height, QImage::Format_RGB32);
             QByteArray RLE24 = m_stream.device()->peek(iconEntry.imageDataSize);
-            QByteArray decompressed = decompressRLE24(RLE24, width*height);
+            QByteArray decompressed = IcnsDecompressRLE24(RLE24, width*height);
             QDataStream stream(decompressed);
             for(uint y = 0; y < height; y++) {
                 for(uint x = 0; x < width; x++) {

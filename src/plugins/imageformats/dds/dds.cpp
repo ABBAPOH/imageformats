@@ -321,8 +321,8 @@ QImage readCubeMap(QDataStream & s, const DDSHeader & dds)
 
     img.fill(0);
 
-    int offset = s.device()->pos();
-    const int size = mipmapSize(dds, 0);
+    qint64 offset = s.device()->pos();
+    const qint64 size = mipmapSize(dds, 0);
 
     for (int i = 0; i < 6; i++) {
         if (!(dds.caps2 & faceFlags[i]))

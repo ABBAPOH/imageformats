@@ -16,10 +16,13 @@ public:
 
 private:
     bool scanBlocks();
-    void parseIconDetails(IcnsIconEntry &icon);
+
+    bool parseIconDetails(IcnsIconEntry &icon);
+
+    QByteArray decompressRLE24(const QByteArray &encodedBytes, quint32 expectedPixelCount);
+    bool initIconPalette(QImage &img, quint8 depth);
 
     QDataStream m_stream;
-
     bool m_scanned;
     QVector<IcnsIconEntry> m_icons;
 };

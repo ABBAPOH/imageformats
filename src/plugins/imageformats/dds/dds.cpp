@@ -79,6 +79,13 @@ static quint32 readValue(QDataStream &s, quint32 size)
     return value;
 }
 
+static inline bool hasAlpha(const DDSHeader &dds)
+{
+    quint32 flags = dds.pixelFormat.flags;
+    return flags & DDSPixelFormat::DDPF_ALPHAPIXELS ||
+            flags & DDSPixelFormat::DDPF_ALPHA;
+}
+
 static Type getType(const DDSHeader &dds)
 {
     quint32 flags = dds.pixelFormat.flags;
@@ -99,8 +106,7 @@ static Type getType(const DDSHeader &dds)
         }
     }
 
-    bool hasAlpha = flags & DDSPixelFormat::DDPF_ALPHAPIXELS ||
-            flags & DDSPixelFormat::DDPF_ALPHA;
+    bool hasAlpha = ::hasAlpha(dds);
 
     if (flags & DDSPixelFormat::DDPF_RGB && hasAlpha)
         return TypeRGBA;

@@ -1,4 +1,5 @@
 #include "dxt.h"
+
 #include <qglobal.h>
 
 enum Version {
@@ -6,7 +7,8 @@ enum Version {
     Two = 2,
     Three = 3,
     Four = 4,
-    Five = 5
+    Five = 5,
+    RXGB = 6
 };
 
 static inline void decodeColor(quint16 color, quint8 & red, quint8 & green, quint8 & blue)
@@ -117,6 +119,14 @@ static void setAplphaDXT45(QRgb * rgbArr, quint64 alphas, bool premultiplied)
     }
 }
 
+static QRgb invertRXGBColors(QRgb pixel)
+{
+    quint8 g = qGreen(pixel);
+    quint8 b = qBlue(pixel);
+    quint8 a = qAlpha(pixel);
+    return qRgb(a, g, b);
+}
+
 static QImage loadDXT(Version version, QDataStream &s, quint32 width, quint32 height)
 {
     QImage::Format format = (version == Two || version == Four) ?
@@ -124,8 +134,8 @@ static QImage loadDXT(Version version, QDataStream &s, quint32 width, quint32 he
 
     QImage img(width, height, format);
 
-    for (quint32 i = 0; i < (height + 3)/4; i++) {
-        for (quint32 j = 0; j < (width + 3)/4; j++) {
+    for (quint32 i = 0; i < height; i += 4) {
+        for (quint32 j = 0; j < width; j += 4) {
             quint64 alpha;
             quint16 c0, c1;
             quint32 table;
@@ -149,6 +159,7 @@ static QImage loadDXT(Version version, QDataStream &s, quint32 width, quint32 he
                 setAplphaDXT45(arr, alpha, true);
                 break;
             case Five:
+            case RXGB:
                 setAplphaDXT45(arr, alpha, false);
                 break;
             default:
@@ -157,9 +168,13 @@ static QImage loadDXT(Version version, QDataStream &s, quint32 width, quint32 he
 
             for (int k = 0; k < 4; k++)
                 for (int l = 0; l < 4; l++) {
-                    quint32 x = j*4 + l, y = i*4 + k;
-                    if (x < width && y < height)
-                        img.setPixel(x, y, arr[k*4+l]);
+                    quint32 x = j + l, y = i + k;
+                    if (x < width && y < height) {
+                        QRgb pixel = arr[k*4+l];
+                        if (version == RXGB)
+                            pixel = invertRXGBColors(pixel);
+                        img.setPixel(x, y, pixel);
+                    }
             }
         }
     }
@@ -189,4 +204,9 @@ QImage QDXT::loadDXT4(QDataStream &s, quint32 width, quint32 height)
 QImage QDXT::loadDXT5(QDataStream &s, quint32 width, quint32 height)
 {
     return loadDXT(Five, s, width, height);
+}
+
+QImage QDXT::loadRXGB(QDataStream &s, quint32 width, quint32 height)
+{
+    return loadDXT(RXGB, s, width, height);
 }

@@ -16,6 +16,7 @@ static const quint32 dxt2Magic = 0x32545844; // "DXT2"
 static const quint32 dxt3Magic = 0x33545844; // "DXT3"
 static const quint32 dxt4Magic = 0x34545844; // "DXT4"
 static const quint32 dxt5Magic = 0x35545844; // "DXT5"
+static const quint32 rxgbMagic = 0x42475852; // "RXGB"
 
 static const qint64 headerSize = 128;
 
@@ -44,6 +45,7 @@ enum Type {
     TypeDXT3,
     TypeDXT4,
     TypeDXT5,
+    TypeRXGB,
     TypeRGB,
     TypeRGBA,
     TypeAlpha,
@@ -116,6 +118,8 @@ static Type getType(const DDSHeader &dds)
             return TypeDXT4;
         case dxt5Magic:
             return TypeDXT5;
+        case rxgbMagic:
+            return TypeRXGB;
         default:
             break;
         }
@@ -251,6 +255,8 @@ QImage readLayer(QDataStream & s, const DDSHeader & dds, quint32 width, quint32 
         return QDXT::loadDXT4(s, width, height);
     case TypeDXT5:
         return QDXT::loadDXT5(s, width, height);
+    case TypeRXGB:
+        return QDXT::loadRXGB(s, width, height);
     case TypeRGB:
     case TypeYUV:
     case TypeLuminance:
@@ -288,6 +294,7 @@ static qint64 mipmapSize(const DDSHeader &dds, int level)
     case TypeDXT3:
     case TypeDXT4:
     case TypeDXT5:
+    case TypeRXGB:
         return ((w+3)/4)*((h+3)/4)*16;
     case TypeRGB:
     case TypeRGBA:

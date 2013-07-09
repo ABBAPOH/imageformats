@@ -1,5 +1,7 @@
 <RCC>
     <qresource prefix="/">
+        <file>data/cubemap.dds</file>
+        <file>data/cubemap.png</file>
         <file>data/DXT1.dds</file>
         <file>data/DXT1.png</file>
         <file>data/DXT2.dds</file>
@@ -36,7 +38,7 @@
         <file>data/mipmaps 4.png</file>
         <file>data/mipmaps 5.png</file>
         <file>data/mipmaps 6.png</file>
-        <file>data/cubemap.dds</file>
-        <file>data/cubemap.png</file>
+        <file>data/RXGB.dds</file>
+        <file>data/RXGB.png</file>
     </qresource>
 </RCC>

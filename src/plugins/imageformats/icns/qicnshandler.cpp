@@ -32,7 +32,7 @@ bool IcnsReader::initIconPalette(QImage &img, quint8 depth) {
     const uint colorcount = qRound(pow(2,depth));
     img.setColorCount(colorcount);
     for(uint i = 0; i < colorcount; i++) {
-        IcnsColorTableEntry color;
+        IcnsColorEntry888 color;
         switch(depth) {
         case Icon4bit: {
             color = IcnsColorTable4bit[i];
@@ -75,7 +75,7 @@ QByteArray IcnsReader::decompressRLE24(const QByteArray &encodedBytes, quint32 e
     // What's this??? In the 128x128 icons, we need to start 4 bytes
     // ahead. There is often a NULL padding here for some reason. If
     // we don't, the red channel will be off by 2 pixels, or worse
-    if( *((quint32*)encodedBytes.constData()) == 0x00000000 ) {
+    if(*((quint32*)encodedBytes.constData()) == 0x00000000) {
         qDebug("IcnsReader::decompressRLE24: 4 byte null padding found in rle data!");
         dataOffset = 4;
     }
@@ -225,7 +225,7 @@ QImage IcnsReader::iconAt(int index)
         quint32 width = 0;
         quint32 height = 0;
         switch(iconEntry.iconGroup) {
-        case IconGroupHDCompressed: {
+        case IconGroupCompressed: {
             if(m_stream.device()->peek(8).toHex() == "89504e470d0a1a0a") {
                 // if PNG magic
                 return QImage::fromData(m_stream.device()->peek(iconEntry.imageDataSize), "png");

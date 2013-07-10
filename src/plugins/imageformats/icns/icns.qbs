@@ -11,6 +11,7 @@ DynamicLibrary {
         "main.h",
         "main.cpp",
         "icnsheader.h",
+        "icnspalette.h",
         "qicnshandler.h",
         "qicnshandler.cpp"
     ]

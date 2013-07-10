@@ -5,6 +5,7 @@
 #include <QtCore/QVector>
 
 #include "icnsheader.h"
+#include "icnspalette.h"
 
 class IcnsReader
 {

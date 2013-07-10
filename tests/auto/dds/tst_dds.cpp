@@ -50,6 +50,7 @@ void DDSTest::readImage_data()
     QTest::newRow("14") << QString("index8") << QSize(64, 64);
     QTest::newRow("15") << QString("RXGB") << QSize(64, 64);
     QTest::newRow("16") << QString("cubemap") << QSize(2048, 1536);
+    QTest::newRow("17") << QString("ATI2") << QSize(64, 64);
 }
 
 void DDSTest::readImage()

@@ -1,6 +1,7 @@
 #include "dxt.h"
 
 #include <qglobal.h>
+#include <qmath.h>
 
 enum Version {
     One = 1,
@@ -209,4 +210,46 @@ QImage QDXT::loadDXT5(QDataStream &s, quint32 width, quint32 height)
 QImage QDXT::loadRXGB(QDataStream &s, quint32 width, quint32 height)
 {
     return loadDXT(RXGB, s, width, height);
+}
+
+QImage QDXT::loadATI2(QDataStream &s, quint32 width, quint32 height)
+{
+    QImage img(width, height, QImage::Format_RGB32);
+
+    for (quint32 i = 0; i < height; i += 4) {
+        for (quint32 j = 0; j < width; j += 4) {
+            quint64 alpha1;
+            quint64 alpha2;
+            s >> alpha1;
+            s >> alpha2;
+
+            QRgb arr[16];
+            memset(arr, 0, sizeof(QRgb)*16);
+            setAplphaDXT45(arr, alpha1, false);
+            for (int i = 0; i < 16; ++i) {
+                quint8 a = qAlpha(arr[i]);
+                arr[i] = qRgba(0, 0, a, 0);
+            }
+            setAplphaDXT45(arr, alpha2, false);
+
+            for (int k = 0; k < 4; k++) {
+                for (int l = 0; l < 4; l++) {
+                    quint32 x = j + l, y = i + k;
+                    if (x < width && y < height) {
+                        QRgb pixel = arr[k*4+l];
+                        const quint8 nx = qBlue(pixel);
+                        const quint8 ny = qAlpha(pixel);
+
+                        const float fx = float(nx) / 127.5f - 1.0f;
+                        const float fy = float(ny) / 127.5f - 1.0f;
+                        const float fz = sqrtf(1.0f - fx*fx - fy*fy);
+                        const quint8 nz = quint8((fz + 1.0f) * 127.5f);
+
+                        img.setPixel(x, y, qRgb(nx, ny, nz));
+                    }
+                }
+            }
+        }
+    }
+    return img;
 }

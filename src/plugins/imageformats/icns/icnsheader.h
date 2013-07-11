@@ -11,6 +11,16 @@ struct IcnsBlockHeader
 
 #define IcnsBlockHeaderSize 8
 
+struct IcnsIconEntry
+{
+    IcnsBlockHeader header;         // Original block header
+    quint8          iconGroup;      // ASCII character number pointing to a format or size
+    quint8          iconBitDepth;   // For Uncompressed icons only
+    bool            iconIsMask;     // For Uncompressed icons only
+    quint32         imageDataOffset;// Offset from the initial position of the file/device
+    quint32         imageDataSize;  // header.length - sizeof(header)
+};
+
 enum IcnsMagic {
     icnsfile = 0x69636E73,
     TOC_ = 0x544F4320,
@@ -30,7 +40,7 @@ enum IcnsIconGroup {
     IconGroup32x32          = 0x6C, // "l" for "large"
     IconGroup32x32Old       = 0x4E, // "N" (deprecated type)
     IconGroup48x48          = 0x68, // "h" for "huge"
-    IconGroup128x128        = 0x33, // "t" for "thumbnail"
+    IconGroup128x128        = 0x74, // "t" for "thumbnail"
     IconGroupCompressed     = 0x63  // "c" for "compressed"?
 };
 
@@ -40,16 +50,6 @@ enum IcnsIconBitDepth {
     Icon4bit = 4,
     Icon8bit = 8,
     IconRLE24 = 32
-};
-
-struct IcnsIconEntry
-{
-    IcnsBlockHeader header;         // Original block header
-    quint8          iconGroup;      // ASCII character number pointing to a format or size
-    quint8          iconBitDepth;   // For Uncompressed icons only
-    bool            iconIsMask;     // For Uncompressed icons only
-    quint32         imageDataOffset;// Offset from the initial position of the file/device
-    quint32         imageDataSize;  // header.length - sizeof(header)
 };
 
 #endif // ICNSHEADER

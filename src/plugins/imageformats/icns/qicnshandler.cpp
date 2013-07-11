@@ -277,10 +277,13 @@ QImage IcnsReader::iconAt(int index)
         }
         }
         // To do: more subformats!
-        //const float bytesPerPixel = ((float)iconEntry.iconBitDepth / 8);
+        const float bytesPerPixel = ((float)iconEntry.iconBitDepth / 8);
+        const quint32 assumedImageDataSize = (width*height)*bytesPerPixel;
         switch(iconEntry.iconBitDepth) {
         case IconMono: {
-            img = QImage(width, height, QImage::Format_RGB32);
+            const bool iconHasAlphaMask = (iconEntry.imageDataSize == assumedImageDataSize*2);
+            const QImage::Format format = iconHasAlphaMask ? QImage::Format_ARGB32 : QImage::Format_RGB32;
+            img = QImage(width, height, format);
             quint8 byte = 0;
             quint32 pixel = 0;
             for(uint y = 0; y < height; y++) {
@@ -291,7 +294,20 @@ QImage IcnsReader::iconAt(int index)
                     byte = byte << 1;
                     img.setPixel(x,y,qRgb(value,value,value));
                     pixel++;
-                    // todo: if(iconEntry.iconIsMask) {}
+                }
+            }
+            if(iconHasAlphaMask) {
+                pixel = 0;
+                for(uint y = 0; y < height; y++) {
+                    for(uint x = 0; x < width; x++) {
+                        if(pixel % 8 == 0)
+                            m_stream >> byte;
+                        quint8 alpha = (byte & 0x80) ? 0xFF : 0x00; // left 1 bit
+                        byte = byte << 1;
+                        QRgb color = img.pixel(x,y);
+                        img.setPixel(x,y,qRgba(qRed(color),qGreen(color),qBlue(color),alpha));
+                        pixel++;
+                    }
                 }
             }
             break;

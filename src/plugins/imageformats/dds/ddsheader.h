@@ -3,6 +3,92 @@
 
 #include <QtCore/QDataStream>
 
+enum Format {
+    FORMAT_UNKNOWN              = 0,
+
+    FORMAT_R8G8B8               = 20,
+    FORMAT_A8R8G8B8             = 21,
+    FORMAT_X8R8G8B8             = 22,
+    FORMAT_R5G6B5               = 23,
+    FORMAT_X1R5G5B5             = 24,
+    FORMAT_A1R5G5B5             = 25,
+    FORMAT_A4R4G4B4             = 26,
+    FORMAT_R3G3B2               = 27,
+    FORMAT_A8                   = 28,
+    FORMAT_A8R3G3B2             = 29,
+    FORMAT_X4R4G4B4             = 30,
+    FORMAT_A2B10G10R10          = 31,
+    FORMAT_A8B8G8R8             = 32,
+    FORMAT_X8B8G8R8             = 33,
+    FORMAT_G16R16               = 34,
+    FORMAT_A2R10G10B10          = 35,
+    FORMAT_A16B16G16R16         = 36,
+
+    FORMAT_A8P8                 = 40,
+    FORMAT_P8                   = 41,
+
+    FORMAT_L8                   = 50,
+    FORMAT_A8L8                 = 51,
+    FORMAT_A4L4                 = 52,
+
+    FORMAT_V8U8                 = 60,
+    FORMAT_L6V5U5               = 61,
+    FORMAT_X8L8V8U8             = 62,
+    FORMAT_Q8W8V8U8             = 63,
+    FORMAT_V16U16               = 64,
+    FORMAT_A2W10V10U10          = 67,
+
+    FORMAT_UYVY                 = 0x59565955, // "UYVY"
+    FORMAT_R8G8_B8G8            = 0x47424752, // "RGBG"
+    FORMAT_YUY2                 = 0x32595559, // "YUY2"
+    FORMAT_G8R8_G8B8            = 0x42475247, // "GRGB"
+    FORMAT_DXT1                 = 0x31545844, // "DXT1"
+    FORMAT_DXT2                 = 0x32545844, // "DXT2"
+    FORMAT_DXT3                 = 0x33545844, // "DXT3"
+    FORMAT_DXT4                 = 0x34545844, // "DXT4"
+    FORMAT_DXT5                 = 0x35545844, // "DXT5"
+
+//    FORMAT_D16_LOCKABLE         = 70,
+//    FORMAT_D32                  = 71,
+//    FORMAT_D15S1                = 73,
+//    FORMAT_D24S8                = 75,
+//    FORMAT_D24X8                = 77,
+//    FORMAT_D24X4S4              = 79,
+//    FORMAT_D16                  = 80,
+
+//    FORMAT_D32F_LOCKABLE        = 82,
+//    FORMAT_D24FS8               = 83,
+
+//    FORMAT_D32_LOCKABLE         = 84,
+//    FORMAT_S8_LOCKABLE          = 85,
+
+    FORMAT_L16                  = 81,
+
+//    FORMAT_VERTEXDATA           =100,
+//    FORMAT_INDEX16              =101,
+//    FORMAT_INDEX32              =102,
+
+    FORMAT_Q16W16V16U16         = 110,
+
+//    FORMAT_MULTI2_ARGB8         = 0x3154454d, // "MET1"
+
+    FORMAT_R16F                 = 111,
+    FORMAT_G16R16F              = 112,
+    FORMAT_A16B16G16R16F        = 113,
+
+    FORMAT_R32F                 = 114,
+    FORMAT_G32R32F              = 115,
+    FORMAT_A32B32G32R32F        = 116,
+
+    FORMAT_CxV8U8               = 117,
+
+//    FORMAT_A1                   = 118,
+//    FORMAT_A2B10G10R10_XR_BIAS  = 119,
+//    FORMAT_BINARYBUFFER         = 199,
+
+    FORMAT_LAST                 =0x7fffffff
+};
+
 struct DDSPixelFormat
 {
     enum DDSPixelFormatFlags {
@@ -13,7 +99,9 @@ struct DDSPixelFormat
         DDPF_RGB             = 0x00000040,
         DDPF_YUV             = 0x00000200,
         DDPF_LUMINANCE       = 0x00020000,
-        DDPF_NORMAL          = 0x80000000
+        DDPF_NORMAL          = 0x80000000,
+        DDPF_RGBA = DDPF_ALPHAPIXELS | DDPF_RGB,
+        DDPF_LA = DDPF_ALPHAPIXELS | DDPF_LUMINANCE
     };
 
     quint32 size;

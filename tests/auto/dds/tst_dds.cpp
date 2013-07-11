@@ -34,23 +34,51 @@ void DDSTest::readImage_data()
     QTest::addColumn<QString>("fileName");
     QTest::addColumn<QSize>("size");
 
-    QTest::newRow("1") << QString("DXT1") << QSize(50, 50);
-    QTest::newRow("2") << QString("DXT2") << QSize(64, 64);
-    QTest::newRow("3") << QString("DXT3") << QSize(64, 64);
-    QTest::newRow("4") << QString("DXT4") << QSize(64, 64);
-    QTest::newRow("5") << QString("DXT5") << QSize(64, 64);
-    QTest::newRow("6") << QString("L8") << QSize(64, 64);
-    QTest::newRow("7") << QString("L8A8") << QSize(64, 64);
-    QTest::newRow("8") << QString("RGB5A1") << QSize(64, 64);
-    QTest::newRow("9") << QString("RGB8") << QSize(64, 64);
-    QTest::newRow("10") << QString("RGB10A2") << QSize(64, 64);
-    QTest::newRow("11") << QString("RGB565") << QSize(64, 64);
-    QTest::newRow("12") << QString("RGBA4") << QSize(64, 64);
-    QTest::newRow("13") << QString("RGBA8") << QSize(64, 64);
-    QTest::newRow("14") << QString("index8") << QSize(64, 64);
-    QTest::newRow("15") << QString("RXGB") << QSize(64, 64);
-    QTest::newRow("16") << QString("cubemap") << QSize(2048, 1536);
-    QTest::newRow("17") << QString("ATI2") << QSize(64, 64);
+    QTest::newRow("1") << QString("A1R5G5B5") << QSize(64, 64);
+    QTest::newRow("2") << QString("A2B10G10R10") << QSize(64, 64);
+    QTest::newRow("3") << QString("A2R10G10B10") << QSize(64, 64);
+//    QTest::newRow("4") << QString("A2W10V10U10") << QSize(64, 64);
+    QTest::newRow("5") << QString("A4L4") << QSize(64, 64);
+    QTest::newRow("6") << QString("A4R4G4B4") << QSize(64, 64);
+    QTest::newRow("7") << QString("A8") << QSize(64, 64);
+    QTest::newRow("8") << QString("A8B8G8R8") << QSize(64, 64);
+    QTest::newRow("9") << QString("A8L8") << QSize(64, 64);
+    QTest::newRow("10") << QString("A8R3G3B2") << QSize(64, 64);
+    QTest::newRow("11") << QString("A8R8G8B8") << QSize(64, 64);
+//    QTest::newRow("12") << QString("A16B16G16R16") << QSize(64, 64);
+//    QTest::newRow("13") << QString("A16B16G16R16F") << QSize(64, 64);
+//    QTest::newRow("14") << QString("A32B32G32R32F") << QSize(64, 64);
+//    QTest::newRow("15") << QString("CxV8U8") << QSize(64, 64);
+    QTest::newRow("16") << QString("DXT1") << QSize(50, 50);
+    QTest::newRow("17") << QString("DXT2") << QSize(64, 64);
+    QTest::newRow("18") << QString("DXT3") << QSize(64, 64);
+    QTest::newRow("19") << QString("DXT4") << QSize(64, 64);
+    QTest::newRow("20") << QString("DXT5") << QSize(64, 64);
+//    QTest::newRow("21") << QString("G8R8_G8B8") << QSize(64, 64);
+    QTest::newRow("22") << QString("G16R16") << QSize(64, 64);
+//    QTest::newRow("23") << QString("G16R16F") << QSize(64, 64);
+//    QTest::newRow("24") << QString("G32R32F") << QSize(64, 64);
+//    QTest::newRow("25") << QString("L6V5U5") << QSize(64, 64);
+    QTest::newRow("26") << QString("L8") << QSize(64, 64);
+    QTest::newRow("27") << QString("L16") << QSize(64, 64);
+    QTest::newRow("28") << QString("P8") << QSize(64, 64);
+//    QTest::newRow("29") << QString("Q8W8V8U8") << QSize(64, 64);
+//    QTest::newRow("30") << QString("Q16W16V16U16") << QSize(64, 64);
+    QTest::newRow("31") << QString("R3G3B2") << QSize(64, 64);
+    QTest::newRow("32") << QString("R5G6B5") << QSize(64, 64);
+//    QTest::newRow("33") << QString("R8G8_B8G8") << QSize(64, 64);
+    QTest::newRow("34") << QString("R8G8B8") << QSize(64, 64);
+//    QTest::newRow("35") << QString("R16F") << QSize(64, 64);
+//    QTest::newRow("36") << QString("R32F") << QSize(64, 64);
+//    QTest::newRow("37") << QString("UYVY") << QSize(64, 64);
+//    QTest::newRow("38") << QString("V8U8") << QSize(64, 64);
+//    QTest::newRow("39") << QString("V16U16") << QSize(64, 64);
+    QTest::newRow("40") << QString("X1R5G5B5") << QSize(64, 64);
+    QTest::newRow("41") << QString("X4R4G4B4") << QSize(64, 64);
+    QTest::newRow("42") << QString("X8B8G8R8") << QSize(64, 64);
+//    QTest::newRow("43") << QString("X8L8V8U8") << QSize(64, 64);
+    QTest::newRow("44") << QString("X8R8G8B8") << QSize(64, 64);
+//    QTest::newRow("45") << QString("YUY2") << QSize(64, 64);
 }
 
 void DDSTest::readImage()
@@ -66,7 +94,6 @@ void DDSTest::readImage()
     QVERIFY(!image.isNull());
     QCOMPARE(image.size(), size);
     QVERIFY(compareImages(image, QImage(sourcePath)) == true);
-
 }
 
 void DDSTest::testMipmaps_data()
@@ -97,7 +124,6 @@ void DDSTest::testMipmaps()
         QString sourcePath = QString(":/data/%1 %2.png").arg(fileName).arg(i);
         QVERIFY(compareImages(image, QImage(sourcePath)) == true);
     }
-
 }
 
 QTEST_MAIN(DDSTest)

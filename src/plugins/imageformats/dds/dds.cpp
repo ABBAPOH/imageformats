@@ -7,18 +7,21 @@
 #include <QDebug>
 #include <qendian.h>
 
+enum Colors
+{
+    Red = 0,
+    Green,
+    Blue,
+    Alpha,
+    ColorCount
+};
+
 // All magic numbers are little-endian as long as dds format has little
 // endian byte order
 static const quint32 ddsMagic = 0x20534444; // "DDS "
 static const quint32 dx10Magic = 0x30315844; // "DX10"
 
-static const quint32 dxt1Magic = 0x31545844; // "DXT1"
-static const quint32 dxt2Magic = 0x32545844; // "DXT2"
-static const quint32 dxt3Magic = 0x33545844; // "DXT3"
-static const quint32 dxt4Magic = 0x34545844; // "DXT4"
-static const quint32 dxt5Magic = 0x35545844; // "DXT5"
-static const quint32 rxgbMagic = 0x42475852; // "RXGB"
-static const quint32 ati2Magic = 0x32495441; // "ATI2"
+static const quint32 argb16Magic = 36; // D3DFMT_A16B16G16R16
 
 static const qint64 headerSize = 128;
 
@@ -32,31 +35,42 @@ static int faceFlags[6] = {
     DDSHeader::DDSCAPS2_CUBEMAP_NEGATIVEZ
 };
 
-enum Colors {
-    Red = 0,
-    Green,
-    Blue,
-    Alpha,
-    ColorCount
+struct FormatInfo
+{
+    Format format;
+    quint32 flags;
+    quint32 bitCount;
+    quint32 rBitMask;
+    quint32 gBitMask;
+    quint32 bBitMask;
+    quint32 aBitMask;
 };
 
-enum Type {
-    TypeUnknown = 0,
-    TypeDXT1,
-    TypeDXT2,
-    TypeDXT3,
-    TypeDXT4,
-    TypeDXT5,
-    TypeRXGB,
-    TypeATI2,
-    TypeRGB,
-    TypeRGBA,
-    TypeAlpha,
-    TypeYUV,
-    TypeLuminance,
-    TypeLuminanceAlpha,
-    TypeIndexed8,
-    TypeCount
+static const FormatInfo formatInfos [] = {
+    { FORMAT_A8R8G8B8,    DDSPixelFormat::DDPF_RGBA, 32, 0x00ff0000, 0x0000ff00, 0x000000ff, 0xff000000 }, // 21
+    { FORMAT_X8R8G8B8,    DDSPixelFormat::DDPF_RGB,  32, 0x00ff0000, 0x0000ff00, 0x000000ff, 0x00000000 }, // 22
+    { FORMAT_A2B10G10R10, DDSPixelFormat::DDPF_RGBA, 32, 0x000003ff, 0x0000fc00, 0x3ff00000, 0xc0000000 }, // 31
+    { FORMAT_A8B8G8R8,    DDSPixelFormat::DDPF_RGBA, 32, 0x000000ff, 0x0000ff00, 0x00ff0000, 0xff000000 }, // 32
+    { FORMAT_X8B8G8R8,    DDSPixelFormat::DDPF_RGB,  32, 0x000000ff, 0x0000ff00, 0x00ff0000, 0x00000000 }, // 33
+    { FORMAT_G16R16,      DDSPixelFormat::DDPF_RGBA, 32, 0x0000ffff, 0xffff0000, 0x00000000, 0x00000000 }, // 34
+    { FORMAT_G16R16,      DDSPixelFormat::DDPF_RGB,  32, 0x0000ffff, 0xffff0000, 0x00000000, 0x00000000 }, // 34
+    { FORMAT_A2R10G10B10, DDSPixelFormat::DDPF_RGBA, 32, 0x3ff00000, 0x000ffc00, 0x000003ff, 0xc0000000 }, // 35
+
+    { FORMAT_R8G8B8,      DDSPixelFormat::DDPF_RGB,  24, 0x00ff0000, 0x0000ff00, 0x000000ff, 0x00000000 }, // 20
+
+    { FORMAT_R5G6B5,      DDSPixelFormat::DDPF_RGB,  16, 0x0000f800, 0x000007e0, 0x0000001f, 0x00000000 }, // 23
+    { FORMAT_X1R5G5B5,    DDSPixelFormat::DDPF_RGB,  16, 0x00007c00, 0x000003e0, 0x0000001f, 0x00000000 }, // 24
+    { FORMAT_A1R5G5B5,    DDSPixelFormat::DDPF_RGBA, 16, 0x00007c00, 0x000003e0, 0x0000001f, 0x00008000 }, // 25
+    { FORMAT_A4R4G4B4,    DDSPixelFormat::DDPF_RGBA, 16, 0x00000f00, 0x000000f0, 0x0000000f, 0x0000f000 }, // 26
+    { FORMAT_A8R3G3B2,    DDSPixelFormat::DDPF_RGBA, 16, 0x000000e0, 0x0000001c, 0x00000003, 0x0000ff00 }, // 29
+    { FORMAT_X4R4G4B4,    DDSPixelFormat::DDPF_RGB,  16, 0x00000f00, 0x000000f0, 0x0000000f, 0x00000000 }, // 30
+    { FORMAT_A8L8,        DDSPixelFormat::DDPF_LA,   16, 0x000000ff, 0x00000000, 0x00000000, 0x0000ff00 }, // 51
+    { FORMAT_L16,   DDSPixelFormat::DDPF_LUMINANCE,  16, 0x0000ffff, 0x00000000, 0x00000000, 0x00000000 }, // 81
+
+    { FORMAT_R3G3B2,      DDSPixelFormat::DDPF_RGB,  8,  0x000000e0, 0x0000001c, 0x00000003, 0x00000000 }, // 27
+    { FORMAT_A8,        DDSPixelFormat::DDPF_ALPHA,  8,  0x00000000, 0x00000000, 0x00000000, 0x000000ff }, // 28
+    { FORMAT_L8,    DDSPixelFormat::DDPF_LUMINANCE,  8,  0x000000ff, 0x00000000, 0x00000000, 0x00000000 }, // 50
+    { FORMAT_A4L4,        DDSPixelFormat::DDPF_LA,   8,  0x0000000f, 0x00000000, 0x00000000, 0x000000f0 }, // 52
 };
 
 static int shift(quint32 mask)
@@ -106,48 +120,39 @@ static inline bool isCubeMap(const DDSHeader &dds)
     return dds.caps2 & DDSHeader::DDSCAPS2_CUBEMAP;
 }
 
-static Type getType(const DDSHeader &dds)
+static Format getFormat(const DDSHeader &dds)
 {
-    quint32 flags = dds.pixelFormat.flags;
-    if (flags & DDSPixelFormat::DDPF_FOURCC) {
+    const DDSPixelFormat &format = dds.pixelFormat;
+    if (format.flags & DDSPixelFormat::DDPF_FOURCC) {
         switch (dds.pixelFormat.fourCC) {
-        case dxt1Magic:
-            return TypeDXT1;
-        case dxt2Magic:
-            return TypeDXT2;
-        case dxt3Magic:
-            return TypeDXT3;
-        case dxt4Magic:
-            return TypeDXT4;
-        case dxt5Magic:
-            return TypeDXT5;
-        case rxgbMagic:
-            return TypeRXGB;
-        case ati2Magic:
-            return TypeATI2;
+        case FORMAT_DXT1:
+            return FORMAT_DXT1;
+        case FORMAT_DXT2:
+            return FORMAT_DXT2;
+        case FORMAT_DXT3:
+            return FORMAT_DXT3;
+        case FORMAT_DXT4:
+            return FORMAT_DXT4;
+        case FORMAT_DXT5:
+            return FORMAT_DXT5;
         default:
-            break;
+            return FORMAT_UNKNOWN;
+        }
+    } else {
+        size_t count = sizeof(formatInfos)/sizeof(FormatInfo);
+        for (size_t i = 0; i < count; ++i) {
+            const FormatInfo &info = formatInfos[i];
+            if ( (format.flags & info.flags) == info.flags &&
+                 format.rgbBitCount == info.bitCount &&
+                 format.rBitMask == info.rBitMask &&
+                 format.bBitMask == info.bBitMask &&
+                 format.bBitMask == info.bBitMask &&
+                 format.aBitMask == info.aBitMask)
+                return info.format;
         }
     }
 
-    bool hasAlpha = ::hasAlpha(dds);
-
-    if (flags & DDSPixelFormat::DDPF_RGB && hasAlpha)
-        return TypeRGBA;
-    else if (flags & DDSPixelFormat::DDPF_RGB && !hasAlpha)
-        return TypeRGB;
-    else if (flags & DDSPixelFormat::DDPF_YUV)
-        return TypeYUV;
-    else if (flags & DDSPixelFormat::DDPF_LUMINANCE && hasAlpha)
-        return TypeLuminanceAlpha;
-    else if (flags & DDSPixelFormat::DDPF_LUMINANCE && !hasAlpha)
-        return TypeLuminance;
-    else if (hasAlpha)
-        return TypeAlpha;
-    else if (flags & DDSPixelFormat::DDPF_PALETTEINDEXED8)
-        return TypeIndexed8;
-
-    return TypeUnknown;
+    return FORMAT_UNKNOWN;
 }
 
 DDSHandler::DDSHandler() :
@@ -247,88 +252,190 @@ static QImage readPaletteBased(QDataStream & s, const DDSHeader &/*dds*/, quint3
     return img;
 }
 
-QImage readLayer(QDataStream & s, const DDSHeader & dds, quint32 width, quint32 height)
+QImage readLayer(QDataStream & s, const DDSHeader & dds, const int format, quint32 width, quint32 height)
 {
-    switch (getType(dds)) {
-    case TypeDXT1:
-        return QDXT::loadDXT1(s, width, height);
-    case TypeDXT2:
-        return QDXT::loadDXT2(s, width, height);
-    case TypeDXT3:
-        return QDXT::loadDXT3(s, width, height);
-    case TypeDXT4:
-        return QDXT::loadDXT4(s, width, height);
-    case TypeDXT5:
-        return QDXT::loadDXT5(s, width, height);
-    case TypeRXGB:
-        return QDXT::loadRXGB(s, width, height);
-    case TypeATI2:
-        return QDXT::loadATI2(s, width, height);
-    case TypeRGB:
-    case TypeYUV:
-    case TypeLuminance:
+    switch (format) {
+    case FORMAT_R8G8B8:
+    case FORMAT_X8R8G8B8:
+    case FORMAT_R5G6B5:
+    case FORMAT_R3G3B2:
+    case FORMAT_X1R5G5B5:
+    case FORMAT_X4R4G4B4:
+    case FORMAT_X8B8G8R8:
+    case FORMAT_G16R16:
+    case FORMAT_L8:
+    case FORMAT_L16:
         return readValueBased(s, dds, width, height, false);
-    case TypeRGBA:
-    case TypeAlpha:
-    case TypeLuminanceAlpha:
+    case FORMAT_A8R8G8B8:
+    case FORMAT_A1R5G5B5:
+    case FORMAT_A4R4G4B4:
+    case FORMAT_A8:
+    case FORMAT_A8R3G3B2:
+    case FORMAT_A2B10G10R10:
+    case FORMAT_A8B8G8R8:
+    case FORMAT_A2R10G10B10:
+    case FORMAT_A8L8:
+    case FORMAT_A4L4:
         return readValueBased(s, dds, width, height, true);
-    case TypeIndexed8:
+    case FORMAT_P8:
         return readPaletteBased(s, dds, width, height);
-    default:
+    case FORMAT_A8P8:
+    case FORMAT_A16B16G16R16:
+    case FORMAT_V8U8:
+    case FORMAT_L6V5U5:
+    case FORMAT_X8L8V8U8:
+    case FORMAT_Q8W8V8U8:
+    case FORMAT_V16U16:
+    case FORMAT_A2W10V10U10:
+//    case FORMAT_UYVY:
+//    case FORMAT_R8G8_B8G8:
+//    case FORMAT_YUY2:
+//    case FORMAT_G8R8_G8B8:
+//    default:
+        break;
+    case FORMAT_DXT1:
+        return QDXT::loadDXT1(s, width, height);
+    case FORMAT_DXT2:
+        return QDXT::loadDXT2(s, width, height);
+    case FORMAT_DXT3:
+        return QDXT::loadDXT3(s, width, height);
+    case FORMAT_DXT4:
+        return QDXT::loadDXT4(s, width, height);
+    case FORMAT_DXT5:
+        return QDXT::loadDXT5(s, width, height);
+//    case FORMAT_D16_LOCKABLE:
+//    case FORMAT_D32:
+//    case FORMAT_D15S1:
+//    case FORMAT_D24S8:
+//    case FORMAT_D24X8:
+//    case FORMAT_D24X4S4:
+//    case FORMAT_D16:
+//    case FORMAT_D32F_LOCKABLE:
+//    case FORMAT_D24FS8:
+//    case FORMAT_D32_LOCKABLE:
+//    case FORMAT_S8_LOCKABLE:
+//    case FORMAT_VERTEXDATA:
+//    case FORMAT_INDEX16:
+//    case FORMAT_INDEX32:
+    case FORMAT_Q16W16V16U16:
+//    case FORMAT_MULTI2_ARGB8:
+    case FORMAT_R16F:
+    case FORMAT_G16R16F:
+    case FORMAT_A16B16G16R16F:
+    case FORMAT_R32F:
+    case FORMAT_G32R32F:
+    case FORMAT_A32B32G32R32F:
+    case FORMAT_CxV8U8:
+//    case FORMAT_A1:
+//    case FORMAT_A2B10G10R10_XR_BIAS:
+//    case FORMAT_BINARYBUFFER:
+    case FORMAT_LAST:
         break;
     }
 
     return QImage();
 }
 
-QImage readTexture(QDataStream & s, const DDSHeader & dds, int mipmapLevel)
+QImage readTexture(QDataStream & s, const DDSHeader & dds, const int format, const int mipmapLevel)
 {
     quint32 width = dds.width / (1 << mipmapLevel);
     quint32 height = dds.height / (1 << mipmapLevel);
-    return readLayer(s, dds, width, height);
+    return readLayer(s, dds, format, width, height);
 }
 
-static qint64 mipmapSize(const DDSHeader &dds, int level)
+static qint64 mipmapSize(const DDSHeader &dds, const int format, const int level)
 {
     quint32 w = dds.width/(1 << level);
     quint32 h = dds.height/(1 << level);
 
-    Type type = getType(dds);
-    switch (type) {
-    case TypeDXT1:
-        return ((w+3)/4)*((h+3)/4)*8;
-    case TypeDXT2:
-    case TypeDXT3:
-    case TypeDXT4:
-    case TypeDXT5:
-    case TypeRXGB:
-    case TypeATI2:
-        return ((w+3)/4)*((h+3)/4)*16;
-    case TypeRGB:
-    case TypeRGBA:
-    case TypeAlpha:
-    case TypeYUV:
-    case TypeLuminance:
-    case TypeLuminanceAlpha:
+    switch (format) {
+    case FORMAT_R8G8B8:
+    case FORMAT_X8R8G8B8:
+    case FORMAT_R5G6B5:
+    case FORMAT_X1R5G5B5:
+    case FORMAT_X4R4G4B4:
+    case FORMAT_X8B8G8R8:
+    case FORMAT_G16R16:
+    case FORMAT_L8:
+    case FORMAT_L16:
         return w*h*dds.pixelFormat.rgbBitCount/8;
-    case TypeIndexed8:
+    case FORMAT_A8R8G8B8:
+    case FORMAT_A1R5G5B5:
+    case FORMAT_A4R4G4B4:
+    case FORMAT_A8:
+    case FORMAT_A8R3G3B2:
+    case FORMAT_A2B10G10R10:
+    case FORMAT_A8B8G8R8:
+    case FORMAT_A2R10G10B10:
+    case FORMAT_A8L8:
+    case FORMAT_A4L4:
+        return w*h*dds.pixelFormat.rgbBitCount/8;
+    case FORMAT_P8:
         return 256 + w*h*8;
-    default:
+    case FORMAT_A8P8:
+    case FORMAT_A16B16G16R16:
+    case FORMAT_V8U8:
+    case FORMAT_L6V5U5:
+    case FORMAT_X8L8V8U8:
+    case FORMAT_Q8W8V8U8:
+    case FORMAT_V16U16:
+    case FORMAT_A2W10V10U10:
+//    case FORMAT_UYVY:
+//    case FORMAT_R8G8_B8G8:
+//    case FORMAT_YUY2:
+//    case FORMAT_G8R8_G8B8:
+//    default:
+        break;
+    case FORMAT_DXT1:
+        return ((w+3)/4)*((h+3)/4)*8;
+    case FORMAT_DXT2:
+    case FORMAT_DXT3:
+    case FORMAT_DXT4:
+    case FORMAT_DXT5:
+        return ((w+3)/4)*((h+3)/4)*16;
+//    case FORMAT_D16_LOCKABLE:
+//    case FORMAT_D32:
+//    case FORMAT_D15S1:
+//    case FORMAT_D24S8:
+//    case FORMAT_D24X8:
+//    case FORMAT_D24X4S4:
+//    case FORMAT_D16:
+//    case FORMAT_D32F_LOCKABLE:
+//    case FORMAT_D24FS8:
+//    case FORMAT_D32_LOCKABLE:
+//    case FORMAT_S8_LOCKABLE:
+//    case FORMAT_VERTEXDATA:
+//    case FORMAT_INDEX16:
+//    case FORMAT_INDEX32:
+    case FORMAT_Q16W16V16U16:
+//    case FORMAT_MULTI2_ARGB8:
+    case FORMAT_R16F:
+    case FORMAT_G16R16F:
+    case FORMAT_A16B16G16R16F:
+    case FORMAT_R32F:
+    case FORMAT_G32R32F:
+    case FORMAT_A32B32G32R32F:
+    case FORMAT_CxV8U8:
+//    case FORMAT_A1:
+//    case FORMAT_A2B10G10R10_XR_BIAS:
+//    case FORMAT_BINARYBUFFER:
+    case FORMAT_LAST:
         break;
     }
+
     return 0;
 }
 
-static qint64 mipmapOffset(const DDSHeader &dds, int level)
+static qint64 mipmapOffset(const DDSHeader &dds, const int format, const int level)
 {
     qint64 result = 0;
     for (int i = 0; i < level; ++i) {
-        result += mipmapSize(dds, i);
+        result += mipmapSize(dds, format, i);
     }
     return result;
 }
 
-QImage readCubeMap(QDataStream & s, const DDSHeader & dds)
+QImage readCubeMap(QDataStream & s, const DDSHeader & dds, const int fmt)
 {
     bool hasAlpha = ::hasAlpha(dds);
     QImage::Format format = hasAlpha ? QImage::Format_ARGB32 : QImage::Format_RGB32;
@@ -340,7 +447,7 @@ QImage readCubeMap(QDataStream & s, const DDSHeader & dds)
         if (!(dds.caps2 & faceFlags[i]))
             continue; // Skip face.
 
-        const QImage face = ::readLayer(s, dds, dds.width, dds.height);
+        const QImage face = ::readLayer(s, dds, fmt, dds.width, dds.height);
 
         // Compute face offsets.
         int offset_x = faceOffset[i][0] * dds.width;
@@ -362,7 +469,7 @@ bool DDSHandler::read(QImage *outImage)
     ensureHeaderCached();
 
     if (!device()->isSequential()) {
-        qint64 pos = headerSize + mipmapOffset(header, m_currentImage);
+        qint64 pos = headerSize + mipmapOffset(header, m_format, m_currentImage);
         if (!device()->seek(pos))
             return false;
         QDataStream s(device());
@@ -370,9 +477,9 @@ bool DDSHandler::read(QImage *outImage)
 
         QImage img;
         if (isCubeMap(header))
-            img = readCubeMap(s, header);
+            img = readCubeMap(s, header, m_format);
         else
-            img = readTexture(s, header, m_currentImage);
+            img = readTexture(s, header, m_format, m_currentImage);
 
         bool ok = s.status() == QDataStream::Ok && !img.isNull();
         if (ok)
@@ -486,6 +593,8 @@ void DDSHandler::ensureHeaderCached() const
     s >> that->header;
     if (header.pixelFormat.fourCC == dx10Magic)
         s >> that->header10;
+
+    that->m_format = getFormat(header);
 
     device()->seek(oldPos);
 }

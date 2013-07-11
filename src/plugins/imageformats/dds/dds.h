@@ -26,6 +26,7 @@ private:
 
 private:
     DDSHeader header;
+    int m_format;
     DDSHeaderDX10 header10;
     int m_currentImage;
     bool m_headerCached;

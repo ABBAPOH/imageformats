@@ -363,3 +363,22 @@ QDataStream & operator<<(QDataStream &s, const DDSHeader &header)
     return s;
 }
 
+QDataStream &operator>>(QDataStream &s, DDSHeaderDX10 &header)
+{
+    s >> header.dxgiFormat;
+    s >> header.resourceDimension;
+    s >> header.miscFlag;
+    s >> header.arraySize;
+    s >> header.reserved;
+    return s;
+}
+
+QDataStream &operator<<(QDataStream &s, const DDSHeaderDX10 &header)
+{
+    s << header.dxgiFormat;
+    s << header.resourceDimension;
+    s << header.miscFlag;
+    s << header.arraySize;
+    s << header.reserved;
+    return s;
+}

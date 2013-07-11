@@ -10,6 +10,7 @@
 // All magic numbers are little-endian as long as dds format has little
 // endian byte order
 static const quint32 ddsMagic = 0x20534444; // "DDS "
+static const quint32 dx10Magic = 0x30315844; // "DX10"
 
 static const quint32 dxt1Magic = 0x31545844; // "DXT1"
 static const quint32 dxt2Magic = 0x32545844; // "DXT2"
@@ -483,6 +484,8 @@ void DDSHandler::ensureHeaderCached() const
     QDataStream s(device());
     s.setByteOrder(QDataStream::LittleEndian);
     s >> that->header;
+    if (header.pixelFormat.fourCC == dx10Magic)
+        s >> that->header10;
 
     device()->seek(oldPos);
 }

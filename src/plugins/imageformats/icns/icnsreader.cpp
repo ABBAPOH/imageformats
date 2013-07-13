@@ -2,7 +2,7 @@
 
 QDataStream &operator>>(QDataStream &in, IcnsBlockHeader &p)
 {
-    in >> p.magic;
+    in >> p.OSType;
     in >> p.length;
     return in;
 }
@@ -12,7 +12,7 @@ IcnsReader::IcnsReader(QIODevice *iodevice)
     Q_ASSERT(iodevice);
     m_stream.setDevice(iodevice);
     m_stream.setByteOrder(QDataStream::BigEndian);
-    m_scanned = scanBlocks();
+    m_scanned = scanFile();
 }
 
 QByteArray IcnsReader::getDecompressedRLE24(const QByteArray &encodedBytes, quint32 expectedPixelCount)
@@ -100,7 +100,7 @@ bool IcnsReader::getA8MaskForIcon(const IcnsIconEntry &icon, QByteArray &A8Mask)
         if(hasMask) {
             if(mask.iconBitDepth != IconMono && mask.iconBitDepth != Icon8bit) {
                 qWarning() << "IcnsReader::getA8MaskForIcon(): Unusual bit mask depth, can't read:"
-                           << mask.iconBitDepth << "Magic:" << mask.header.magic;
+                           << mask.iconBitDepth << "OSType:" << mask.header.OSType;
                 return false;
             }
             const quint32 pixelCount = mask.iconWidth*mask.iconHeight;
@@ -111,7 +111,7 @@ bool IcnsReader::getA8MaskForIcon(const IcnsIconEntry &icon, QByteArray &A8Mask)
             const quint32 pos = (mask.iconMaskType == IconPlusMask) ? (basePos + imageDataSize) : basePos;
             const qint64 oldPos = m_stream.device()->pos();
             if(m_stream.device()->seek(pos)) {
-                A8Mask.fill(0,pixelCount);
+                A8Mask.fill(0, pixelCount);
                 quint8 byte = 0;
                 for(quint32 pixel = 0; pixel < pixelCount; pixel++) {
                     if(mask.iconBitDepth == IconMono) {
@@ -135,12 +135,12 @@ bool IcnsReader::getA8MaskForIcon(const IcnsIconEntry &icon, QByteArray &A8Mask)
 }
 
 bool IcnsReader::parseIconDetails(IcnsIconEntry &icon) {
-    const QByteArray magic = QByteArray::fromHex(QByteArray::number(icon.header.magic,16));
-    // Typical magic naming: <junk><group><depth><mask>;
+    const QByteArray OSType = QByteArray::fromHex(QByteArray::number(icon.header.OSType,16));
+    // Typical OSType naming: <junk><group><depth><mask>;
 #if QT_VERSION >= 0x050000
     const char* pattern = "^(?<junk>[\\D]{0,4})(?<group>[a-z|A-Z]{1})(?<depth>\\d{0,2})(?<mask>[#mk]{0,2})$";
     QRegularExpression regexp(pattern);
-    QRegularExpressionMatch match = regexp.match(magic);
+    QRegularExpressionMatch match = regexp.match(OSType);
     const bool hasMatch = match.hasMatch();
     const QString junk = match.captured("junk");
     const QString group = match.captured("group");
@@ -149,7 +149,7 @@ bool IcnsReader::parseIconDetails(IcnsIconEntry &icon) {
 #else
     const char* pattern = "^([\\D]{0,4})([a-z|A-Z]{1})(\\d{0,2})([#mk]{0,2})$";
     QRegExp regexp(pattern);
-    const bool hasMatch = (regexp.indexIn(magic) >= 0);
+    const bool hasMatch = (regexp.indexIn(OSType) >= 0);
     QStringList match = regexp.capturedTexts();
     const QString junk = (1 <= match.size()) ? match.at(1) : "";
     const QString group = (2 <= match.size()) ? match.at(2) : "";
@@ -207,12 +207,34 @@ bool IcnsReader::parseIconDetails(IcnsIconEntry &icon) {
     if(hasMatch)
         qDebug() << "IcnsReader::parseIconDetails() Parsing:" << junk << group << depth << mask;
     else
-        qWarning() << "IcnsReader::parseIconDetails() Parsing failed, ignored. Reg exp: no match for:" << magic;
+        qWarning() << "IcnsReader::parseIconDetails() Parsing failed, ignored. Reg exp: no match for:" << OSType;
 
     return hasMatch;
 }
 
-bool IcnsReader::scanBlocks()
+bool IcnsReader::addIcon(IcnsIconEntry &icon)
+{
+    bool success = parseIconDetails(icon);
+    if(success) {
+        m_toc << icon;
+        switch(icon.iconMaskType) {
+        case IconNoMask:
+            m_icons << icon;
+            break;
+        case IconPlusMask: {
+            m_icons << icon;
+            m_masks << icon;
+        }
+        case IconIsMask:
+            m_masks << icon;
+        }
+    }
+    else
+        qWarning() << "IcnsReader::addIcon(): Unable to parse icon" << icon.header.OSType;
+    return success;
+}
+
+bool IcnsReader::scanFile()
 {
     m_stream.device()->seek(0);
 
@@ -220,52 +242,34 @@ bool IcnsReader::scanBlocks()
     while (!m_stream.atEnd()) {
 
         m_stream >> blockHeader;
-        if (m_stream.status() == QDataStream::ReadPastEnd)
+        if (m_stream.status() != QDataStream::Ok)
             return false;
 
-        switch (blockHeader.magic) {
-        case icnsfile:
+        switch (blockHeader.OSType) {
+        case OSType_icnsfile:
             if (m_stream.device()->size() != blockHeader.length)
                 return false;
             break;
-        case icnV:
+        case OSType_icnV:
             m_stream.skipRawData(4);
             break;
-        case TOC_: {
-            const quint32 tocEntriesN = (blockHeader.length - IcnsBlockHeaderSize) / IcnsBlockHeaderSize;
-            for(uint i = 0; i < tocEntriesN; i++) {
+        case OSType_TOC_: {
+            const quint32 tocEntriesCount = (blockHeader.length - IcnsBlockHeaderSize) / IcnsBlockHeaderSize;
+            for(uint i = 0; i < tocEntriesCount; i++) {
                 IcnsBlockHeader tocEntry;
                 m_stream >> tocEntry;
 
                 IcnsIconEntry icon;
                 icon.header = tocEntry;
 
-                const quint32 imgDataBaseOffset = (i == 0) ?
-                            (blockHeader.length + IcnsBlockHeaderSize*2) : // offset for the first icon
-                            (blockHeader.length + IcnsBlockHeaderSize);    // offset of the first block
+                const quint32 imgDataBaseOffset = blockHeader.length + IcnsBlockHeaderSize;
                 quint32 imgDataOffset = imgDataBaseOffset;
                 for(uint n = 0; n < i; n++)
                     imgDataOffset += m_toc.at(n).header.length;
 
-                icon.imageDataOffset = (i == 0) ? imgDataOffset : imgDataOffset + IcnsBlockHeaderSize;
+                icon.imageDataOffset = imgDataOffset + IcnsBlockHeaderSize;
                 icon.imageDataSize = icon.header.length - IcnsBlockHeaderSize;
-
-                if(parseIconDetails(icon)) {
-                    m_toc << icon;
-                    switch(icon.iconMaskType) {
-                    case IconNoMask:
-                        m_icons << icon;
-                        break;
-                    case IconPlusMask: {
-                        m_icons << icon;
-                        m_masks << icon;
-                    }
-                    case IconIsMask:
-                        m_masks << icon;
-                    }
-                }
-                else
-                    qWarning() << "IcnsReader::scanBlocks(): Unable to parse icon" << icon.header.magic;
+                addIcon(icon);
             }
             return true; // TOC scan gives enough data to discard scan of other blocks
         }
@@ -274,24 +278,7 @@ bool IcnsReader::scanBlocks()
             icon.header = blockHeader;
             icon.imageDataOffset = m_stream.device()->pos();
             icon.imageDataSize = icon.header.length - IcnsBlockHeaderSize;
-
-            if(parseIconDetails(icon)) {
-                m_toc << icon;
-                switch(icon.iconMaskType) {
-                case IconNoMask:
-                    m_icons << icon;
-                    break;
-                case IconPlusMask: {
-                    m_icons << icon;
-                    m_masks << icon;
-                }
-                case IconIsMask:
-                    m_masks << icon;
-                }
-            }
-            else
-                qWarning() << "IcnsReader::scanBlocks(): Unable to parse icon" << icon.header.magic;
-
+            addIcon(icon);
             m_stream.skipRawData(icon.imageDataSize);
             break;
         }
@@ -328,7 +315,7 @@ QImage IcnsReader::iconAt(int index)
             }
             else {
                 qWarning() << "IcnsReader::iconAt(): Icon:" << index
-                           << "Unsupported icon format for icon entry ID:" << iconEntry.header.magic;
+                           << "Unsupported icon format for icon entry ID:" << iconEntry.header.OSType;
                 return img;
             }
         }
@@ -342,7 +329,7 @@ QImage IcnsReader::iconAt(int index)
         const quint32 height = iconEntry.iconHeight;
         if(width > 0 && height > 0) {
             QByteArray maskA8;
-            const bool iconHasAlphaMask = getA8MaskForIcon(iconEntry,maskA8);
+            const bool iconHasAlphaMask = getA8MaskForIcon(iconEntry, maskA8);
             const QImage::Format format = iconHasAlphaMask ? QImage::Format_ARGB32 : QImage::Format_RGB32;
             img = QImage(width, height, format);
             quint8 byte = 0;

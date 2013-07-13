@@ -23,8 +23,11 @@ public:
     int count();
     QImage iconAt(int index);
 private:
-    bool scanBlocks();
+    bool scanFile();
+
     bool parseIconDetails(IcnsIconEntry &icon);
+    bool addIcon(IcnsIconEntry &icon);
+
     bool getA8MaskForIcon(const IcnsIconEntry &icon, QByteArray &A8Mask);
 
     QDataStream m_stream;

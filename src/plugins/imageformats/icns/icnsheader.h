@@ -3,10 +3,10 @@
 
 #include <QtCore/QtGlobal>
 
-enum IcnsMagic {
-    icnsfile = 0x69636E73,
-    TOC_ = 0x544F4320,
-    icnV = 0x69636E56
+enum IcnsOSType {
+    OSType_icnsfile = 0x69636E73,
+    OSType_TOC_ = 0x544F4320,
+    OSType_icnV = 0x69636E56
 };
 
 enum IcnsIconGroup {
@@ -16,16 +16,15 @@ enum IcnsIconGroup {
     IconGroup48x48      = 0x68, // "h" for "huge"
     IconGroup128x128    = 0x74, // "t" for "thumbnail"
     IconGroupCompressed = 0x63, // "c" for "compressed"?
-    // Legacy icons:
+    // Legacy icons spotted:
     IconGroup32x32Old   = 0x4E, // [DEPRECATED] "N" from OSType "ICON"
-    IconGroupOpen       = 0x6E, // [DEPRECATED] "n" from OSType "open" (magic: 0x6f70656e)
-    IconGroupTile       = 0x65, // [DEPRECATED] "e" from OSType "tile" (magic: 0x74696c65)
+    IconGroupOpen       = 0x6E, // [DEPRECATED] "n" from OSType "open" (ostype: 0x6f70656e)
+    IconGroupTile       = 0x65, // [DEPRECATED] "e" from OSType "tile" (ostype: 0x74696c65)
     IconGroupDrop       = 0x70, // [DEPRECATED] "p" from OSTypes "drop" and "odrp" (0x64726f70, 0x6f647270)
-    IconGroupOver       = 0x72  // [DEPRECATED] "r" from OSType "over" (magic: 0x6f766572)
+    IconGroupOver       = 0x72  // [DEPRECATED] "r" from OSType "over" (ostype: 0x6f766572)
 };
 
 enum IcnsIconBitDepth {
-    IconBitDepthInvalid = 0,
     IconMono = 1,
     Icon4bit = 4,
     Icon8bit = 8,
@@ -40,7 +39,7 @@ enum IcnsIconMaskType {
 
 struct IcnsBlockHeader
 {
-    quint32 magic;
+    quint32 OSType;
     quint32 length;
 };
 

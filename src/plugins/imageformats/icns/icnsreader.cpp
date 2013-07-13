@@ -99,12 +99,11 @@ bool IcnsReader::getA8MaskForIcon(const IcnsIconEntry &icon, QByteArray &A8Mask)
         }
         if(hasMask) {
             if(mask.iconBitDepth != IconMono && mask.iconBitDepth != Icon8bit) {
-                qWarning() << "IcnsReader::getA8MaskForIcon(): Unusual bit mask depth, can't read:"
+                qWarning() << "IcnsReader::getA8MaskForIcon(): Mask has unusual bit depth, can't read:"
                            << mask.iconBitDepth << "OSType:" << mask.header.OSType;
                 return false;
             }
             const quint32 pixelCount = mask.iconWidth*mask.iconHeight;
-            //const float pixelsPerByte = (8 / (float)mask.iconBitDepth);
             const float bytesPerPixel = ((float)mask.iconBitDepth / 8);
             const quint32 imageDataSize = pixelCount*bytesPerPixel;
             const quint32 basePos = mask.imageDataOffset;
@@ -144,7 +143,7 @@ bool IcnsReader::parseIconDetails(IcnsIconEntry &icon) {
     const bool hasMatch = match.hasMatch();
     const QString junk = match.captured("junk");
     const QString group = match.captured("group");
-    const QString depth = match.captured("depth");
+    QString depth = match.captured("depth");
     const QString mask = match.captured("mask");
 #else
     const char* pattern = "^([\\D]{0,4})([a-z|A-Z]{1})(\\d{0,2})([#mk]{0,2})$";
@@ -153,7 +152,7 @@ bool IcnsReader::parseIconDetails(IcnsIconEntry &icon) {
     QStringList match = regexp.capturedTexts();
     const QString junk = (1 <= match.size()) ? match.at(1) : "";
     const QString group = (2 <= match.size()) ? match.at(2) : "";
-    const QString depth = (3 <= match.size()) ? match.at(3) : "";
+    QString depth = (3 <= match.size()) ? match.at(3) : "";
     const QString mask = (4 <= match.size()) ? match.at(4) : "";
 #endif
     // Icon group:
@@ -173,6 +172,7 @@ bool IcnsReader::parseIconDetails(IcnsIconEntry &icon) {
         break;
     }
     case IconGroup32x32Old:
+        depth = "1";
     case IconGroup32x32: {
         width = 32;
         height = 32;
@@ -189,13 +189,13 @@ bool IcnsReader::parseIconDetails(IcnsIconEntry &icon) {
         break;
     }
     default:
+        // Deprecated icons like "tile" need to be handled somehow.
         break;
     }
     icon.iconWidth = width;
     icon.iconHeight = height;
     // Depth:
-    const bool iconIsMono = (mask == "#" || icon.iconGroup == IconGroup32x32Old);
-    icon.iconBitDepth = iconIsMono ? IconMono : IcnsIconBitDepth(depth.toUInt());
+    icon.iconBitDepth = (mask == "#") ? IconMono : IcnsIconBitDepth(depth.toUInt());
     // Mask:
     const float bytesPerPixel = ((float)icon.iconBitDepth / 8);
     const quint32 assumedImageDataSize = (width*height)*bytesPerPixel;
@@ -216,8 +216,7 @@ bool IcnsReader::addIcon(IcnsIconEntry &icon)
 {
     bool success = parseIconDetails(icon);
     if(success) {
-        m_toc << icon;
-        switch(icon.iconMaskType) {
+         switch(icon.iconMaskType) {
         case IconNoMask:
             m_icons << icon;
             break;
@@ -254,21 +253,19 @@ bool IcnsReader::scanFile()
             m_stream.skipRawData(4);
             break;
         case OSType_TOC_: {
+            QVector<IcnsBlockHeader> toc;
             const quint32 tocEntriesCount = (blockHeader.length - IcnsBlockHeaderSize) / IcnsBlockHeaderSize;
             for(uint i = 0; i < tocEntriesCount; i++) {
                 IcnsBlockHeader tocEntry;
                 m_stream >> tocEntry;
-
+                toc << tocEntry;
                 IcnsIconEntry icon;
                 icon.header = tocEntry;
-
-                const quint32 imgDataBaseOffset = blockHeader.length + IcnsBlockHeaderSize;
-                quint32 imgDataOffset = imgDataBaseOffset;
+                quint32 imgDataOffset = blockHeader.length + IcnsBlockHeaderSize;
                 for(uint n = 0; n < i; n++)
-                    imgDataOffset += m_toc.at(n).header.length;
-
+                    imgDataOffset += toc.at(n).length;
                 icon.imageDataOffset = imgDataOffset + IcnsBlockHeaderSize;
-                icon.imageDataSize = icon.header.length - IcnsBlockHeaderSize;
+                icon.imageDataSize = icon.header.length - IcnsBlockHeaderSize;                
                 addIcon(icon);
             }
             return true; // TOC scan gives enough data to discard scan of other blocks

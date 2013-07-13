@@ -31,7 +31,6 @@ private:
     bool getA8MaskForIcon(const IcnsIconEntry &icon, QByteArray &A8Mask);
 
     QDataStream m_stream;
-    QVector<IcnsIconEntry> m_toc;
     QVector<IcnsIconEntry> m_icons;
     QVector<IcnsIconEntry> m_masks;
     bool m_scanned;

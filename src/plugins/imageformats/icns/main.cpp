@@ -13,7 +13,6 @@ QIcnsHandler::~QIcnsHandler()
 
 bool QIcnsHandler::read(QImage *outImage)
 {
-    qDebug("QIcnsHandler::read() call, m_currentIconIndex=%i", m_currentIconIndex);
     QImage img = m_reader->iconAt(m_currentIconIndex);
     *outImage = img;
     return !img.isNull();

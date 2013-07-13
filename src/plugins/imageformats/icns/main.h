@@ -1,6 +1,6 @@
-#include <QtGui/QImageIOPlugin>
-
 #include "qicnshandler.h"
+
+#include <QtGui/QImageIOPlugin>
 
 class QIcnsPlugin : public QImageIOPlugin
 {

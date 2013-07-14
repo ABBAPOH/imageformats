@@ -15,29 +15,19 @@ IcnsReader::IcnsReader(QIODevice *iodevice)
     m_scanned = scanFile();
 }
 
-QByteArray IcnsReader::getDecompressedRLE24(const QByteArray &encodedBytes, quint32 expectedPixelCount)
+bool IcnsReader::decompressRLE24(QByteArray &encodedBytes, quint32 expectedPixelCount)
 {
     if(encodedBytes.isEmpty()) {
         qWarning("IcnsReader::decompressRLE24(): encoded bytes are empty!");
-        return QByteArray();
+        return false;
     }
-    // From libicns
-    quint8	colorOffset = 0;
-    uchar   colorValue = 0;
-    quint8	runLength = 0;
-    quint32	dataOffset = 0;
-    quint32	pixelOffset = 0;
-    quint32	i = 0;
     quint32 rawDataSize = encodedBytes.size();
     quint32 destIconDataSize = expectedPixelCount * 4;
     QByteArray destIconBytes(destIconDataSize,0);   // Decompressed Raw Icon Data
-    // Begin
     qDebug("IcnsReader::decompressRLE24(): Compressed RLE data size is %d",encodedBytes.size());
     qDebug("IcnsReader::decompressRLE24(): Decompressed will be %d bytes (%d pixels)",(int)destIconDataSize,(int)expectedPixelCount);
     qDebug("IcnsReader::decompressRLE24(): Decoding RLE data into RGB pixels...");
-    // What's this??? In the 128x128 icons, we need to start 4 bytes
-    // ahead. There is often a NULL padding here for some reason. If
-    // we don't, the red channel will be off by 2 pixels, or worse
+    quint32	dataOffset = 0;
     if(*((quint32*)encodedBytes.constData()) == 0x00000000) {
         qDebug("IcnsReader::decompressRLE24: 4 byte null padding found in rle data!");
         dataOffset = 4;
@@ -48,30 +38,35 @@ QByteArray IcnsReader::getDecompressedRLE24(const QByteArray &encodedBytes, quin
     // GREEN: byte[1], byte[5], byte[9]  ...
     // BLUE:  byte[2], byte[6], byte[10] ...
     // ALPHA: byte[3], byte[7], byte[11] do nothing with these bytes
+    quint8	colorOffset = 0;
+    uchar   colorValue = 0;
+    quint8	runLength = 0;
+    quint32	pixelOffset = 0;
     for(colorOffset = 0; colorOffset < 3; colorOffset++) {
         pixelOffset = 0;
         while((pixelOffset < expectedPixelCount) && (dataOffset < rawDataSize)) {
-            if( (encodedBytes.data()[dataOffset] & 0x80) == 0) {
+            if((encodedBytes[dataOffset] & 0x80) == 0) {
                 // Top bit is clear - run of various values to follow
-                runLength = (0xFF & encodedBytes.data()[dataOffset++]) + 1; // 1 <= len <= 128
-                for(i = 0; (i < runLength) && (pixelOffset < expectedPixelCount) && (dataOffset < rawDataSize); i++) {
-                    destIconBytes.data()[(pixelOffset * 4) + colorOffset] = encodedBytes.data()[dataOffset++];
+                runLength = (0xFF & encodedBytes[dataOffset++]) + 1; // 1 <= len <= 128
+                for(quint32	i = 0; (i < runLength) && (pixelOffset < expectedPixelCount) && (dataOffset < rawDataSize); i++) {
+                    destIconBytes[(pixelOffset*4) + colorOffset] = encodedBytes[dataOffset++];
                     pixelOffset++;
                 }
             }
             else {
                 // Top bit is set - run of one value to follow
-                runLength = (0xFF & encodedBytes.data()[dataOffset++]) - 125; // 3 <= len <= 130
+                runLength = (0xFF & encodedBytes[dataOffset++]) - 125; // 3 <= len <= 130
                 // Set the value to the color shifted to the correct bit offset
-                colorValue = encodedBytes.data()[dataOffset++];
-                for(i = 0; (i < runLength) && (pixelOffset < expectedPixelCount); i++) {
-                    destIconBytes.data()[(pixelOffset * 4) + colorOffset] = colorValue;
+                colorValue = encodedBytes[dataOffset++];
+                for(quint32	i = 0; (i < runLength) && (pixelOffset < expectedPixelCount); i++) {
+                    destIconBytes[(pixelOffset*4) + colorOffset] = colorValue;
                     pixelOffset++;
                 }
             }
         }
     }
-    return destIconBytes;
+    encodedBytes = destIconBytes;
+    return true;
 }
 
 bool IcnsReader::getA8MaskForIcon(const IcnsIconEntry &icon, QByteArray &A8Mask)
@@ -376,21 +371,24 @@ QImage IcnsReader::iconAt(int index)
             break;
         }
         case IconRLE24: {
-            QByteArray RLE24 = m_stream.device()->peek(iconEntry.imageDataSize);
-            QByteArray decompressed = getDecompressedRLE24(RLE24, width*height);
-            QDataStream stream(decompressed);
-            for(uint y = 0; y < height; y++) {
-                for(uint x = 0; x < width; x++) {
-                    quint8 red, green, blue;
-                    stream >> red >> green >> blue;
-                    stream.skipRawData(1); // alpha is ignored there
-                    if(iconHasAlphaMask)
-                        img.setPixel(x,y,qRgba(red,green,blue,maskA8.at(pixel)));
-                    else
-                        img.setPixel(x,y,qRgb(red,green,blue));
-                    pixel++;
+            QByteArray data = m_stream.device()->peek(iconEntry.imageDataSize);
+            if(decompressRLE24(data, width*height)) {
+                QDataStream stream(data);
+                for(uint y = 0; y < height; y++) {
+                    for(uint x = 0; x < width; x++) {
+                        quint8 red, green, blue;
+                        stream >> red >> green >> blue;
+                        stream.skipRawData(1); // alpha is ignored there
+                        if(iconHasAlphaMask)
+                            img.setPixel(x,y,qRgba(red,green,blue,maskA8.at(pixel)));
+                        else
+                            img.setPixel(x,y,qRgb(red,green,blue));
+                        pixel++;
+                    }
                 }
             }
+            else
+                qWarning() << "IcnsReader::iconAt(): RLE24 decompressing failed for OSType:" << iconEntry.header.OSType;
             break;
         }
         default: {

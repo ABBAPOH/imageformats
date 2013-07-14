@@ -18,8 +18,6 @@ class IcnsReader
 public:
     IcnsReader(QIODevice *iodevice);
 
-    QByteArray getDecompressedRLE24(const QByteArray &encodedBytes, quint32 expectedPixelCount);
-
     int count();
     QImage iconAt(int index);
 private:
@@ -28,6 +26,7 @@ private:
     bool parseIconDetails(IcnsIconEntry &icon);
     bool addIcon(IcnsIconEntry &icon);
 
+    bool decompressRLE24(QByteArray &encodedBytes, quint32 expectedPixelCount);
     bool getA8MaskForIcon(const IcnsIconEntry &icon, QByteArray &A8Mask);
 
     QDataStream m_stream;

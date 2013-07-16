@@ -23,6 +23,7 @@
         <file>data/A8R8G8B8.png</file>
         <file>data/A16B16G16R16.dds</file>
         <file>data/A16B16G16R16F.dds</file>
+        <file>data/A16B16G16R16F.png</file>
         <file>data/A32B32G32R32F.dds</file>
         <file>data/cubemap.dds</file>
         <file>data/cubemap.png</file>
@@ -41,6 +42,7 @@
         <file>data/G16R16.dds</file>
         <file>data/G16R16.png</file>
         <file>data/G16R16F.dds</file>
+        <file>data/G16R16F.png</file>
         <file>data/G32R32F.dds</file>
         <file>data/L6V5U5.dds</file>
         <file>data/L8.dds</file>
@@ -67,6 +69,7 @@
         <file>data/R8G8B8.dds</file>
         <file>data/R8G8B8.png</file>
         <file>data/R16F.dds</file>
+        <file>data/R16F.png</file>
         <file>data/R32F.dds</file>
         <file>data/UYVY.dds</file>
         <file>data/V8U8.dds</file>

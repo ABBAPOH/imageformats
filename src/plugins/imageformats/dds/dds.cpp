@@ -6,6 +6,7 @@
 
 #include <QDebug>
 #include <qendian.h>
+#include <qmath.h>
 
 enum Colors
 {
@@ -135,6 +136,12 @@ static Format getFormat(const DDSHeader &dds)
             return FORMAT_DXT4;
         case FORMAT_DXT5:
             return FORMAT_DXT5;
+        case FORMAT_R16F:
+            return FORMAT_R16F;
+        case FORMAT_G16R16F:
+            return FORMAT_G16R16F;
+        case FORMAT_A16B16G16R16F:
+            return FORMAT_A16B16G16R16F;
         default:
             return FORMAT_UNKNOWN;
         }
@@ -232,6 +239,67 @@ static QImage readValueBased(QDataStream & s, const DDSHeader & dds, quint32 wid
     return img;
 }
 
+static double readFloat16(QDataStream &s)
+{
+    quint16 value;
+    s >> value;
+
+    double sign = (value & 0x8000) == 0x8000 ? -1.0 : 1.0;
+    qint8 exp = (value & 0x7C00) >> 10;
+    quint16 fraction = value & 0x3FF;
+
+    if (exp == 0)
+        return sign*qPow(2.0, -14.0)*fraction/1024.0;
+    else
+        return sign*qPow(2.0, exp - 15)*(1 + fraction/1024.0);
+}
+
+static QImage loadR16F(QDataStream &s, const quint32 width, const quint32 height)
+{
+    QImage img(width, height, QImage::Format_RGB32);
+
+    for (quint32 y = 0; y < height; y++) {
+        for (quint32 x = 0; x < width; x++) {
+            quint8 r = readFloat16(s) * 255;
+            img.setPixel(x, y, qRgba(r, 0, 0, 0));
+        }
+    }
+
+    return img;
+}
+
+static QImage loadRG16F(QDataStream &s, const quint32 width, const quint32 height)
+{
+    QImage img(width, height, QImage::Format_RGB32);
+
+    for (quint32 y = 0; y < height; y++) {
+        for (quint32 x = 0; x < width; x++) {
+            quint8 r = readFloat16(s) * 255;
+            quint8 g = readFloat16(s) * 255;
+            img.setPixel(x, y, qRgba(r, g, 0, 0));
+        }
+    }
+
+    return img;
+}
+
+static QImage loadARGB16F(QDataStream &s, const quint32 width, const quint32 height)
+{
+    QImage img(width, height, QImage::Format_ARGB32);
+
+    for (quint32 y = 0; y < height; y++) {
+        for (quint32 x = 0; x < width; x++) {
+            quint8 colors[ColorCount];
+            for (int c = 0; c < ColorCount; ++c)
+                colors[c] = readFloat16(s) * 255;
+
+            img.setPixel(x, y, qRgba(colors[Red], colors[Green], colors[Blue], colors[Alpha]));
+        }
+    }
+
+    return img;
+}
+
 static QImage readPaletteBased(QDataStream & s, const DDSHeader &/*dds*/, quint32 width, quint32 height)
 {
     QImage img(width, height, QImage::Format_Indexed8);
@@ -303,6 +371,12 @@ QImage readLayer(QDataStream & s, const DDSHeader & dds, const int format, quint
         return QDXT::loadDXT4(s, width, height);
     case FORMAT_DXT5:
         return QDXT::loadDXT5(s, width, height);
+    case FORMAT_R16F:
+        return loadR16F(s, width, height);
+    case FORMAT_G16R16F:
+        return loadRG16F(s, width, height);
+    case FORMAT_A16B16G16R16F:
+        return loadARGB16F(s, width, height);
 //    case FORMAT_D16_LOCKABLE:
 //    case FORMAT_D32:
 //    case FORMAT_D15S1:
@@ -319,9 +393,6 @@ QImage readLayer(QDataStream & s, const DDSHeader & dds, const int format, quint
 //    case FORMAT_INDEX32:
     case FORMAT_Q16W16V16U16:
 //    case FORMAT_MULTI2_ARGB8:
-    case FORMAT_R16F:
-    case FORMAT_G16R16F:
-    case FORMAT_A16B16G16R16F:
     case FORMAT_R32F:
     case FORMAT_G32R32F:
     case FORMAT_A32B32G32R32F:
@@ -410,8 +481,11 @@ static qint64 mipmapSize(const DDSHeader &dds, const int format, const int level
     case FORMAT_Q16W16V16U16:
 //    case FORMAT_MULTI2_ARGB8:
     case FORMAT_R16F:
+        return w*h*1*2;
     case FORMAT_G16R16F:
+        return w*h*2*2;
     case FORMAT_A16B16G16R16F:
+        return w*h*4*2;
     case FORMAT_R32F:
     case FORMAT_G32R32F:
     case FORMAT_A32B32G32R32F:

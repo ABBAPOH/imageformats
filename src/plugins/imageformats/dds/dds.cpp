@@ -142,6 +142,12 @@ static Format getFormat(const DDSHeader &dds)
             return FORMAT_G16R16F;
         case FORMAT_A16B16G16R16F:
             return FORMAT_A16B16G16R16F;
+        case FORMAT_R32F:
+            return FORMAT_R32F;
+        case FORMAT_G32R32F:
+            return FORMAT_G32R32F;
+        case FORMAT_A32B32G32R32F:
+            return FORMAT_A32B32G32R32F;
         default:
             return FORMAT_UNKNOWN;
         }
@@ -254,6 +260,18 @@ static double readFloat16(QDataStream &s)
         return sign*qPow(2.0, exp - 15)*(1 + fraction/1024.0);
 }
 
+static inline float readFloat32(QDataStream &s)
+{
+    Q_ASSERT(sizeof(float) == 4);
+    float value;
+    // TODO: find better way to avoid setting precision each time
+    QDataStream::FloatingPointPrecision precision = s.floatingPointPrecision();
+    s.setFloatingPointPrecision(QDataStream::SinglePrecision);
+    s >> value;
+    s.setFloatingPointPrecision(precision);
+    return value;
+}
+
 static QImage loadR16F(QDataStream &s, const quint32 width, const quint32 height)
 {
     QImage img(width, height, QImage::Format_RGB32);
@@ -292,6 +310,52 @@ static QImage loadARGB16F(QDataStream &s, const quint32 width, const quint32 hei
             quint8 colors[ColorCount];
             for (int c = 0; c < ColorCount; ++c)
                 colors[c] = readFloat16(s) * 255;
+
+            img.setPixel(x, y, qRgba(colors[Red], colors[Green], colors[Blue], colors[Alpha]));
+        }
+    }
+
+    return img;
+}
+
+static QImage loadR32F(QDataStream &s, const quint32 width, const quint32 height)
+{
+    QImage img(width, height, QImage::Format_RGB32);
+
+    for (quint32 y = 0; y < height; y++) {
+        for (quint32 x = 0; x < width; x++) {
+            quint8 r = readFloat32(s) * 255;
+            img.setPixel(x, y, qRgba(r, 0, 0, 0));
+        }
+    }
+
+    return img;
+}
+
+static QImage loadRG32F(QDataStream &s, const quint32 width, const quint32 height)
+{
+    QImage img(width, height, QImage::Format_RGB32);
+
+    for (quint32 y = 0; y < height; y++) {
+        for (quint32 x = 0; x < width; x++) {
+            quint8 r = readFloat32(s) * 255;
+            quint8 g = readFloat32(s) * 255;
+            img.setPixel(x, y, qRgba(r, g, 0, 0));
+        }
+    }
+
+    return img;
+}
+
+static QImage loadARGB32F(QDataStream &s, const quint32 width, const quint32 height)
+{
+    QImage img(width, height, QImage::Format_ARGB32);
+
+    for (quint32 y = 0; y < height; y++) {
+        for (quint32 x = 0; x < width; x++) {
+            quint8 colors[ColorCount];
+            for (int c = 0; c < ColorCount; ++c)
+                colors[c] = readFloat32(s) * 255;
 
             img.setPixel(x, y, qRgba(colors[Red], colors[Green], colors[Blue], colors[Alpha]));
         }
@@ -377,6 +441,12 @@ QImage readLayer(QDataStream & s, const DDSHeader & dds, const int format, quint
         return loadRG16F(s, width, height);
     case FORMAT_A16B16G16R16F:
         return loadARGB16F(s, width, height);
+    case FORMAT_R32F:
+        return loadR32F(s, width, height);
+    case FORMAT_G32R32F:
+        return loadRG32F(s, width, height);
+    case FORMAT_A32B32G32R32F:
+        return loadARGB32F(s, width, height);
 //    case FORMAT_D16_LOCKABLE:
 //    case FORMAT_D32:
 //    case FORMAT_D15S1:
@@ -393,9 +463,6 @@ QImage readLayer(QDataStream & s, const DDSHeader & dds, const int format, quint
 //    case FORMAT_INDEX32:
     case FORMAT_Q16W16V16U16:
 //    case FORMAT_MULTI2_ARGB8:
-    case FORMAT_R32F:
-    case FORMAT_G32R32F:
-    case FORMAT_A32B32G32R32F:
     case FORMAT_CxV8U8:
 //    case FORMAT_A1:
 //    case FORMAT_A2B10G10R10_XR_BIAS:
@@ -487,8 +554,11 @@ static qint64 mipmapSize(const DDSHeader &dds, const int format, const int level
     case FORMAT_A16B16G16R16F:
         return w*h*4*2;
     case FORMAT_R32F:
+        return w*h*1*4;
     case FORMAT_G32R32F:
+        return w*h*2*4;
     case FORMAT_A32B32G32R32F:
+        return w*h*4*4;
     case FORMAT_CxV8U8:
 //    case FORMAT_A1:
 //    case FORMAT_A2B10G10R10_XR_BIAS:

@@ -3,14 +3,14 @@
 
 #include <QtCore/QtGlobal>
 
-struct IcnsColorEntry888
+struct IcnsColorEntryR8G8B8
 {
     quint8 red;
     quint8 green;
     quint8 blue;
 };
 
-static const IcnsColorEntry888 IcnsColorTable4bit[] =
+static const IcnsColorEntryR8G8B8 IcnsColorTable4bit[] =
 {
    {0xFF, 0xFF, 0xFF},
    {0xFC, 0xF3, 0x05},
@@ -30,7 +30,7 @@ static const IcnsColorEntry888 IcnsColorTable4bit[] =
    {0x00, 0x00, 0x00}
 };
 
-static const IcnsColorEntry888 IcnsColorTable8bit[] =
+static const IcnsColorEntryR8G8B8 IcnsColorTable8bit[] =
 {
    {0xFF, 0xFF, 0xFF},
    {0xFF, 0xFF, 0xCC},

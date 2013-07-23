@@ -7,6 +7,12 @@ QDataStream &operator>>(QDataStream &in, IcnsBlockHeader &p)
     return in;
 }
 
+QDataStream &operator>>(QDataStream &in, IcnsColorEntryR8G8B8 &p)
+{
+    in >> p.red >> p.green >> p.blue;
+    return in;
+}
+
 IcnsReader::IcnsReader(QIODevice *iodevice)
 {
     Q_ASSERT(iodevice);
@@ -320,9 +326,6 @@ QImage IcnsReader::iconAt(int index)
         img = QImage(width, height, format);
         quint8 byte = 0;
         quint32 pixel = 0;
-        quint8 red = 0;
-        quint8 green = 0;
-        quint8 blue = 0;
 
         switch(iconEntry.iconBitDepth) {
         case IconMono:
@@ -332,50 +335,45 @@ QImage IcnsReader::iconAt(int index)
                 for(uint x = 0; x < width; x++) {
                     if(pixel % (8 / iconEntry.iconBitDepth) == 0)
                         m_stream >> byte;
+                    IcnsColorEntryR8G8B8 color;
                     switch(iconEntry.iconBitDepth) {
                     case IconMono: {
                         quint8 value = (byte & 0x80) ? 0x00 : 0xFF; // left 1 bit
-                        red = value;
-                        green = value;
-                        blue = value;
+                        color.red = value;
+                        color.green = value;
+                        color.blue = value;
                         break;
                     }
                     case Icon4bit: {
                         quint8 value = ((byte & 0xF0) >> 4); // left 4 bits
-                        IcnsColorEntry888 color = IcnsColorTable4bit[value];
-                        red = color.red;
-                        green = color.green;
-                        blue = color.blue;
+                        color = IcnsColorTable4bit[value];
                         break;
                     }
-                    default: { //8bit
-                        IcnsColorEntry888 color = IcnsColorTable8bit[byte];
-                        red = color.red;
-                        green = color.green;
-                        blue = color.blue;
-                    }
+                    default: //8bit
+                        color = IcnsColorTable8bit[byte];
                     }
                     byte = byte << iconEntry.iconBitDepth;
                     if(iconHasAlphaMask)
-                        img.setPixel(x,y,qRgba(red,green,blue,maskA8.at(pixel)));
+                        img.setPixel(x,y,qRgba(color.red,color.green,color.blue,maskA8.at(pixel)));
                     else
-                        img.setPixel(x,y,qRgb(red,green,blue));
+                        img.setPixel(x,y,qRgb(color.red,color.green,color.blue));
                     pixel++;
                 }
             }
             break;
         }
         case IconRLE24: {
+            IcnsColorEntryR8G8B8 color;
             QByteArray data = m_stream.device()->peek(iconEntry.imageDataSize);
             if(decompressRLE24toR8G8B8(data, width*height)) {
                 QDataStream stream(data);
                 for(uint y = 0; y < height; y++) {
                     for(uint x = 0; x < width; x++) {
-                        stream >> red >> green >> blue;
+                        stream >> color;
                         if(iconHasAlphaMask)
-                            img.setPixel(x,y,qRgba(red,green,blue,maskA8.at(pixel)));
+                            img.setPixel(x,y,qRgba(color.red,color.green,color.blue,maskA8.at(pixel)));
                         else
-                            img.setPixel(x,y,qRgb(red,green,blue));
+                            img.setPixel(x,y,qRgb(color.red,color.green,color.blue));
                         pixel++;
                     }
                 }

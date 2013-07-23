@@ -26,7 +26,7 @@ private:
     bool parseIconDetails(IcnsIconEntry &icon);
     bool addIcon(IcnsIconEntry &icon);
 
-    bool decompressRLE24(QByteArray &encodedBytes, quint32 expectedPixelCount);
+    bool decompressRLE24toR8G8B8(QByteArray &encodedBytes, quint32 expectedPixelCount);
     bool getA8MaskForIcon(const IcnsIconEntry &icon, QByteArray &A8Mask);
 
     QDataStream m_stream;

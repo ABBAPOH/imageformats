@@ -15,14 +15,14 @@ IcnsReader::IcnsReader(QIODevice *iodevice)
     m_scanned = scanFile();
 }
 
-bool IcnsReader::decompressRLE24(QByteArray &encodedBytes, quint32 expectedPixelCount)
+bool IcnsReader::decompressRLE24toR8G8B8(QByteArray &encodedBytes, quint32 expectedPixelCount)
 {
     if(encodedBytes.isEmpty()) {
         qWarning("IcnsReader::decompressRLE24(): encoded bytes are empty!");
         return false;
     }
     quint32 rawDataSize = encodedBytes.size();
-    quint32 destIconDataSize = expectedPixelCount * 4;
+    quint32 destIconDataSize = expectedPixelCount * 3;
     QByteArray destIconBytes(destIconDataSize,0);   // Decompressed Raw Icon Data
     qDebug("IcnsReader::decompressRLE24(): Compressed RLE data size is %d",encodedBytes.size());
     qDebug("IcnsReader::decompressRLE24(): Decompressed will be %d bytes (%d pixels)",(int)destIconDataSize,(int)expectedPixelCount);
@@ -33,11 +33,10 @@ bool IcnsReader::decompressRLE24(QByteArray &encodedBytes, quint32 expectedPixel
         dataOffset = 4;
     }
     // Data is stored in red run, green run,blue run
-    // So we decompress to pixel format RGBA
+    // So we decompress to pixel format RGB
     // RED:   byte[0], byte[4], byte[8]  ...
     // GREEN: byte[1], byte[5], byte[9]  ...
     // BLUE:  byte[2], byte[6], byte[10] ...
-    // ALPHA: byte[3], byte[7], byte[11] do nothing with these bytes
     quint8	colorOffset = 0;
     uchar   colorValue = 0;
     quint8	runLength = 0;
@@ -49,7 +48,7 @@ bool IcnsReader::decompressRLE24(QByteArray &encodedBytes, quint32 expectedPixel
                 // Top bit is clear - run of various values to follow
                 runLength = (0xFF & encodedBytes[dataOffset++]) + 1; // 1 <= len <= 128
                 for(quint32	i = 0; (i < runLength) && (pixelOffset < expectedPixelCount) && (dataOffset < rawDataSize); i++) {
-                    destIconBytes[(pixelOffset*4) + colorOffset] = encodedBytes[dataOffset++];
+                    destIconBytes[(pixelOffset * 3) + colorOffset] = encodedBytes[dataOffset++];
                     pixelOffset++;
                 }
             }
@@ -59,7 +58,7 @@ bool IcnsReader::decompressRLE24(QByteArray &encodedBytes, quint32 expectedPixel
                 // Set the value to the color shifted to the correct bit offset
                 colorValue = encodedBytes[dataOffset++];
                 for(quint32	i = 0; (i < runLength) && (pixelOffset < expectedPixelCount); i++) {
-                    destIconBytes[(pixelOffset*4) + colorOffset] = colorValue;
+                    destIconBytes[(pixelOffset * 3) + colorOffset] = colorValue;
                     pixelOffset++;
                 }
             }
@@ -83,7 +82,7 @@ bool IcnsReader::getA8MaskForIcon(const IcnsIconEntry &icon, QByteArray &A8Mask)
             for (int i = 0; i < m_masks.size(); i++) {
                 bool suitable = m_masks.at(i).iconGroup == icon.iconGroup ||
                         (m_masks.at(i).iconHeight == icon.iconHeight &&
-                        m_masks.at(i).iconWidth == icon.iconWidth);
+                         m_masks.at(i).iconWidth == icon.iconWidth);
                 if(suitable) {
                     if(m_masks.at(i).iconBitDepth == targetDepth) {
                         mask = m_masks.at(i);
@@ -98,7 +97,7 @@ bool IcnsReader::getA8MaskForIcon(const IcnsIconEntry &icon, QByteArray &A8Mask)
                            << mask.iconBitDepth << "OSType:" << mask.header.OSType;
                 return false;
             }
-            const quint32 pixelCount = mask.iconWidth*mask.iconHeight;
+            const quint32 pixelCount = mask.iconWidth * mask.iconHeight;
             const float bytesPerPixel = ((float)mask.iconBitDepth / 8);
             const quint32 imageDataSize = pixelCount*bytesPerPixel;
             const quint32 basePos = mask.imageDataOffset;
@@ -211,7 +210,7 @@ bool IcnsReader::addIcon(IcnsIconEntry &icon)
 {
     bool success = parseIconDetails(icon);
     if(success) {
-         switch(icon.iconMaskType) {
+        switch(icon.iconMaskType) {
         case IconNoMask:
             m_icons << icon;
             break;
@@ -260,7 +259,7 @@ bool IcnsReader::scanFile()
                 for(uint n = 0; n < i; n++)
                     imgDataOffset += toc.at(n).length;
                 icon.imageDataOffset = imgDataOffset + IcnsBlockHeaderSize;
-                icon.imageDataSize = icon.header.length - IcnsBlockHeaderSize;                
+                icon.imageDataSize = icon.header.length - IcnsBlockHeaderSize;
                 addIcon(icon);
             }
             return true; // TOC scan gives enough data to discard scan of other blocks
@@ -321,50 +320,46 @@ QImage IcnsReader::iconAt(int index)
         img = QImage(width, height, format);
         quint8 byte = 0;
         quint32 pixel = 0;
+        quint8 red = 0;
+        quint8 green = 0;
+        quint8 blue = 0;
+
         switch(iconEntry.iconBitDepth) {
-        case IconMono: {
-            for(uint y = 0; y < height; y++) {
-                for(uint x = 0; x < width; x++) {
-                    if(pixel % 8 == 0)
-                        m_stream >> byte;
-                    quint8 value = (byte & 0x80) ? 0x00 : 0xFF; // left 1 bit
-                    byte = byte << 1;
-                    if(iconHasAlphaMask)
-                        img.setPixel(x,y,qRgba(value,value,value,maskA8.at(pixel)));
-                    else
-                        img.setPixel(x,y,qRgb(value,value,value));
-                    pixel++;
-                }
-            }
-            break;
-        }
-        case Icon4bit: {
-            for(uint y = 0; y < height; y++) {
-                for(uint x = 0; x < width; x++) {
-                    if(pixel % 2 == 0)
-                        m_stream >> byte;
-                    quint8 index = ((byte & 0xF0) >> 4); // left 4 bits
-                    byte = byte << 4;
-                    IcnsColorEntry888 color = IcnsColorTable4bit[index];
-                    if(iconHasAlphaMask)
-                        img.setPixel(x,y,qRgba(color.red,color.green,color.blue,maskA8.at(pixel)));
-                    else
-                        img.setPixel(x,y,qRgb(color.red,color.green,color.blue));
-                    pixel++;
-                }
-            }
-            break;
-        }
+        case IconMono:
+        case Icon4bit:
         case Icon8bit: {
             for(uint y = 0; y < height; y++) {
                 for(uint x = 0; x < width; x++) {
-                    quint8 index;
-                    m_stream >> index;
-                    IcnsColorEntry888 color = IcnsColorTable8bit[index];
+                    if(pixel % (8 / iconEntry.iconBitDepth) == 0)
+                        m_stream >> byte;
+                    switch(iconEntry.iconBitDepth) {
+                    case IconMono: {
+                        quint8 value = (byte & 0x80) ? 0x00 : 0xFF; // left 1 bit
+                        red = value;
+                        green = value;
+                        blue = value;
+                        break;
+                    }
+                    case Icon4bit: {
+                        quint8 value = ((byte & 0xF0) >> 4); // left 4 bits
+                        IcnsColorEntry888 color = IcnsColorTable4bit[value];
+                        red = color.red;
+                        green = color.green;
+                        blue = color.blue;
+                        break;
+                    }
+                    default: { //8bit
+                        IcnsColorEntry888 color = IcnsColorTable8bit[byte];
+                        red = color.red;
+                        green = color.green;
+                        blue = color.blue;
+                    }
+                    }
+                    byte = byte << iconEntry.iconBitDepth;
                     if(iconHasAlphaMask)
-                        img.setPixel(x,y,qRgba(color.red,color.green,color.blue,maskA8.at(pixel)));
+                        img.setPixel(x,y,qRgba(red,green,blue,maskA8.at(pixel)));
                     else
-                        img.setPixel(x,y,qRgb(color.red,color.green,color.blue));
+                        img.setPixel(x,y,qRgb(red,green,blue));
                     pixel++;
                 }
             }
@@ -372,13 +367,11 @@ QImage IcnsReader::iconAt(int index)
         }
         case IconRLE24: {
             QByteArray data = m_stream.device()->peek(iconEntry.imageDataSize);
-            if(decompressRLE24(data, width*height)) {
+            if(decompressRLE24toR8G8B8(data, width*height)) {
                 QDataStream stream(data);
                 for(uint y = 0; y < height; y++) {
                     for(uint x = 0; x < width; x++) {
-                        quint8 red, green, blue;
                         stream >> red >> green >> blue;
-                        stream.skipRawData(1); // alpha is ignored there
                         if(iconHasAlphaMask)
                             img.setPixel(x,y,qRgba(red,green,blue,maskA8.at(pixel)));
                         else

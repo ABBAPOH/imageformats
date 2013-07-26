@@ -22,11 +22,8 @@ struct IcnsIconEntry
     IcnsBlockHeader     header;         // Original block header
     quint32             imageDataOffset;// Offset from the initial position of the file/device
     quint32             imageDataSize;  // header.length - sizeof(header)
-    IcnsIconGroup       iconGroup;      // ASCII character number pointing to a format or size
-    IcnsIconBitDepth    iconBitDepth;   // For Uncompressed icons only
+    IcnsIconData        iconData;       // Contains group, bit depth and dimensions
     IcnsIconMaskType    iconMaskType;   // For Uncompressed icons only
-    quint32             iconWidth;      // For Uncompressed icons only
-    quint32             iconHeight;     // For Uncompressed icons only
 };
 
 #endif //ICNSHEADER_H

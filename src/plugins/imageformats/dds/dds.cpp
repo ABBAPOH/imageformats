@@ -126,6 +126,8 @@ static Format getFormat(const DDSHeader &dds)
     const DDSPixelFormat &format = dds.pixelFormat;
     if (format.flags & DDSPixelFormat::DDPF_FOURCC) {
         switch (dds.pixelFormat.fourCC) {
+        case FORMAT_A16B16G16R16:
+            return FORMAT_A16B16G16R16;
         case FORMAT_DXT1:
             return FORMAT_DXT1;
         case FORMAT_DXT2:
@@ -384,6 +386,25 @@ static QImage readPaletteBased(QDataStream & s, const DDSHeader &/*dds*/, quint3
     return img;
 }
 
+static QImage loadARGB16(QDataStream &s, const DDSHeader &/*header*/,  quint32 width, quint32 height)
+{
+    QImage image(width, height, QImage::Format_ARGB32);
+
+    for (quint32 y = 0; y < height; y++) {
+        for (quint32 x = 0; x < width; x++) {
+            quint8 colors[ColorCount];
+            for (int i = 0; i < ColorCount; ++i) {
+                quint16 color;
+                s >> color;
+                colors[i] = quint8(color >> 8);
+            }
+            image.setPixel(x, y, qRgba(colors[Red], colors[Green], colors[Blue], colors[Alpha]));
+        }
+    }
+
+    return image;
+}
+
 QImage readLayer(QDataStream & s, const DDSHeader & dds, const int format, quint32 width, quint32 height)
 {
     switch (format) {
@@ -413,6 +434,7 @@ QImage readLayer(QDataStream & s, const DDSHeader & dds, const int format, quint
         return readPaletteBased(s, dds, width, height);
     case FORMAT_A8P8:
     case FORMAT_A16B16G16R16:
+        return loadARGB16(s, dds, width, height);
     case FORMAT_V8U8:
     case FORMAT_L6V5U5:
     case FORMAT_X8L8V8U8:
@@ -510,8 +532,9 @@ static qint64 mipmapSize(const DDSHeader &dds, const int format, const int level
         return w*h*dds.pixelFormat.rgbBitCount/8;
     case FORMAT_P8:
         return 256 + w*h*8;
-    case FORMAT_A8P8:
     case FORMAT_A16B16G16R16:
+        return w*h*4*2;
+    case FORMAT_A8P8:
     case FORMAT_V8U8:
     case FORMAT_L6V5U5:
     case FORMAT_X8L8V8U8:

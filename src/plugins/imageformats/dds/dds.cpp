@@ -170,21 +170,6 @@ static Format getFormat(const DDSHeader &dds)
     return FORMAT_UNKNOWN;
 }
 
-DDSHandler::DDSHandler() :
-    m_currentImage(0),
-    m_headerCached(false)
-{
-}
-
-bool DDSHandler::canRead() const
-{
-    if (canRead(device())) {
-        setFormat("dds");
-        return true;
-    }
-    return false;
-}
-
 static QImage readValueBased(QDataStream & s, const DDSHeader & dds, quint32 width, quint32 height, bool hasAlpha)
 {
     quint32 flags = dds.pixelFormat.flags;
@@ -405,7 +390,7 @@ static QImage loadARGB16(QDataStream &s, const DDSHeader &/*header*/,  quint32 w
     return image;
 }
 
-QImage readLayer(QDataStream & s, const DDSHeader & dds, const int format, quint32 width, quint32 height)
+static QImage readLayer(QDataStream & s, const DDSHeader & dds, const int format, quint32 width, quint32 height)
 {
     switch (format) {
     case FORMAT_R8G8B8:
@@ -496,7 +481,7 @@ QImage readLayer(QDataStream & s, const DDSHeader & dds, const int format, quint
     return QImage();
 }
 
-QImage readTexture(QDataStream & s, const DDSHeader & dds, const int format, const int mipmapLevel)
+static inline QImage readTexture(QDataStream & s, const DDSHeader & dds, const int format, const int mipmapLevel)
 {
     quint32 width = dds.width / (1 << mipmapLevel);
     quint32 height = dds.height / (1 << mipmapLevel);
@@ -602,7 +587,7 @@ static qint64 mipmapOffset(const DDSHeader &dds, const int format, const int lev
     return result;
 }
 
-QImage readCubeMap(QDataStream & s, const DDSHeader & dds, const int fmt)
+static QImage readCubeMap(QDataStream & s, const DDSHeader & dds, const int fmt)
 {
     bool hasAlpha = ::hasAlpha(dds);
     QImage::Format format = hasAlpha ? QImage::Format_ARGB32 : QImage::Format_RGB32;
@@ -629,6 +614,21 @@ QImage readCubeMap(QDataStream & s, const DDSHeader & dds, const int fmt)
     }
 
     return img;
+}
+
+DDSHandler::DDSHandler() :
+    m_currentImage(0),
+    m_headerCached(false)
+{
+}
+
+bool DDSHandler::canRead() const
+{
+    if (canRead(device())) {
+        setFormat("dds");
+        return true;
+    }
+    return false;
 }
 
 bool DDSHandler::read(QImage *outImage)

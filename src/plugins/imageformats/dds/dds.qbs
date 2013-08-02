@@ -11,9 +11,7 @@ DynamicLibrary {
         "dds.h",
         "dds.cpp",
         "ddsheader.h",
-        "ddsheader.cpp",
-        "dxt.h",
-        "dxt.cpp"
+        "ddsheader.cpp"
     ]
 
     Group {

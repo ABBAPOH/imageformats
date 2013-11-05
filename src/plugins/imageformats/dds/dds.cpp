@@ -127,6 +127,15 @@ static inline bool isCubeMap(const DDSHeader &dds)
     return dds.caps2 & DDSHeader::DDSCAPS2_CUBEMAP;
 }
 
+static inline QRgb yuv2rgb(quint8 Y, quint8 U, quint8 V)
+{
+    quint8 r, g, b;
+    r = Y + 1.13983 * (V - 128);
+    g = Y - 0.39465 * (U - 128) - 0.58060 * (V - 128);
+    b = Y + 2.03211 * (U - 128);
+    return qRgb(r, g, b);
+}
+
 static Format getFormat(const DDSHeader &dds)
 {
     const DDSPixelFormat &format = dds.pixelFormat;
@@ -134,6 +143,8 @@ static Format getFormat(const DDSHeader &dds)
         switch (dds.pixelFormat.fourCC) {
         case FORMAT_A16B16G16R16:
             return FORMAT_A16B16G16R16;
+        case FORMAT_UYVY:
+            return FORMAT_UYVY;
         case FORMAT_DXT1:
             return FORMAT_DXT1;
         case FORMAT_DXT2:
@@ -465,12 +476,8 @@ static QImage readValueBased(QDataStream & s, const DDSHeader & dds, quint32 wid
                 colors[Green] = colors[Red];
                 colors[Blue] = colors[Red];
             } else if ( (flags & DDSPixelFormat::DDPF_YUV) ) {
-                quint8 Y = colors[Red];
-                quint8 U = colors[Green];
-                quint8 V = colors[Blue];
-                colors[Red] = Y + 1.13983 * (V - 128);
-                colors[Green] = Y - 0.39465 * (U - 128) - 0.58060 * (V - 128);
-                colors[Blue] = Y + 2.03211 * (U - 128);
+                img.setPixel(x, y, yuv2rgb(colors[Red], colors[Green], colors[Blue]));
+                continue;
             }
 
             img.setPixel(x, y, qRgba(colors[Red], colors[Green], colors[Blue], colors[Alpha]));
@@ -638,6 +645,22 @@ static QImage loadARGB16(QDataStream &s, const DDSHeader &/*header*/,  quint32 w
     return image;
 }
 
+static QImage loadUYVY(QDataStream &s, const DDSHeader &/*header*/,  quint32 width, quint32 height)
+{
+    QImage image(width, height, QImage::Format_RGB32);
+
+    quint8 uyvy[4];
+    for (quint32 y = 0; y < height; y++) {
+        for (quint32 x = 0; x < width; ) {
+            s >> uyvy[0] >> uyvy[1] >> uyvy[2] >> uyvy[3];
+            image.setPixel(x++, y, yuv2rgb(uyvy[1], uyvy[0], uyvy[2]));
+            image.setPixel(x++, y, yuv2rgb(uyvy[3], uyvy[0], uyvy[2]));
+        }
+    }
+
+    return image;
+}
+
 static QImage readLayer(QDataStream & s, const DDSHeader & dds, const int format, quint32 width, quint32 height)
 {
     switch (format) {
@@ -674,7 +697,8 @@ static QImage readLayer(QDataStream & s, const DDSHeader & dds, const int format
     case FORMAT_Q8W8V8U8:
     case FORMAT_V16U16:
     case FORMAT_A2W10V10U10:
-//    case FORMAT_UYVY:
+    case FORMAT_UYVY:
+        return loadUYVY(s, dds, width, height);
 //    case FORMAT_R8G8_B8G8:
 //    case FORMAT_YUY2:
 //    case FORMAT_G8R8_G8B8:
@@ -774,7 +798,8 @@ static qint64 mipmapSize(const DDSHeader &dds, const int format, const int level
     case FORMAT_Q8W8V8U8:
     case FORMAT_V16U16:
     case FORMAT_A2W10V10U10:
-//    case FORMAT_UYVY:
+    case FORMAT_UYVY:
+        return w/2*h*4;
 //    case FORMAT_R8G8_B8G8:
 //    case FORMAT_YUY2:
 //    case FORMAT_G8R8_G8B8:

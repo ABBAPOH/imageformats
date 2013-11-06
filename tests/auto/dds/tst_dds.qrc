@@ -41,6 +41,7 @@
         <file>data/DXT5.dds</file>
         <file>data/DXT5.png</file>
         <file>data/G8R8_G8B8.dds</file>
+        <file>data/G8R8_G8B8.png</file>
         <file>data/G16R16.dds</file>
         <file>data/G16R16.png</file>
         <file>data/G16R16F.dds</file>
@@ -69,6 +70,7 @@
         <file>data/R5G6B5.dds</file>
         <file>data/R5G6B5.png</file>
         <file>data/R8G8_B8G8.dds</file>
+        <file>data/R8G8_B8G8.png</file>
         <file>data/R8G8B8.dds</file>
         <file>data/R8G8B8.png</file>
         <file>data/R16F.dds</file>

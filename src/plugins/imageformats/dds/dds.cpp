@@ -849,10 +849,10 @@ static qint64 mipmapSize(const DDSHeader &dds, const int format, const int level
     case FORMAT_UYVY:
         return w/2*h*4;
     case FORMAT_R8G8_B8G8:
-        return w/2*h*4;
+        return w*h*2;
 //    case FORMAT_YUY2:
     case FORMAT_G8R8_G8B8:
-        return w/2*h*4;
+        return w*h*2;
 //    default:
         break;
     case FORMAT_DXT1:

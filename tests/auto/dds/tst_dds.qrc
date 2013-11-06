@@ -91,5 +91,6 @@
         <file>data/X8R8G8B8.dds</file>
         <file>data/X8R8G8B8.png</file>
         <file>data/YUY2.dds</file>
+        <file>data/YUY2.png</file>
     </qresource>
 </RCC>

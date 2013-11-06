@@ -147,6 +147,8 @@ static Format getFormat(const DDSHeader &dds)
             return FORMAT_UYVY;
         case FORMAT_R8G8_B8G8:
             return FORMAT_R8G8_B8G8;
+        case FORMAT_YUY2:
+            return FORMAT_YUY2;
         case FORMAT_G8R8_G8B8:
             return FORMAT_G8R8_G8B8;
         case FORMAT_DXT1:
@@ -688,6 +690,26 @@ static QImage loadR8G8_B8G8(QDataStream &s, const DDSHeader &/*header*/, quint32
     return image;
 }
 
+static QImage loadYUY2(QDataStream &s, const DDSHeader &/*header*/, quint32 width, quint32 height)
+{
+    QImage image(width, height, QImage::Format_RGB32);
+
+    quint8 yuyv[4];
+    for (quint32 y = 0; y < height; y++) {
+        for (quint32 x = 0; x < width - 1; ) {
+            s >> yuyv[0] >> yuyv[1] >> yuyv[2] >> yuyv[3];
+            image.setPixel(x++, y, yuv2rgb(yuyv[0], yuyv[1], yuyv[3]));
+            image.setPixel(x++, y, yuv2rgb(yuyv[2], yuyv[1], yuyv[3]));
+        }
+        if (width % 2 == 1) {
+            s >> yuyv[0] >> yuyv[1] >> yuyv[2] >> yuyv[3];
+            image.setPixel(width - 1, y, yuv2rgb(yuyv[2], yuyv[1], yuyv[3]));
+        }
+    }
+
+    return image;
+}
+
 static QImage loadG8R8_G8B8(QDataStream &s, const DDSHeader &/*header*/, quint32 width, quint32 height)
 {
     QImage image(width, height, QImage::Format_RGB32);
@@ -747,7 +769,8 @@ static QImage readLayer(QDataStream & s, const DDSHeader & dds, const int format
         return loadUYVY(s, dds, width, height);
     case FORMAT_R8G8_B8G8:
         return loadR8G8_B8G8(s, dds, width, height);
-//    case FORMAT_YUY2:
+    case FORMAT_YUY2:
+        return loadYUY2(s, dds, width, height);
     case FORMAT_G8R8_G8B8:
         return loadG8R8_G8B8(s, dds, width, height);
 //    default:
@@ -849,8 +872,7 @@ static qint64 mipmapSize(const DDSHeader &dds, const int format, const int level
     case FORMAT_UYVY:
         return w/2*h*4;
     case FORMAT_R8G8_B8G8:
-        return w*h*2;
-//    case FORMAT_YUY2:
+    case FORMAT_YUY2:
     case FORMAT_G8R8_G8B8:
         return w*h*2;
 //    default:

@@ -651,10 +651,14 @@ static QImage loadUYVY(QDataStream &s, const DDSHeader &/*header*/,  quint32 wid
 
     quint8 uyvy[4];
     for (quint32 y = 0; y < height; y++) {
-        for (quint32 x = 0; x < width; ) {
+        for (quint32 x = 0; x < width - 1; ) {
             s >> uyvy[0] >> uyvy[1] >> uyvy[2] >> uyvy[3];
             image.setPixel(x++, y, yuv2rgb(uyvy[1], uyvy[0], uyvy[2]));
             image.setPixel(x++, y, yuv2rgb(uyvy[3], uyvy[0], uyvy[2]));
+        }
+        if (width % 2 == 1) {
+            s >> uyvy[0] >> uyvy[1] >> uyvy[2] >> uyvy[3];
+            image.setPixel(width - 1, y, yuv2rgb(uyvy[1], uyvy[0], uyvy[2]));
         }
     }
 

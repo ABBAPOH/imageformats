@@ -675,13 +675,13 @@ static QImage loadR8G8_B8G8(QDataStream &s, const DDSHeader &/*header*/, quint32
     quint8 rgbg[4];
     for (quint32 y = 0; y < height; y++) {
         for (quint32 x = 0; x < width - 1; ) {
-            s >> rgbg[0] >> rgbg[1] >> rgbg[2] >> rgbg[3];
-            image.setPixel(x++, y, qRgb(rgbg[1], rgbg[0], rgbg[3]));
-            image.setPixel(x++, y, qRgb(rgbg[1], rgbg[2], rgbg[3]));
+            s >> rgbg[1] >> rgbg[0] >> rgbg[3] >> rgbg[2];
+            image.setPixel(x++, y, qRgb(rgbg[0], rgbg[1], rgbg[2]));
+            image.setPixel(x++, y, qRgb(rgbg[0], rgbg[3], rgbg[2]));
         }
         if (width % 2 == 1) {
-            s >> rgbg[0] >> rgbg[1] >> rgbg[2] >> rgbg[3];
-            image.setPixel(width - 1, y, qRgb(rgbg[1], rgbg[0], rgbg[3]));
+            s >> rgbg[1] >> rgbg[0] >> rgbg[3] >> rgbg[2];
+            image.setPixel(width - 1, y, qRgb(rgbg[0], rgbg[1], rgbg[2]));
         }
     }
 
@@ -694,13 +694,13 @@ static QImage loadG8R8_G8B8(QDataStream &s, const DDSHeader &/*header*/, quint32
     quint8 rgbg[4];
     for (quint32 y = 0; y < height; y++) {
         for (quint32 x = 0; x < width - 1; ) {
-            s >> rgbg[0] >> rgbg[1] >> rgbg[2] >> rgbg[3];
-            image.setPixel(x++, y, qRgb(rgbg[0], rgbg[1], rgbg[2]));
-            image.setPixel(x++, y, qRgb(rgbg[0], rgbg[3], rgbg[2]));
+            s >> rgbg[1] >> rgbg[0] >> rgbg[3] >> rgbg[2];
+            image.setPixel(x++, y, qRgb(rgbg[1], rgbg[0], rgbg[3]));
+            image.setPixel(x++, y, qRgb(rgbg[1], rgbg[2], rgbg[3]));
         }
         if (width % 2 == 1) {
-            s >> rgbg[0] >> rgbg[1] >> rgbg[2] >> rgbg[3];
-            image.setPixel(width - 1, y, qRgb(rgbg[0], rgbg[1], rgbg[2]));
+            s >> rgbg[1] >> rgbg[0] >> rgbg[3] >> rgbg[2];
+            image.setPixel(width - 1, y, qRgb(rgbg[1], rgbg[0], rgbg[3]));
         }
     }
 

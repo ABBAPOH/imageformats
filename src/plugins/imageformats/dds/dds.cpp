@@ -691,16 +691,16 @@ static QImage loadR8G8_B8G8(QDataStream &s, const DDSHeader &/*header*/, quint32
 static QImage loadG8R8_G8B8(QDataStream &s, const DDSHeader &/*header*/, quint32 width, quint32 height)
 {
     QImage image(width, height, QImage::Format_RGB32);
-    quint8 rgbg[4];
+    quint8 grgb[4];
     for (quint32 y = 0; y < height; y++) {
         for (quint32 x = 0; x < width - 1; ) {
-            s >> rgbg[1] >> rgbg[0] >> rgbg[3] >> rgbg[2];
-            image.setPixel(x++, y, qRgb(rgbg[1], rgbg[0], rgbg[3]));
-            image.setPixel(x++, y, qRgb(rgbg[1], rgbg[2], rgbg[3]));
+            s >> grgb[1] >> grgb[0] >> grgb[3] >> grgb[2];
+            image.setPixel(x++, y, qRgb(grgb[1], grgb[0], grgb[3]));
+            image.setPixel(x++, y, qRgb(grgb[1], grgb[2], grgb[3]));
         }
         if (width % 2 == 1) {
-            s >> rgbg[1] >> rgbg[0] >> rgbg[3] >> rgbg[2];
-            image.setPixel(width - 1, y, qRgb(rgbg[1], rgbg[0], rgbg[3]));
+            s >> grgb[1] >> grgb[0] >> grgb[3] >> grgb[2];
+            image.setPixel(width - 1, y, qRgb(grgb[1], grgb[0], grgb[3]));
         }
     }
 

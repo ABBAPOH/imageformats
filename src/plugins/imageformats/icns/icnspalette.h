@@ -2,6 +2,7 @@
 #define ICNSPALETTE_H
 
 #include <QtCore/QtGlobal>
+#include <QtCore/QDataStream>
 
 struct IcnsColorEntryR8G8B8
 {
@@ -9,6 +10,7 @@ struct IcnsColorEntryR8G8B8
     quint8 green;
     quint8 blue;
 };
+QDataStream &operator>>(QDataStream &in, IcnsColorEntryR8G8B8 &p);
 
 static const IcnsColorEntryR8G8B8 IcnsColorTable4bit[] =
 {

@@ -10,8 +10,9 @@ DynamicLibrary {
     files : [
         "main.h",
         "main.cpp",
+        "icnshandler.h",
+        "icnshandler.cpp",
         "icnsformat.h",
-        "icnsheader.h",
         "icnspalette.h",
         "icnsreader.h",
         "icnsreader.cpp"

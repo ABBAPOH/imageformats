@@ -2,6 +2,13 @@
 #define ICNSFORMAT_H
 
 #include <QtCore/QtGlobal>
+#include <QtCore/QDataStream>
+
+enum IcnsOSType {
+    OSType_icnsfile = 0x69636E73,
+    OSType_TOC_     = 0x544F4320,
+    OSType_icnV     = 0x69636E56
+};
 
 enum IcnsIconGroup {
     IconGroupUnk        = 0,    // placeholder
@@ -20,7 +27,7 @@ enum IcnsIconGroup {
 };
 
 enum IcnsIconBitDepth {
-    IconDepthUnk    = 0, // placeholder
+    IconDepthAny    = 0, // placeholder
     IconMono        = 1,
     Icon4bit        = 4,
     Icon8bit        = 8,
@@ -40,22 +47,36 @@ struct IcnsIconSizeData {
 
 struct IcnsIconData {
     IcnsIconGroup group;            // ASCII character number pointing to a format
-    IcnsIconBitDepth depth;         // For Uncompressed icons only
-    IcnsIconSizeData size;          // For Uncompressed icons only
+    IcnsIconBitDepth depth;         // Color depth for uncompr. icons or icon format num for compressed
+    IcnsIconSizeData size;          // Used for uncompr. icons, but filled for compr. as experiment
 };
 
-static const IcnsIconData IcnsKnownGroups[] =
-{
-    {IconGroupMini,         IconDepthUnk,   {16, 12}},      // Mini
-    {IconGroupSmall,        IconDepthUnk,   {16, 16}},      // Small
-    {IconGroupLarge,        IconDepthUnk,   {32, 32}},      // Large
-    {IconGroupICON,         IconMono,       {32, 32}},      // [DEPRECATED]ICON
-    {IconGroupHuge,         IconDepthUnk,   {48, 48}},      // Huge
-    {IconGroupThumbnail,    IconDepthUnk,   {128, 128}},    // Thumbnail
-    //{IconGroupCompressed,   IconDepthUnk,   {256, 256}},    // Compressed icons only
-    //{IconGroupCompressed,   IconDepthUnk,   {512, 512}},    // Compressed icons only
-    //{IconGroupCompressed,   IconDepthUnk,   {1024, 1024}},  // Compressed icons only
-    {IconGroupUnk,          IconDepthUnk,   {0, 0}}         // Placeholder - end of the list marker
+struct IcnsBlockHeader {
+    quint32 OSType;
+    quint32 length;
 };
+#define IcnsBlockHeaderSize 8
+QDataStream &operator>>(QDataStream &in, IcnsBlockHeader &p);
+QDataStream &operator<<(QDataStream &out, IcnsBlockHeader &p);
+
+struct IcnsIconEntry {
+    IcnsBlockHeader     header;         // Original block header
+    quint32             imageDataOffset;// Offset from the initial position of the file/device
+    quint32             imageDataSize;  // header.length - sizeof(header)
+    IcnsIconData        iconData;       // Contains group, bit depth and dimensions
+    IcnsIconMaskType    iconMaskType;   // For Uncompressed icons only
+};
+
+// Uncompressed icon groups for reading and (possibly) writing:
+// Needs some more thinking perphaps
+static const IcnsIconData IcnsUncompressedGroups[] = {
+    {IconGroupMini,         IconDepthAny,   {16, 12}},      // Mini
+    {IconGroupSmall,        IconDepthAny,   {16, 16}},      // Small
+    {IconGroupLarge,        IconDepthAny,   {32, 32}},      // Large
+    {IconGroupICON,         IconMono,       {32, 32}},      // [DEPRECATED]ICON
+    {IconGroupHuge,         IconDepthAny,   {48, 48}},      // Huge
+    {IconGroupThumbnail,    IconDepthAny,   {128, 128}}     // Thumbnail
+};
+#define IcnsUncompressedGroupsNum 6
 
 #endif //ICNSFORMAT_H

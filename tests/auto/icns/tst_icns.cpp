@@ -6,11 +6,10 @@ class IcnsTest: public QObject
     Q_OBJECT
 
 private slots:
-    void readImage_data();
-    void readImage();
+    void readIcons();
 };
 
-static bool compareImages(const QImage &first, const QImage &second)
+/*static bool compareImages(const QImage &first, const QImage &second)
 {
     QImage a = first.convertToFormat(QImage::Format_ARGB32);
     QImage b = second.convertToFormat(QImage::Format_ARGB32);
@@ -25,36 +24,31 @@ static bool compareImages(const QImage &first, const QImage &second)
         }
     }
     return true;
-}
+}*/
 
-void IcnsTest::readImage_data()
+void IcnsTest::readIcons()
 {
-    /*QTest::addColumn<QString>("fileName");
-    QTest::addColumn<QSize>("size");
-
-    QTest::newRow("1") << QString("RGBA8") << QSize(64, 64);
-    QTest::newRow("2") << QString("DXT1") << QSize(64, 64);
-    QTest::newRow("3") << QString("DXT2") << QSize(64, 64);
-    QTest::newRow("4") << QString("DXT3") << QSize(64, 64);
-    QTest::newRow("5") << QString("DXT4") << QSize(64, 64);
-    QTest::newRow("6") << QString("DXT5") << QSize(64, 64);
-    */
-}
-
-void IcnsTest::readImage()
-{
-    /*QFETCH(QString, fileName);
-    QFETCH(QSize, size);
-
-    QString path = QString(":/data/%1.dds").arg(fileName);
-    QString sourcePath = QString(":/data/%1.png").arg(fileName);
-    QImageReader reader(path);
-    QVERIFY(reader.canRead());
-    QImage image = reader.read();
-    QVERIFY(!image.isNull());
-    QCOMPARE(image.size(), size);
-    QVERIFY(compareImages(image, QImage(sourcePath)) == true);
-    */
+    QString input = QFINDTESTDATA("data/test.icns");
+    QImageReader reader(input);
+    QVERIFY2(reader.canRead(), "Unable to read the file.");
+    QVERIFY2(reader.imageCount() > 0, "File does not contain icons or corrupted.");
+    for(int i = 0; i < reader.imageCount(); i++) {
+        QVERIFY2(reader.jumpToImage(i), "Unable to jump to a next image.");
+        QImage icon = reader.read();
+        bool readOK = !icon.isNull();
+        QVERIFY2(readOK, "Icon could not be read.");
+        if(readOK) {
+            QFile file(QString("data/test_output%1.icns").arg(i));
+            bool fopenOK = file.open(QIODevice::WriteOnly | QIODevice::Truncate);
+            QVERIFY2(fopenOK, "Unable to open the file for writing.");
+            if(fopenOK) {
+                QImageWriter writer(&file, "icns");
+                QVERIFY2(writer.canWrite(), "Unable to write to the file.");
+                QVERIFY2(writer.write(icon), "Error during writing to file.");
+                file.close();
+            }
+        }
+    }
 }
 
 QTEST_MAIN(IcnsTest)

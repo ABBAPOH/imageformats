@@ -437,15 +437,14 @@ bool IcnsReader::write(QIODevice *device, const QImage &image)
         uint p = 0;
         while (i >>= 1) {p++;}
         const QByteArray ostypebase = (p < 7) ? "ipc" : "ic"; // small / big icons naming policy
-        const QByteArray ostypenum = (ostypebase.size() > 2 || p >= 10) ? QByteArray::number(p) : QByteArray::number(p).prepend('0');
-        const quint32 ostype = (quint32)QByteArray(ostypebase).append(ostypenum).constData();
+        const QByteArray ostypenum = (ostypebase.size() > 2 || p >= 10) ? QByteArray::number(p) : QByteArray::number(p).prepend("0");
+        const quint32 ostype = QByteArray(ostypebase).append(ostypenum).toHex().toUInt(NULL,16);
         // Construct ICNS Header
         IcnsBlockHeader fileHeader;
         fileHeader.OSType = OSType_icnsfile;
         // Construct TOC Header
         IcnsBlockHeader tocHeader;
         tocHeader.OSType = OSType_TOC_;
-        tocHeader.length = IcnsBlockHeaderSize*2;
         // Construct TOC Entry
         IcnsBlockHeader tocEntry;
         tocEntry.OSType = ostype;
@@ -456,13 +455,16 @@ bool IcnsReader::write(QIODevice *device, const QImage &image)
         QByteArray imageData;
         QBuffer buffer(&imageData);
         if(buffer.open(QIODevice::WriteOnly) && image.save(&buffer, "png")) {
+            buffer.close();
             iconEntry.length = IcnsBlockHeaderSize + imageData.size();
             tocEntry.length = iconEntry.length;
+            tocHeader.length = IcnsBlockHeaderSize*2;
             fileHeader.length = IcnsBlockHeaderSize + tocHeader.length + iconEntry.length;
             // Write everything
             QDataStream stream(device);
             stream.setByteOrder(QDataStream::BigEndian);
-            stream << fileHeader << tocHeader << tocEntry << iconEntry << imageData;
+            stream << fileHeader << tocHeader << tocEntry << iconEntry;
+            device->write(imageData); // QDataStream inserts number of bytes written, so we need to use lower level
             if(stream.status() == QDataStream::Ok)
                 retValue = true;
         }

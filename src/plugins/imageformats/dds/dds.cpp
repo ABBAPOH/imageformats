@@ -82,6 +82,7 @@ static const FormatInfo formatInfos [] = {
     { FORMAT_V8U8,        DDSPixelFormat::DDPF_NORMAL, 16, 0x000000ff, 0x0000ff00, 0x00000000, 0x00000000 }, // 60
     { FORMAT_Q8W8V8U8,    DDSPixelFormat::DDPF_NORMAL, 32, 0x000000ff, 0x0000ff00, 0x00ff0000, 0xff000000 }, // 63
     { FORMAT_V16U16,      DDSPixelFormat::DDPF_NORMAL, 32, 0x0000ffff, 0xffff0000, 0x00000000, 0x00000000 }, // 64
+    { FORMAT_A2W10V10U10, DDSPixelFormat::DDPF_NORMAL, 32, 0x3ff00000, 0x000ffc00, 0x000003ff, 0xc0000000 }, // 67
 };
 
 static const Format knownFourCCs [] = {
@@ -735,6 +736,26 @@ static QImage loadV16U16(QDataStream &s, const DDSHeader &/*header*/,  quint32 w
     return image;
 }
 
+static QImage loadA2W10V10U10(QDataStream &s, const DDSHeader &/*header*/,  quint32 width, quint32 height)
+{
+    QImage image(width, height, QImage::Format_ARGB32);
+
+    quint32 tmp;
+    for (quint32 y = 0; y < height; y++) {
+        for (quint32 x = 0; x < width; x++) {
+            s >> tmp;
+            quint8 r = qint8((tmp & 0x3ff00000) >> 20 >> 2) + 128;
+            quint8 g = qint8((tmp & 0x000ffc00) >> 10 >> 2) + 128;
+            quint8 b = qint8((tmp & 0x000003ff) >> 0 >> 2) + 128;
+            quint8 a = 0xff*((tmp & 0xc0000000) >> 30) / 3;
+            // dunno why we should swap b and r here
+            image.setPixel(x, y, qRgba(b, g, r, a));
+        }
+    }
+
+    return image;
+}
+
 static QImage loadUYVY(QDataStream &s, const DDSHeader &/*header*/,  quint32 width, quint32 height)
 {
     QImage image(width, height, QImage::Format_RGB32);
@@ -853,7 +874,7 @@ static QImage readLayer(QDataStream & s, const DDSHeader & dds, const int format
     case FORMAT_V16U16:
         return loadV16U16(s, dds, width, height);
     case FORMAT_A2W10V10U10:
-        break;
+        return loadA2W10V10U10(s, dds, width, height);
     case FORMAT_UYVY:
         return loadUYVY(s, dds, width, height);
     case FORMAT_R8G8_B8G8:
@@ -960,9 +981,8 @@ static qint64 mipmapSize(const DDSHeader &dds, const int format, const int level
         break;
     case FORMAT_Q8W8V8U8:
     case FORMAT_V16U16:
-        return w*h*4;
     case FORMAT_A2W10V10U10:
-        break;
+        return w*h*4;
     case FORMAT_UYVY:
     case FORMAT_R8G8_B8G8:
     case FORMAT_YUY2:

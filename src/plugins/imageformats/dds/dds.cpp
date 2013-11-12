@@ -80,6 +80,7 @@ static const FormatInfo formatInfos [] = {
     { FORMAT_A4L4,        DDSPixelFormat::DDPF_LA,   8,  0x0000000f, 0x00000000, 0x00000000, 0x000000f0 }, // 52
 
     { FORMAT_V8U8,        DDSPixelFormat::DDPF_NORMAL, 16, 0x000000ff, 0x0000ff00, 0x00000000, 0x00000000 }, // 60
+    { FORMAT_X8L8V8U8,                              0, 32, 0x000000ff, 0x0000ff00, 0x00ff0000, 0x00000000 }, // 62
     { FORMAT_Q8W8V8U8,    DDSPixelFormat::DDPF_NORMAL, 32, 0x000000ff, 0x0000ff00, 0x00ff0000, 0xff000000 }, // 63
     { FORMAT_V16U16,      DDSPixelFormat::DDPF_NORMAL, 32, 0x0000ffff, 0xffff0000, 0x00000000, 0x00000000 }, // 64
     { FORMAT_A2W10V10U10, DDSPixelFormat::DDPF_NORMAL, 32, 0x3ff00000, 0x000ffc00, 0x000003ff, 0xc0000000 }, // 67
@@ -700,6 +701,23 @@ static QImage loadV8U8(QDataStream &s, const DDSHeader &/*header*/,  quint32 wid
     return image;
 }
 
+static QImage loadX8L8V8U8(QDataStream &s, const DDSHeader &/*header*/,  quint32 width, quint32 height)
+{
+    QImage image(width, height, QImage::Format_ARGB32);
+
+    quint8 a, l;
+    qint8 v, u;
+    for (quint32 y = 0; y < height; y++) {
+        for (quint32 x = 0; x < width; x++) {
+            s >> v >> u >> a >> l;
+
+            image.setPixel(x, y, qRgba(v + 128, u + 128, 255, a));
+        }
+    }
+
+    return image;
+}
+
 static QImage loadQ8W8V8U8(QDataStream &s, const DDSHeader &/*header*/,  quint32 width, quint32 height)
 {
     QImage image(width, height, QImage::Format_ARGB32);
@@ -867,6 +885,7 @@ static QImage readLayer(QDataStream & s, const DDSHeader & dds, const int format
     case FORMAT_V8U8:
         return loadV8U8(s, dds, width, height);
     case FORMAT_X8L8V8U8:
+        return loadX8L8V8U8(s, dds, width, height);
     case FORMAT_L6V5U5:
         break;
     case FORMAT_Q8W8V8U8:
@@ -977,8 +996,8 @@ static qint64 mipmapSize(const DDSHeader &dds, const int format, const int level
     case FORMAT_V8U8:
         return w*h*2;
     case FORMAT_L6V5U5:
-    case FORMAT_X8L8V8U8:
         break;
+    case FORMAT_X8L8V8U8:
     case FORMAT_Q8W8V8U8:
     case FORMAT_V16U16:
     case FORMAT_A2W10V10U10:

@@ -255,20 +255,24 @@ static void DXTFillColors(QRgb * result, quint16 c0, quint16 c1, quint32 table, 
     }
 }
 
-static void setAplphaDXT23(QRgb * rgbArr, quint64 alphas, bool premultiplied)
+template <DXTVersion version>
+inline void setAlphaDXT32Helper(QRgb * rgbArr, quint64 alphas)
 {
     for (int i = 0; i < 16; i++) {
         quint8 alpha = 16*(alphas & 0x0f);
         QRgb rgb = rgbArr[i];
-        if (premultiplied) // DXT2
+        if (version == Two) // DXT2
             rgbArr[i] = qRgba(qRed(rgb)*alpha/0xff, qGreen(rgb)*alpha/0xff, qBlue(rgb)*alpha/0xff, alpha);
-        else // DXT3
+        else if (version == Three) // DXT3
             rgbArr[i] = qRgba(qRed(rgb), qGreen(rgb), qBlue(rgb), alpha);
+        else
+            Q_ASSERT(false);
         alphas = alphas >> 4;
     }
 }
 
-static void setAplphaDXT45(QRgb * rgbArr, quint64 alphas, bool premultiplied)
+template <DXTVersion version>
+inline void setAlphaDXT45Helper(QRgb * rgbArr, quint64 alphas)
 {
     quint8 a[8];
     a[0] = alphas & 0xff;
@@ -293,12 +297,49 @@ static void setAplphaDXT45(QRgb * rgbArr, quint64 alphas, bool premultiplied)
         quint8 index = alphas & 0x07;
         quint8 alpha = a[index];
         QRgb rgb = rgbArr[i];
-        if (premultiplied) // DXT4
+        if (version == Four) // DXT4
             rgbArr[i] = qRgba(qRed(rgb)*alpha/0xff, qGreen(rgb)*alpha/0xff, qBlue(rgb)*alpha/0xff, alpha);
-        else // DXT5
+        else if (version == Five) // DXT5
             rgbArr[i] = qRgba(qRed(rgb), qGreen(rgb), qBlue(rgb), alpha);
+        else
+            Q_ASSERT(false);
         alphas = alphas >> 3;
     }
+}
+
+template <DXTVersion version>
+inline void setAlphaDXT(QRgb * /*rgbArr*/, quint64 /*alphas*/)
+{
+}
+
+template <>
+inline void setAlphaDXT<Two>(QRgb * rgbArr, quint64 alphas)
+{
+    setAlphaDXT32Helper<Two>(rgbArr, alphas);
+}
+
+template <>
+inline void setAlphaDXT<Three>(QRgb * rgbArr, quint64 alphas)
+{
+    setAlphaDXT32Helper<Three>(rgbArr, alphas);
+}
+
+template <>
+inline void setAlphaDXT<Four>(QRgb * rgbArr, quint64 alphas)
+{
+    setAlphaDXT45Helper<Four>(rgbArr, alphas);
+}
+
+template <>
+inline void setAlphaDXT<Five>(QRgb * rgbArr, quint64 alphas)
+{
+    setAlphaDXT45Helper<Five>(rgbArr, alphas);
+}
+
+template <>
+inline void setAlphaDXT<RXGB>(QRgb * rgbArr, quint64 alphas)
+{
+    setAlphaDXT45Helper<Five>(rgbArr, alphas);
 }
 
 static QRgb invertRXGBColors(QRgb pixel)
@@ -309,7 +350,8 @@ static QRgb invertRXGBColors(QRgb pixel)
     return qRgb(a, g, b);
 }
 
-static QImage loadDXT(DXTVersion version, QDataStream &s, quint32 width, quint32 height)
+template <DXTVersion version>
+static QImage loadDXT(QDataStream &s, quint32 width, quint32 height)
 {
     QImage::Format format = (version == Two || version == Four) ?
                 QImage::Format_ARGB32_Premultiplied : QImage::Format_ARGB32;
@@ -318,7 +360,7 @@ static QImage loadDXT(DXTVersion version, QDataStream &s, quint32 width, quint32
 
     for (quint32 i = 0; i < height; i += 4) {
         for (quint32 j = 0; j < width; j += 4) {
-            quint64 alpha;
+            quint64 alpha = 0;
             quint16 c0, c1;
             quint32 table;
             if (version != One)
@@ -330,25 +372,9 @@ static QImage loadDXT(DXTVersion version, QDataStream &s, quint32 width, quint32
             QRgb arr[16];
 
             DXTFillColors(arr, c0, c1, table, version == One && c0 <= c1);
-            switch (version) {
-            case Two:
-                setAplphaDXT23(arr, alpha, true);
-                break;
-            case Three:
-                setAplphaDXT23(arr, alpha, false);
-                break;
-            case Four:
-                setAplphaDXT45(arr, alpha, true);
-                break;
-            case Five:
-            case RXGB:
-                setAplphaDXT45(arr, alpha, false);
-                break;
-            default:
-                break;
-            }
+            setAlphaDXT<version>(arr, alpha);
 
-            for (int k = 0; k < 4; k++)
+            for (int k = 0; k < 4; k++) {
                 for (int l = 0; l < 4; l++) {
                     quint32 x = j + l, y = i + k;
                     if (x < width && y < height) {
@@ -357,6 +383,7 @@ static QImage loadDXT(DXTVersion version, QDataStream &s, quint32 width, quint32
                             pixel = invertRXGBColors(pixel);
                         img.setPixel(x, y, pixel);
                     }
+                }
             }
         }
     }
@@ -365,27 +392,27 @@ static QImage loadDXT(DXTVersion version, QDataStream &s, quint32 width, quint32
 
 static inline QImage loadDXT1(QDataStream &s, quint32 width, quint32 height)
 {
-    return loadDXT(One, s, width, height);
+    return loadDXT<One>(s, width, height);
 }
 
 static inline QImage loadDXT2(QDataStream &s, quint32 width, quint32 height)
 {
-    return loadDXT(Two, s, width, height);
+    return loadDXT<Two>(s, width, height);
 }
 
 static inline QImage loadDXT3(QDataStream &s, quint32 width, quint32 height)
 {
-    return loadDXT(Three, s, width, height);
+    return loadDXT<Three>(s, width, height);
 }
 
 static inline QImage loadDXT4(QDataStream &s, quint32 width, quint32 height)
 {
-    return loadDXT(Four, s, width, height);
+    return loadDXT<Four>(s, width, height);
 }
 
 static inline QImage loadDXT5(QDataStream &s, quint32 width, quint32 height)
 {
-    return loadDXT(Five, s, width, height);
+    return loadDXT<Five>(s, width, height);
 }
 
 //static inline QImage loadRXGB(QDataStream &s, quint32 width, quint32 height)

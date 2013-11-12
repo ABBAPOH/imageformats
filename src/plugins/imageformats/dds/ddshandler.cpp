@@ -1,6 +1,7 @@
 #include "ddshandler.h"
 #include "ddsheader.h"
 
+#include <QtCore/QDebug>
 #include <QtCore/QtEndian>
 #include <QtCore/QtGlobal>
 #include <QtCore/qmath.h>
@@ -1111,7 +1112,8 @@ bool DDSHandler::canRead() const
 
 bool DDSHandler::read(QImage *outImage)
 {
-    ensureHeaderCached();
+    if (!ensureHeaderCached())
+        return false;
 
     if (!device()->isSequential()) {
         qint64 pos = headerSize + mipmapOffset(header, m_format, m_currentImage);
@@ -1132,7 +1134,7 @@ bool DDSHandler::read(QImage *outImage)
         return ok;
     }
 
-    return true;
+    return false;
 }
 
 bool DDSHandler::write(const QImage &outImage)
@@ -1190,7 +1192,9 @@ bool DDSHandler::write(const QImage &outImage)
 
 int DDSHandler::imageCount() const
 {
-    ensureHeaderCached();
+    if (!ensureHeaderCached())
+        return 0;
+
     return qMax<quint32>(1, header.mipMapCount);
 }
 
@@ -1221,13 +1225,15 @@ bool DDSHandler::canRead(QIODevice *device)
     return device->peek(4) == "DDS ";
 }
 
-void DDSHandler::ensureHeaderCached() const
+bool DDSHandler::ensureHeaderCached() const
 {
     if (m_headerCached)
-        return;
+        return true;
 
-    if (device()->isSequential())
-        return;
+    if (device()->isSequential()) {
+        qWarning() << Q_FUNC_INFO << "Sequential devices are not supported";
+        return false;
+    }
 
     qint64 oldPos = device()->pos();
     device()->seek(0);
@@ -1243,4 +1249,5 @@ void DDSHandler::ensureHeaderCached() const
 
     device()->seek(oldPos);
     m_headerCached = true;
+    return true;
 }

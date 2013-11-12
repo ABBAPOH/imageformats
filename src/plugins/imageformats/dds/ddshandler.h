@@ -21,7 +21,7 @@ public:
     static bool canRead(QIODevice *device);
 
 private:
-    void ensureHeaderCached() const;
+    bool ensureHeaderCached() const;
 
 private:
     DDSHeader header;

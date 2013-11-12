@@ -99,7 +99,7 @@ struct DDSPixelFormat
         DDPF_RGB             = 0x00000040,
         DDPF_YUV             = 0x00000200,
         DDPF_LUMINANCE       = 0x00020000,
-        DDPF_NORMAL          = 0x80000000,
+        DDPF_NORMAL          = 0x00080000,
         DDPF_RGBA = DDPF_ALPHAPIXELS | DDPF_RGB,
         DDPF_LA = DDPF_ALPHAPIXELS | DDPF_LUMINANCE
     };

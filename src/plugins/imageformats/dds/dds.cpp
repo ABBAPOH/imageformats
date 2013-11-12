@@ -79,9 +79,9 @@ static const FormatInfo formatInfos [] = {
     { FORMAT_L8,    DDSPixelFormat::DDPF_LUMINANCE,  8,  0x000000ff, 0x00000000, 0x00000000, 0x00000000 }, // 50
     { FORMAT_A4L4,        DDSPixelFormat::DDPF_LA,   8,  0x0000000f, 0x00000000, 0x00000000, 0x000000f0 }, // 52
 
-    { FORMAT_V8U8,                              0,  16,  0x000000ff, 0x0000ff00, 0x00000000, 0x00000000 }, // 60
-    { FORMAT_Q8W8V8U8,                          0,  32,  0x000000ff, 0x0000ff00, 0x00ff0000, 0xff000000 }, // 63
-    { FORMAT_V16U16,                            0,  32,  0x0000ffff, 0xffff0000, 0x00000000, 0x00000000 }, // 64
+    { FORMAT_V8U8,     DDSPixelFormat::DDPF_NORMAL, 16,  0x000000ff, 0x0000ff00, 0x00000000, 0x00000000 }, // 60
+    { FORMAT_Q8W8V8U8, DDSPixelFormat::DDPF_NORMAL, 32,  0x000000ff, 0x0000ff00, 0x00ff0000, 0xff000000 }, // 63
+    { FORMAT_V16U16,   DDSPixelFormat::DDPF_NORMAL, 32,  0x0000ffff, 0xffff0000, 0x00000000, 0x00000000 }, // 64
 };
 
 static const Format knownFourCCs [] = {

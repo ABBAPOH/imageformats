@@ -80,7 +80,8 @@ static const FormatInfo formatInfos [] = {
     { FORMAT_A4L4,        DDSPixelFormat::DDPF_LA,   8,  0x0000000f, 0x00000000, 0x00000000, 0x000000f0 }, // 52
 
     { FORMAT_V8U8,                              0,  16,  0x000000ff, 0x0000ff00, 0x00000000, 0x00000000 }, // 60
-    { FORMAT_V16U16,                            0,  32,  0x0000ffff, 0xffff0000, 0x00000000, 0x00000000 }, // 60
+    { FORMAT_Q8W8V8U8,                          0,  32,  0x000000ff, 0x0000ff00, 0x00ff0000, 0xff000000 }, // 63
+    { FORMAT_V16U16,                            0,  32,  0x0000ffff, 0xffff0000, 0x00000000, 0x00000000 }, // 64
 };
 
 static int shift(quint32 mask)
@@ -166,6 +167,8 @@ static Format getFormat(const DDSHeader &dds)
             return FORMAT_DXT4;
         case FORMAT_DXT5:
             return FORMAT_DXT5;
+        case FORMAT_Q16W16V16U16:
+            return FORMAT_Q16W16V16U16;
         case FORMAT_R16F:
             return FORMAT_R16F;
         case FORMAT_G16R16F:
@@ -619,6 +622,25 @@ static QImage loadARGB32F(QDataStream &s, const quint32 width, const quint32 hei
     return img;
 }
 
+static QImage loadQ16W16V16U16(QDataStream &s, const quint32 width, const quint32 height)
+{
+    QImage image(width, height, QImage::Format_ARGB32);
+
+    quint8 colors[ColorCount];
+    qint16 tmp;
+    for (quint32 y = 0; y < height; y++) {
+        for (quint32 x = 0; x < width; x++) {
+            for (int i = 0; i < ColorCount; i++) {
+                s >> tmp;
+                colors[i] = (tmp + 0x7FFF) >> 8;
+            }
+            image.setPixel(x, y, qRgba(colors[Red], colors[Green], colors[Blue], colors[Alpha]));
+        }
+    }
+
+    return image;
+}
+
 // TODO: this seems incorrect
 static QImage loadCxV8U8(QDataStream &s, const quint32 width, const quint32 height)
 {
@@ -686,6 +708,25 @@ static QImage loadV8U8(QDataStream &s, const DDSHeader &/*header*/,  quint32 wid
             qint8 v, u;
             s >> v >> u;
             image.setPixel(x, y, qRgb(v + 128, u + 128, 255));
+        }
+    }
+
+    return image;
+}
+
+static QImage loadQ8W8V8U8(QDataStream &s, const DDSHeader &/*header*/,  quint32 width, quint32 height)
+{
+    QImage image(width, height, QImage::Format_ARGB32);
+
+    quint8 colors[ColorCount];
+    qint8 tmp;
+    for (quint32 y = 0; y < height; y++) {
+        for (quint32 x = 0; x < width; x++) {
+            for (int i = 0; i < ColorCount; i++) {
+                s >> tmp;
+                colors[i] = tmp + 128;
+            }
+            image.setPixel(x, y, qRgba(colors[Red], colors[Green], colors[Blue], colors[Alpha]));
         }
     }
 
@@ -819,11 +860,12 @@ static QImage readLayer(QDataStream & s, const DDSHeader & dds, const int format
         return loadARGB16(s, dds, width, height);
     case FORMAT_V8U8:
         return loadV8U8(s, dds, width, height);
+    case FORMAT_Q8W8V8U8:
+        return loadQ8W8V8U8(s, dds, width, height);
     case FORMAT_V16U16:
         return loadV16U16(s, dds, width, height);
     case FORMAT_L6V5U5:
     case FORMAT_X8L8V8U8:
-    case FORMAT_Q8W8V8U8:
     case FORMAT_A2W10V10U10:
         break;
     case FORMAT_UYVY:
@@ -871,7 +913,7 @@ static QImage readLayer(QDataStream & s, const DDSHeader & dds, const int format
 //    case FORMAT_INDEX16:
 //    case FORMAT_INDEX32:
     case FORMAT_Q16W16V16U16:
-        break;
+        return loadQ16W16V16U16(s, width, height);
 //    case FORMAT_MULTI2_ARGB8:
     case FORMAT_CxV8U8:
         return loadCxV8U8(s, width, height);
@@ -962,6 +1004,7 @@ static qint64 mipmapSize(const DDSHeader &dds, const int format, const int level
 //    case FORMAT_INDEX16:
 //    case FORMAT_INDEX32:
     case FORMAT_Q16W16V16U16:
+        return w*h*4*2;
 //    case FORMAT_MULTI2_ARGB8:
         break;
     case FORMAT_R16F:

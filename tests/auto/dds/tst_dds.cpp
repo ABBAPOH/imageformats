@@ -48,7 +48,7 @@ void DDSTest::readImage_data()
     QTest::newRow("12") << QString("A16B16G16R16") << QSize(64, 64);
     QTest::newRow("13") << QString("A16B16G16R16F") << QSize(64, 64);
     QTest::newRow("14") << QString("A32B32G32R32F") << QSize(64, 64);
-//    QTest::newRow("15") << QString("CxV8U8") << QSize(64, 64);
+    QTest::newRow("15") << QString("CxV8U8") << QSize(64, 64);
     QTest::newRow("16") << QString("DXT1") << QSize(50, 50);
     QTest::newRow("17") << QString("DXT2") << QSize(64, 64);
     QTest::newRow("18") << QString("DXT3") << QSize(64, 64);

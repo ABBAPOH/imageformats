@@ -178,6 +178,8 @@ static Format getFormat(const DDSHeader &dds)
             return FORMAT_G32R32F;
         case FORMAT_A32B32G32R32F:
             return FORMAT_A32B32G32R32F;
+        case FORMAT_CxV8U8:
+            return FORMAT_CxV8U8;
         default:
             return FORMAT_UNKNOWN;
         }
@@ -617,6 +619,25 @@ static QImage loadARGB32F(QDataStream &s, const quint32 width, const quint32 hei
     return img;
 }
 
+// TODO: this seems incorrect
+static QImage loadCxV8U8(QDataStream &s, const quint32 width, const quint32 height)
+{
+    QImage image(width, height, QImage::Format_RGB32);
+
+    for (quint32 y = 0; y < height; y++) {
+        for (quint32 x = 0; x < width; x++) {
+            qint8 v, u;
+            s >> v >> u;
+
+            double vd = v/127.0, ud = u/127.0;
+            quint8 c = 255*::sqrt(1 - vd*vd - ud*ud);
+            image.setPixel(x, y, qRgb(v + 128, u + 128, c));
+        }
+    }
+
+    return image;
+}
+
 static QImage readPaletteBased(QDataStream & s, const DDSHeader &/*dds*/, quint32 width, quint32 height)
 {
     QImage img(width, height, QImage::Format_Indexed8);
@@ -813,8 +834,6 @@ static QImage readLayer(QDataStream & s, const DDSHeader & dds, const int format
         return loadYUY2(s, dds, width, height);
     case FORMAT_G8R8_G8B8:
         return loadG8R8_G8B8(s, dds, width, height);
-//    default:
-        break;
     case FORMAT_DXT1:
         return loadDXT1(s, width, height);
     case FORMAT_DXT2:
@@ -852,8 +871,10 @@ static QImage readLayer(QDataStream & s, const DDSHeader & dds, const int format
 //    case FORMAT_INDEX16:
 //    case FORMAT_INDEX32:
     case FORMAT_Q16W16V16U16:
+        break;
 //    case FORMAT_MULTI2_ARGB8:
     case FORMAT_CxV8U8:
+        return loadCxV8U8(s, width, height);
 //    case FORMAT_A1:
 //    case FORMAT_A2B10G10R10_XR_BIAS:
 //    case FORMAT_BINARYBUFFER:
@@ -919,8 +940,6 @@ static qint64 mipmapSize(const DDSHeader &dds, const int format, const int level
     case FORMAT_YUY2:
     case FORMAT_G8R8_G8B8:
         return w*h*2;
-//    default:
-        break;
     case FORMAT_DXT1:
         return ((w+3)/4)*((h+3)/4)*8;
     case FORMAT_DXT2:
@@ -944,6 +963,7 @@ static qint64 mipmapSize(const DDSHeader &dds, const int format, const int level
 //    case FORMAT_INDEX32:
     case FORMAT_Q16W16V16U16:
 //    case FORMAT_MULTI2_ARGB8:
+        break;
     case FORMAT_R16F:
         return w*h*1*2;
     case FORMAT_G16R16F:
@@ -957,6 +977,7 @@ static qint64 mipmapSize(const DDSHeader &dds, const int format, const int level
     case FORMAT_A32B32G32R32F:
         return w*h*4*4;
     case FORMAT_CxV8U8:
+        return w*h*2;
 //    case FORMAT_A1:
 //    case FORMAT_A2B10G10R10_XR_BIAS:
 //    case FORMAT_BINARYBUFFER:

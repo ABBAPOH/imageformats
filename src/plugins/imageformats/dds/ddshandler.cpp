@@ -8,6 +8,10 @@
 
 #include <QtGui/QImage>
 
+#if QT_VERSION < 0x050000
+#define Q_STATIC_ASSERT(Condition) static_assert(bool(Condition), #Condition)
+#endif
+
 enum Colors
 {
     Red = 0,
@@ -258,6 +262,7 @@ static void DXTFillColors(QRgb * result, quint16 c0, quint16 c1, quint32 table, 
 template <DXTVersion version>
 inline void setAlphaDXT32Helper(QRgb * rgbArr, quint64 alphas)
 {
+    Q_STATIC_ASSERT(version == Two || version == Three);
     for (int i = 0; i < 16; i++) {
         quint8 alpha = 16*(alphas & 0x0f);
         QRgb rgb = rgbArr[i];
@@ -265,8 +270,6 @@ inline void setAlphaDXT32Helper(QRgb * rgbArr, quint64 alphas)
             rgbArr[i] = qRgba(qRed(rgb)*alpha/0xff, qGreen(rgb)*alpha/0xff, qBlue(rgb)*alpha/0xff, alpha);
         else if (version == Three) // DXT3
             rgbArr[i] = qRgba(qRed(rgb), qGreen(rgb), qBlue(rgb), alpha);
-        else
-            Q_ASSERT(false);
         alphas = alphas >> 4;
     }
 }
@@ -274,6 +277,7 @@ inline void setAlphaDXT32Helper(QRgb * rgbArr, quint64 alphas)
 template <DXTVersion version>
 inline void setAlphaDXT45Helper(QRgb * rgbArr, quint64 alphas)
 {
+    Q_STATIC_ASSERT(version == Four || version == Five);
     quint8 a[8];
     a[0] = alphas & 0xff;
     a[1] = (alphas >> 8) & 0xff;
@@ -301,8 +305,6 @@ inline void setAlphaDXT45Helper(QRgb * rgbArr, quint64 alphas)
             rgbArr[i] = qRgba(qRed(rgb)*alpha/0xff, qGreen(rgb)*alpha/0xff, qBlue(rgb)*alpha/0xff, alpha);
         else if (version == Five) // DXT5
             rgbArr[i] = qRgba(qRed(rgb), qGreen(rgb), qBlue(rgb), alpha);
-        else
-            Q_ASSERT(false);
         alphas = alphas >> 3;
     }
 }
@@ -1216,7 +1218,6 @@ bool DDSHandler::write(const QImage &outImage)
         quint8 blue = qBlue(pixel);
         color = (alpha << 24) + (red << 16) + (green << 8) + blue;
         s << color;
-
     }
 
     return true;

@@ -2,8 +2,6 @@
 #include "ddsheader.h"
 
 #include <QtCore/QDebug>
-#include <QtCore/QtEndian>
-#include <QtCore/QtGlobal>
 #include <QtCore/qmath.h>
 
 #include <QtGui/QImage>

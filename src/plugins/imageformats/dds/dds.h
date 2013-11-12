@@ -29,7 +29,7 @@ private:
     int m_format;
     DDSHeaderDX10 header10;
     int m_currentImage;
-    bool m_headerCached;
+    mutable bool m_headerCached;
 };
 
 // ===================== DDSPlugin =====================

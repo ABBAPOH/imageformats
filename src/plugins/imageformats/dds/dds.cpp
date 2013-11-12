@@ -1242,6 +1242,7 @@ void DDSHandler::ensureHeaderCached() const
     that->m_format = getFormat(header);
 
     device()->seek(oldPos);
+    m_headerCached = true;
 }
 
 // ===================== DDSPlugin =====================

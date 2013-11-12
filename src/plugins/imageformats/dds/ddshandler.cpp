@@ -855,6 +855,9 @@ static QImage loadG8R8_G8B8(QDataStream &s, const DDSHeader &/*header*/, quint32
 
 static QImage readLayer(QDataStream & s, const DDSHeader & dds, const int format, quint32 width, quint32 height)
 {
+    if (width * height == 0)
+        return QImage();
+
     switch (format) {
     case FORMAT_R8G8B8:
     case FORMAT_X8R8G8B8:

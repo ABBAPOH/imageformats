@@ -435,7 +435,7 @@ static inline QImage loadDXT5(QDataStream &s, quint32 width, quint32 height)
 //    return img;
 //}
 
-static QImage readValueBased(QDataStream & s, const DDSHeader & dds, quint32 width, quint32 height, bool hasAlpha)
+static QImage readValueBased(QDataStream &s, const DDSHeader &dds, quint32 width, quint32 height, bool hasAlpha)
 {
     quint32 flags = dds.pixelFormat.flags;
 
@@ -650,7 +650,7 @@ static QImage loadCxV8U8(QDataStream &s, const quint32 width, const quint32 heig
     return image;
 }
 
-static QImage readPaletteBased(QDataStream & s, const DDSHeader &/*dds*/, quint32 width, quint32 height)
+static QImage readPaletteBased(QDataStream & s, quint32 width, quint32 height)
 {
     QImage img(width, height, QImage::Format_Indexed8);
     for (int i = 0; i < 256; ++i) {
@@ -670,7 +670,7 @@ static QImage readPaletteBased(QDataStream & s, const DDSHeader &/*dds*/, quint3
     return img;
 }
 
-static QImage loadARGB16(QDataStream &s, const DDSHeader &/*header*/,  quint32 width, quint32 height)
+static QImage loadARGB16(QDataStream &s, quint32 width, quint32 height)
 {
     QImage image(width, height, QImage::Format_ARGB32);
 
@@ -689,7 +689,7 @@ static QImage loadARGB16(QDataStream &s, const DDSHeader &/*header*/,  quint32 w
     return image;
 }
 
-static QImage loadV8U8(QDataStream &s, const DDSHeader &/*header*/,  quint32 width, quint32 height)
+static QImage loadV8U8(QDataStream &s, quint32 width, quint32 height)
 {
     QImage image(width, height, QImage::Format_RGB32);
 
@@ -704,7 +704,7 @@ static QImage loadV8U8(QDataStream &s, const DDSHeader &/*header*/,  quint32 wid
     return image;
 }
 
-static QImage loadX8L8V8U8(QDataStream &s, const DDSHeader &/*header*/,  quint32 width, quint32 height)
+static QImage loadX8L8V8U8(QDataStream &s, quint32 width, quint32 height)
 {
     QImage image(width, height, QImage::Format_ARGB32);
 
@@ -721,7 +721,7 @@ static QImage loadX8L8V8U8(QDataStream &s, const DDSHeader &/*header*/,  quint32
     return image;
 }
 
-static QImage loadQ8W8V8U8(QDataStream &s, const DDSHeader &/*header*/,  quint32 width, quint32 height)
+static QImage loadQ8W8V8U8(QDataStream &s, quint32 width, quint32 height)
 {
     QImage image(width, height, QImage::Format_ARGB32);
 
@@ -740,7 +740,7 @@ static QImage loadQ8W8V8U8(QDataStream &s, const DDSHeader &/*header*/,  quint32
     return image;
 }
 
-static QImage loadV16U16(QDataStream &s, const DDSHeader &/*header*/,  quint32 width, quint32 height)
+static QImage loadV16U16(QDataStream &s, quint32 width, quint32 height)
 {
     QImage image(width, height, QImage::Format_RGB32);
 
@@ -757,7 +757,7 @@ static QImage loadV16U16(QDataStream &s, const DDSHeader &/*header*/,  quint32 w
     return image;
 }
 
-static QImage loadA2W10V10U10(QDataStream &s, const DDSHeader &/*header*/,  quint32 width, quint32 height)
+static QImage loadA2W10V10U10(QDataStream &s, quint32 width, quint32 height)
 {
     QImage image(width, height, QImage::Format_ARGB32);
 
@@ -777,7 +777,7 @@ static QImage loadA2W10V10U10(QDataStream &s, const DDSHeader &/*header*/,  quin
     return image;
 }
 
-static QImage loadUYVY(QDataStream &s, const DDSHeader &/*header*/,  quint32 width, quint32 height)
+static QImage loadUYVY(QDataStream &s, quint32 width, quint32 height)
 {
     QImage image(width, height, QImage::Format_RGB32);
 
@@ -797,7 +797,7 @@ static QImage loadUYVY(QDataStream &s, const DDSHeader &/*header*/,  quint32 wid
     return image;
 }
 
-static QImage loadR8G8_B8G8(QDataStream &s, const DDSHeader &/*header*/, quint32 width, quint32 height)
+static QImage loadR8G8_B8G8(QDataStream &s, quint32 width, quint32 height)
 {
     QImage image(width, height, QImage::Format_RGB32);
     quint8 rgbg[4];
@@ -816,7 +816,7 @@ static QImage loadR8G8_B8G8(QDataStream &s, const DDSHeader &/*header*/, quint32
     return image;
 }
 
-static QImage loadYUY2(QDataStream &s, const DDSHeader &/*header*/, quint32 width, quint32 height)
+static QImage loadYUY2(QDataStream &s, quint32 width, quint32 height)
 {
     QImage image(width, height, QImage::Format_RGB32);
 
@@ -836,7 +836,7 @@ static QImage loadYUY2(QDataStream &s, const DDSHeader &/*header*/, quint32 widt
     return image;
 }
 
-static QImage loadG8R8_G8B8(QDataStream &s, const DDSHeader &/*header*/, quint32 width, quint32 height)
+static QImage loadG8R8_G8B8(QDataStream &s, quint32 width, quint32 height)
 {
     QImage image(width, height, QImage::Format_RGB32);
     quint8 grgb[4];
@@ -884,30 +884,30 @@ static QImage readLayer(QDataStream & s, const DDSHeader & dds, const int format
     case FORMAT_A4L4:
         return readValueBased(s, dds, width, height, true);
     case FORMAT_P8:
-        return readPaletteBased(s, dds, width, height);
+        return readPaletteBased(s, width, height);
 //    case FORMAT_A8P8:
     case FORMAT_A16B16G16R16:
-        return loadARGB16(s, dds, width, height);
+        return loadARGB16(s, width, height);
     case FORMAT_V8U8:
-        return loadV8U8(s, dds, width, height);
+        return loadV8U8(s, width, height);
     case FORMAT_X8L8V8U8:
-        return loadX8L8V8U8(s, dds, width, height);
+        return loadX8L8V8U8(s, width, height);
     case FORMAT_L6V5U5:
         break;
     case FORMAT_Q8W8V8U8:
-        return loadQ8W8V8U8(s, dds, width, height);
+        return loadQ8W8V8U8(s, width, height);
     case FORMAT_V16U16:
-        return loadV16U16(s, dds, width, height);
+        return loadV16U16(s, width, height);
     case FORMAT_A2W10V10U10:
-        return loadA2W10V10U10(s, dds, width, height);
+        return loadA2W10V10U10(s, width, height);
     case FORMAT_UYVY:
-        return loadUYVY(s, dds, width, height);
+        return loadUYVY(s, width, height);
     case FORMAT_R8G8_B8G8:
-        return loadR8G8_B8G8(s, dds, width, height);
+        return loadR8G8_B8G8(s, width, height);
     case FORMAT_YUY2:
-        return loadYUY2(s, dds, width, height);
+        return loadYUY2(s, width, height);
     case FORMAT_G8R8_G8B8:
-        return loadG8R8_G8B8(s, dds, width, height);
+        return loadG8R8_G8B8(s, width, height);
     case FORMAT_DXT1:
         return loadDXT1(s, width, height);
     case FORMAT_DXT2:

@@ -1,5 +1,6 @@
 #include "main.h"
-#include "dds.h"
+
+#include "ddshandler.h"
 
 #if QT_VERSION < 0x050000
 QStringList DDSPlugin::keys() const

@@ -1,5 +1,5 @@
-#ifndef DDS_H
-#define DDS_H
+#ifndef DDSHANDLER_H
+#define DDSHANDLER_H
 
 #include <QtGui/QImageIOHandler>
 #include "ddsheader.h"
@@ -31,4 +31,4 @@ private:
     mutable bool m_headerCached;
 };
 
-#endif // DDS_H
+#endif // DDSHANDLER_H

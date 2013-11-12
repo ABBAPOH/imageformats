@@ -1,4 +1,4 @@
-#include "dds.h"
+#include "ddshandler.h"
 #include "ddsheader.h"
 
 #include <QtCore/QtEndian>

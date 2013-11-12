@@ -32,6 +32,8 @@ static const quint32 ddsMagic = 0x20534444; // "DDS "
 static const quint32 dx10Magic = 0x30315844; // "DX10"
 
 static const qint64 headerSize = 128;
+static const quint32 ddsSize = 124; // headerSize without magic
+static const quint32 pixelFormatSize = 32;
 
 static int faceOffset[6][2] = { {2, 1}, {0, 1}, {1, 0}, {1, 2}, {1, 1}, {3, 1} };
 static int faceFlags[6] = {
@@ -1218,7 +1220,7 @@ QByteArray DDSHandler::name() const
 bool DDSHandler::canRead(QIODevice *device)
 {
     if (!device) {
-        qWarning("DDSHandler::canRead() called with no device");
+        qWarning() << "DDSHandler::canRead() called with no device";
         return false;
     }
 
@@ -1234,7 +1236,7 @@ bool DDSHandler::ensureHeaderCached() const
         return true;
 
     if (device()->isSequential()) {
-        qWarning() << Q_FUNC_INFO << "Sequential devices are not supported";
+        qWarning() << "Sequential devices are not supported";
         return false;
     }
 
@@ -1248,9 +1250,47 @@ bool DDSHandler::ensureHeaderCached() const
     if (header.pixelFormat.fourCC == dx10Magic)
         s >> that->header10;
 
+    device()->seek(oldPos);
+
+    if (s.status() != QDataStream::Ok)
+        return false;
+
+    if (!verifyHeader(header))
+        return false;
+
     that->m_format = getFormat(header);
 
-    device()->seek(oldPos);
     m_headerCached = true;
+    return true;
+}
+
+bool DDSHandler::verifyHeader(const DDSHeader &dds) const
+{
+    quint32 flags = dds.flags;
+    quint32 requiredFlags = DDSHeader::DDSD_CAPS | DDSHeader::DDSD_HEIGHT
+            | DDSHeader::DDSD_WIDTH | DDSHeader::DDSD_PIXELFORMAT;
+    if ((flags & requiredFlags) != requiredFlags) {
+        qWarning() << "Wrong dds.flags - not all required flags present. "
+                      "Actual flags :" << flags;
+        return false;
+    }
+
+    if (dds.size != ddsSize) {
+        qWarning() << "Wrong dds.size: actual =" << dds.size
+                   << "expected =" << ddsSize;
+        return false;
+    }
+
+    if (dds.pixelFormat.size != pixelFormatSize) {
+        qWarning() << "Wrong dds.pixelFormat.size: actual =" << dds.pixelFormat.size
+                   << "expected =" << pixelFormatSize;
+        return false;
+    }
+
+    if (dds.width > INT32_MAX || dds.height > INT32_MAX) {
+        qWarning() << "Can't read image with w/h bigger than INT_MAX";
+        return false;
+    }
+
     return true;
 }

@@ -22,6 +22,7 @@ public:
 
 private:
     bool ensureHeaderCached() const;
+    bool verifyHeader(const DDSHeader &dds) const;
 
 private:
     DDSHeader header;

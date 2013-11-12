@@ -79,9 +79,9 @@ static const FormatInfo formatInfos [] = {
     { FORMAT_L8,    DDSPixelFormat::DDPF_LUMINANCE,  8,  0x000000ff, 0x00000000, 0x00000000, 0x00000000 }, // 50
     { FORMAT_A4L4,        DDSPixelFormat::DDPF_LA,   8,  0x0000000f, 0x00000000, 0x00000000, 0x000000f0 }, // 52
 
-    { FORMAT_V8U8,     DDSPixelFormat::DDPF_NORMAL, 16,  0x000000ff, 0x0000ff00, 0x00000000, 0x00000000 }, // 60
-    { FORMAT_Q8W8V8U8, DDSPixelFormat::DDPF_NORMAL, 32,  0x000000ff, 0x0000ff00, 0x00ff0000, 0xff000000 }, // 63
-    { FORMAT_V16U16,   DDSPixelFormat::DDPF_NORMAL, 32,  0x0000ffff, 0xffff0000, 0x00000000, 0x00000000 }, // 64
+    { FORMAT_V8U8,        DDSPixelFormat::DDPF_NORMAL, 16, 0x000000ff, 0x0000ff00, 0x00000000, 0x00000000 }, // 60
+    { FORMAT_Q8W8V8U8,    DDSPixelFormat::DDPF_NORMAL, 32, 0x000000ff, 0x0000ff00, 0x00ff0000, 0xff000000 }, // 63
+    { FORMAT_V16U16,      DDSPixelFormat::DDPF_NORMAL, 32, 0x0000ffff, 0xffff0000, 0x00000000, 0x00000000 }, // 64
 };
 
 static const Format knownFourCCs [] = {
@@ -840,17 +840,18 @@ static QImage readLayer(QDataStream & s, const DDSHeader & dds, const int format
         return readValueBased(s, dds, width, height, true);
     case FORMAT_P8:
         return readPaletteBased(s, dds, width, height);
-    case FORMAT_A8P8:
+//    case FORMAT_A8P8:
     case FORMAT_A16B16G16R16:
         return loadARGB16(s, dds, width, height);
     case FORMAT_V8U8:
         return loadV8U8(s, dds, width, height);
+    case FORMAT_X8L8V8U8:
+    case FORMAT_L6V5U5:
+        break;
     case FORMAT_Q8W8V8U8:
         return loadQ8W8V8U8(s, dds, width, height);
     case FORMAT_V16U16:
         return loadV16U16(s, dds, width, height);
-    case FORMAT_L6V5U5:
-    case FORMAT_X8L8V8U8:
     case FORMAT_A2W10V10U10:
         break;
     case FORMAT_UYVY:
@@ -950,19 +951,19 @@ static qint64 mipmapSize(const DDSHeader &dds, const int format, const int level
         return 256 + w*h*8;
     case FORMAT_A16B16G16R16:
         return w*h*4*2;
-    case FORMAT_A8P8:
-        break;
+//    case FORMAT_A8P8:
+//        break;
     case FORMAT_V8U8:
         return w*h*2;
-    case FORMAT_V16U16:
-        return w*h*4;
     case FORMAT_L6V5U5:
     case FORMAT_X8L8V8U8:
+        break;
     case FORMAT_Q8W8V8U8:
+    case FORMAT_V16U16:
+        return w*h*4;
     case FORMAT_A2W10V10U10:
         break;
     case FORMAT_UYVY:
-        return w/2*h*4;
     case FORMAT_R8G8_B8G8:
     case FORMAT_YUY2:
     case FORMAT_G8R8_G8B8:

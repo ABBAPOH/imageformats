@@ -24,7 +24,7 @@ enum Format {
     FORMAT_A2R10G10B10          = 35,
     FORMAT_A16B16G16R16         = 36,
 
-    FORMAT_A8P8                 = 40,
+//    FORMAT_A8P8                 = 40,
     FORMAT_P8                   = 41,
 
     FORMAT_L8                   = 50,

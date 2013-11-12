@@ -84,6 +84,28 @@ static const FormatInfo formatInfos [] = {
     { FORMAT_V16U16,                            0,  32,  0x0000ffff, 0xffff0000, 0x00000000, 0x00000000 }, // 64
 };
 
+static const Format knownFourCCs [] = {
+    FORMAT_A16B16G16R16,
+    FORMAT_V8U8,
+    FORMAT_UYVY,
+    FORMAT_R8G8_B8G8,
+    FORMAT_YUY2,
+    FORMAT_G8R8_G8B8,
+    FORMAT_DXT1,
+    FORMAT_DXT2,
+    FORMAT_DXT3,
+    FORMAT_DXT4,
+    FORMAT_DXT5,
+    FORMAT_Q16W16V16U16,
+    FORMAT_R16F,
+    FORMAT_G16R16F,
+    FORMAT_A16B16G16R16F,
+    FORMAT_R32F,
+    FORMAT_G32R32F,
+    FORMAT_A32B32G32R32F,
+    FORMAT_CxV8U8,
+};
+
 static int shift(quint32 mask)
 {
     if (mask == 0)
@@ -144,47 +166,10 @@ static Format getFormat(const DDSHeader &dds)
 {
     const DDSPixelFormat &format = dds.pixelFormat;
     if (format.flags & DDSPixelFormat::DDPF_FOURCC) {
-        switch (dds.pixelFormat.fourCC) {
-        case FORMAT_A16B16G16R16:
-            return FORMAT_A16B16G16R16;
-        case FORMAT_V8U8:
-            return FORMAT_V8U8;
-        case FORMAT_UYVY:
-            return FORMAT_UYVY;
-        case FORMAT_R8G8_B8G8:
-            return FORMAT_R8G8_B8G8;
-        case FORMAT_YUY2:
-            return FORMAT_YUY2;
-        case FORMAT_G8R8_G8B8:
-            return FORMAT_G8R8_G8B8;
-        case FORMAT_DXT1:
-            return FORMAT_DXT1;
-        case FORMAT_DXT2:
-            return FORMAT_DXT2;
-        case FORMAT_DXT3:
-            return FORMAT_DXT3;
-        case FORMAT_DXT4:
-            return FORMAT_DXT4;
-        case FORMAT_DXT5:
-            return FORMAT_DXT5;
-        case FORMAT_Q16W16V16U16:
-            return FORMAT_Q16W16V16U16;
-        case FORMAT_R16F:
-            return FORMAT_R16F;
-        case FORMAT_G16R16F:
-            return FORMAT_G16R16F;
-        case FORMAT_A16B16G16R16F:
-            return FORMAT_A16B16G16R16F;
-        case FORMAT_R32F:
-            return FORMAT_R32F;
-        case FORMAT_G32R32F:
-            return FORMAT_G32R32F;
-        case FORMAT_A32B32G32R32F:
-            return FORMAT_A32B32G32R32F;
-        case FORMAT_CxV8U8:
-            return FORMAT_CxV8U8;
-        default:
-            return FORMAT_UNKNOWN;
+        size_t count = sizeof(knownFourCCs)/sizeof(Format);
+        for (size_t i = 0; i < count; ++i) {
+            if (dds.pixelFormat.fourCC == knownFourCCs[i])
+                return knownFourCCs[i];
         }
     } else {
         size_t count = sizeof(formatInfos)/sizeof(FormatInfo);

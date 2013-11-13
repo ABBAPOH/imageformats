@@ -10,8 +10,7 @@
 #define Q_STATIC_ASSERT(Condition) static_assert(bool(Condition), #Condition)
 #endif
 
-enum Colors
-{
+enum Colors {
     Red = 0,
     Green,
     Blue,
@@ -19,7 +18,7 @@ enum Colors
     ColorCount
 };
 
-enum DXTVersion {
+enum DXTVersions {
     One = 1,
     Two = 2,
     Three = 3,
@@ -37,7 +36,13 @@ static const qint64 headerSize = 128;
 static const quint32 ddsSize = 124; // headerSize without magic
 static const quint32 pixelFormatSize = 32;
 
-static int faceOffset[6][2] = { {2, 1}, {0, 1}, {1, 0}, {1, 2}, {1, 1}, {3, 1} };
+struct FaceOffset
+{
+    int x, y;
+};
+
+static const FaceOffset faceOffsets[6] = { {2, 1}, {0, 1}, {1, 0}, {1, 2}, {1, 1}, {3, 1} };
+
 static int faceFlags[6] = {
     DDSHeader::DDSCAPS2_CUBEMAP_POSITIVEX,
     DDSHeader::DDSCAPS2_CUBEMAP_NEGATIVEX,
@@ -58,7 +63,7 @@ struct FormatInfo
     quint32 aBitMask;
 };
 
-static const FormatInfo formatInfos [] = {
+static const FormatInfo formatInfos[] = {
     { FORMAT_A8R8G8B8,    DDSPixelFormat::DDPF_RGBA, 32, 0x00ff0000, 0x0000ff00, 0x000000ff, 0xff000000 }, // 21
     { FORMAT_X8R8G8B8,    DDSPixelFormat::DDPF_RGB,  32, 0x00ff0000, 0x0000ff00, 0x000000ff, 0x00000000 }, // 22
     { FORMAT_A2B10G10R10, DDSPixelFormat::DDPF_RGBA, 32, 0x000003ff, 0x0000fc00, 0x3ff00000, 0xc0000000 }, // 31
@@ -90,8 +95,9 @@ static const FormatInfo formatInfos [] = {
     { FORMAT_V16U16,      DDSPixelFormat::DDPF_NORMAL, 32, 0x0000ffff, 0xffff0000, 0x00000000, 0x00000000 }, // 64
     { FORMAT_A2W10V10U10, DDSPixelFormat::DDPF_NORMAL, 32, 0x3ff00000, 0x000ffc00, 0x000003ff, 0xc0000000 }, // 67
 };
+static const size_t formatInfosSize = sizeof(formatInfos)/sizeof(FormatInfo);
 
-static const Format knownFourCCs [] = {
+static const Format knownFourCCs[] = {
     FORMAT_A16B16G16R16,
     FORMAT_V8U8,
     FORMAT_UYVY,
@@ -112,8 +118,9 @@ static const Format knownFourCCs [] = {
     FORMAT_A32B32G32R32F,
     FORMAT_CxV8U8,
 };
+static const size_t knownFourCCsSize = sizeof(knownFourCCs)/sizeof(Format);
 
-static int shift(quint32 mask)
+static inline int shift(quint32 mask)
 {
     if (mask == 0)
         return 0;
@@ -124,7 +131,7 @@ static int shift(quint32 mask)
     return result;
 }
 
-static int bits(quint32 mask)
+static inline int bits(quint32 mask)
 {
     int result = 0;
     while (mask) {
@@ -135,7 +142,7 @@ static int bits(quint32 mask)
     return result;
 }
 
-static quint32 readValue(QDataStream &s, quint32 size)
+static inline quint32 readValue(QDataStream &s, quint32 size)
 {
     Q_ASSERT(size == 8 || size == 16 || size == 24 || size == 32);
 
@@ -150,14 +157,12 @@ static quint32 readValue(QDataStream &s, quint32 size)
 
 static inline bool hasAlpha(const DDSHeader &dds)
 {
-    quint32 flags = dds.pixelFormat.flags;
-    return flags & DDSPixelFormat::DDPF_ALPHAPIXELS ||
-            flags & DDSPixelFormat::DDPF_ALPHA;
+    return (dds.pixelFormat.flags & (DDSPixelFormat::DDPF_ALPHAPIXELS | DDSPixelFormat::DDPF_ALPHA)) != 0;
 }
 
 static inline bool isCubeMap(const DDSHeader &dds)
 {
-    return dds.caps2 & DDSHeader::DDSCAPS2_CUBEMAP;
+    return (dds.caps2 & DDSHeader::DDSCAPS2_CUBEMAP) != 0;
 }
 
 static inline QRgb yuv2rgb(quint8 Y, quint8 U, quint8 V)
@@ -173,14 +178,12 @@ static Format getFormat(const DDSHeader &dds)
 {
     const DDSPixelFormat &format = dds.pixelFormat;
     if (format.flags & DDSPixelFormat::DDPF_FOURCC) {
-        size_t count = sizeof(knownFourCCs)/sizeof(Format);
-        for (size_t i = 0; i < count; ++i) {
+        for (size_t i = 0; i < knownFourCCsSize; ++i) {
             if (dds.pixelFormat.fourCC == knownFourCCs[i])
                 return knownFourCCs[i];
         }
     } else {
-        size_t count = sizeof(formatInfos)/sizeof(FormatInfo);
-        for (size_t i = 0; i < count; ++i) {
+        for (size_t i = 0; i < formatInfosSize; ++i) {
             const FormatInfo &info = formatInfos[i];
             if ( (format.flags & info.flags) == info.flags &&
                  format.rgbBitCount == info.bitCount &&
@@ -223,8 +226,9 @@ static void DXTFillColors(QRgb * result, quint16 c0, quint16 c1, quint32 table, 
     quint8 g[4];
     quint8 b[4];
     quint8 a[4];
-    for (int i = 0; i < 4; i++)
-        a[i] = 255;
+
+    a[0] = a[1] = a[2] = a[3] = 255;
+
     decodeColor(c0, r[0], g[0], b[0]);
     decodeColor(c1, r[1], g[1], b[1]);
     if (!dxt1a) {
@@ -247,17 +251,13 @@ static void DXTFillColors(QRgb * result, quint16 c0, quint16 c1, quint32 table, 
     for (int k = 0; k < 4; k++)
         for (int l = 0; l < 4; l++) {
         unsigned index = table & 0x0003;
-        table = table >> 2;
+        table >>= 2;
 
-        int red = r[index];
-        int green = g[index];
-        int blue = b[index];
-        int alpha = a[index];
-        result[k*4+l] = qRgba(red, green, blue, alpha);
+        result[k*4+l] = qRgba(r[index], g[index], b[index], a[index]);
     }
 }
 
-template <DXTVersion version>
+template <DXTVersions version>
 inline void setAlphaDXT32Helper(QRgb * rgbArr, quint64 alphas)
 {
     Q_STATIC_ASSERT(version == Two || version == Three);
@@ -272,7 +272,7 @@ inline void setAlphaDXT32Helper(QRgb * rgbArr, quint64 alphas)
     }
 }
 
-template <DXTVersion version>
+template <DXTVersions version>
 inline void setAlphaDXT45Helper(QRgb * rgbArr, quint64 alphas)
 {
     Q_STATIC_ASSERT(version == Four || version == Five);
@@ -307,7 +307,7 @@ inline void setAlphaDXT45Helper(QRgb * rgbArr, quint64 alphas)
     }
 }
 
-template <DXTVersion version>
+template <DXTVersions version>
 inline void setAlphaDXT(QRgb * /*rgbArr*/, quint64 /*alphas*/)
 {
 }
@@ -344,13 +344,10 @@ inline void setAlphaDXT<RXGB>(QRgb * rgbArr, quint64 alphas)
 
 static QRgb invertRXGBColors(QRgb pixel)
 {
-    quint8 g = qGreen(pixel);
-    quint8 b = qBlue(pixel);
-    quint8 a = qAlpha(pixel);
-    return qRgb(a, g, b);
+    return qRgb(qAlpha(pixel), qGreen(pixel), qBlue(pixel));
 }
 
-template <DXTVersion version>
+template <DXTVersions version>
 static QImage loadDXT(QDataStream &s, quint32 width, quint32 height)
 {
     QImage::Format format = (version == Two || version == Four) ?
@@ -498,7 +495,7 @@ static QImage readValueBased(QDataStream &s, const DDSHeader &dds, quint32 width
                 } else {
                     // move color to the left
                     quint8 color = value >> shifts[c] << (8 - bits[c]) & masks[c];
-                    if (color)
+                    if (masks[c])
                         colors[c] = color * 0xff / masks[c];
                     else
                         colors[c] = 0;
@@ -1113,8 +1110,8 @@ static QImage readCubeMap(QDataStream & s, const DDSHeader & dds, const int fmt)
         const QImage face = ::readLayer(s, dds, fmt, dds.width, dds.height);
 
         // Compute face offsets.
-        int offset_x = faceOffset[i][0] * dds.width;
-        int offset_y = faceOffset[i][1] * dds.height;
+        int offset_x = faceOffsets[i].x* dds.width;
+        int offset_y = faceOffsets[i].y * dds.height;
 
         // Copy face on the image.
         for (quint32 y = 0; y < dds.height; y++) {

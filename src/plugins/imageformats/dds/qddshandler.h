@@ -1,13 +1,13 @@
-#ifndef DDSHANDLER_H
-#define DDSHANDLER_H
+#ifndef QDDSHANDLER_H
+#define QDDSHANDLER_H
 
 #include <QtGui/QImageIOHandler>
 #include "ddsheader.h"
 
-class DDSHandler : public QImageIOHandler
+class QDDSHandler : public QImageIOHandler
 {
 public:
-    DDSHandler();
+    QDDSHandler();
 
     bool canRead() const;
     bool read(QImage *image);
@@ -32,4 +32,4 @@ private:
     mutable bool m_headerCached;
 };
 
-#endif // DDSHANDLER_H
+#endif // QDDSHANDLER_H

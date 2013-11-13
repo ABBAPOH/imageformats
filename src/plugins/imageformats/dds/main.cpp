@@ -1,15 +1,15 @@
 #include "main.h"
 
-#include "ddshandler.h"
+#include "qddshandler.h"
 
 #if QT_VERSION < 0x050000
-QStringList DDSPlugin::keys() const
+QStringList QDDSPlugin::keys() const
 {
     return QStringList() << "dds";
 }
 #endif
 
-QImageIOPlugin::Capabilities DDSPlugin::capabilities(QIODevice *device, const QByteArray &format) const
+QImageIOPlugin::Capabilities QDDSPlugin::capabilities(QIODevice *device, const QByteArray &format) const
 {
     if (!device || !device->isOpen())
         return 0;
@@ -17,22 +17,22 @@ QImageIOPlugin::Capabilities DDSPlugin::capabilities(QIODevice *device, const QB
         return 0;
 
     Capabilities cap;
-    if (device->isReadable() && DDSHandler::canRead(device))
+    if (device->isReadable() && QDDSHandler::canRead(device))
         cap |= CanRead;
     if (device->isWritable())
         cap |= CanWrite;
     return cap;
 }
 
-QImageIOHandler *DDSPlugin::create(QIODevice *device, const QByteArray &format) const
+QImageIOHandler *QDDSPlugin::create(QIODevice *device, const QByteArray &format) const
 {
-    QImageIOHandler *handler = new DDSHandler;
+    QImageIOHandler *handler = new QDDSHandler;
     handler->setDevice(device);
     handler->setFormat(format);
     return handler;
 }
 
 #if QT_VERSION < 0x050000
-Q_EXPORT_STATIC_PLUGIN(DDSPlugin)
-Q_EXPORT_PLUGIN2(dds, DDSPlugin)
+Q_EXPORT_STATIC_PLUGIN(QDDSPlugin)
+Q_EXPORT_PLUGIN2(dds, QDDSPlugin)
 #endif

@@ -8,12 +8,12 @@ DynamicLibrary {
     Depends { name: "Qt"; submodules: ["core", "gui"] }
 
     files : [
-        "ddshandler.cpp",
-        "ddshandler.h",
         "ddsheader.cpp",
         "ddsheader.h",
         "main.cpp",
         "main.h",
+        "qddshandler.cpp",
+        "qddshandler.h",
     ]
 
     Group {

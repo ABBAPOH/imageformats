@@ -3,7 +3,7 @@
 
 #include <QtGui/QImageIOPlugin>
 
-class DDSPlugin : public QImageIOPlugin
+class QDDSPlugin : public QImageIOPlugin
 {
     Q_OBJECT
 

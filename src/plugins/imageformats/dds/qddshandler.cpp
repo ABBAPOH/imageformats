@@ -1,10 +1,11 @@
-#include "ddshandler.h"
-#include "ddsheader.h"
+#include "qddshandler.h"
 
 #include <QtCore/QDebug>
 #include <QtCore/qmath.h>
 
 #include <QtGui/QImage>
+
+#include "ddsheader.h"
 
 #if QT_VERSION < 0x050000
 #define Q_STATIC_ASSERT(Condition) static_assert(bool(Condition), #Condition)
@@ -1147,13 +1148,13 @@ static QImage readCubeMap(QDataStream & s, const DDSHeader & dds, const int fmt)
     return img;
 }
 
-DDSHandler::DDSHandler() :
+QDDSHandler::QDDSHandler() :
     m_currentImage(0),
     m_headerCached(false)
 {
 }
 
-bool DDSHandler::canRead() const
+bool QDDSHandler::canRead() const
 {
     if (canRead(device())) {
         setFormat("dds");
@@ -1162,7 +1163,7 @@ bool DDSHandler::canRead() const
     return false;
 }
 
-bool DDSHandler::read(QImage *outImage)
+bool QDDSHandler::read(QImage *outImage)
 {
     if (!ensureHeaderCached())
         return false;
@@ -1189,7 +1190,7 @@ bool DDSHandler::read(QImage *outImage)
     return false;
 }
 
-bool DDSHandler::write(const QImage &outImage)
+bool QDDSHandler::write(const QImage &outImage)
 {
     QDataStream s( device() );
     s.setByteOrder(QDataStream::LittleEndian);
@@ -1241,7 +1242,7 @@ bool DDSHandler::write(const QImage &outImage)
     return true;
 }
 
-int DDSHandler::imageCount() const
+int QDDSHandler::imageCount() const
 {
     if (!ensureHeaderCached())
         return 0;
@@ -1249,7 +1250,7 @@ int DDSHandler::imageCount() const
     return qMax<quint32>(1, header.mipMapCount);
 }
 
-bool DDSHandler::jumpToImage(int imageNumber)
+bool QDDSHandler::jumpToImage(int imageNumber)
 {
     if (imageNumber >= imageCount())
         return false;
@@ -1258,12 +1259,12 @@ bool DDSHandler::jumpToImage(int imageNumber)
     return true;
 }
 
-QByteArray DDSHandler::name() const
+QByteArray QDDSHandler::name() const
 {
     return "dds";
 }
 
-bool DDSHandler::canRead(QIODevice *device)
+bool QDDSHandler::canRead(QIODevice *device)
 {
     if (!device) {
         qWarning() << "DDSHandler::canRead() called with no device";
@@ -1276,7 +1277,7 @@ bool DDSHandler::canRead(QIODevice *device)
     return device->peek(4) == "DDS ";
 }
 
-bool DDSHandler::ensureHeaderCached() const
+bool QDDSHandler::ensureHeaderCached() const
 {
     if (m_headerCached)
         return true;
@@ -1289,7 +1290,7 @@ bool DDSHandler::ensureHeaderCached() const
     qint64 oldPos = device()->pos();
     device()->seek(0);
 
-    DDSHandler *that = const_cast<DDSHandler *>(this);
+    QDDSHandler *that = const_cast<QDDSHandler *>(this);
     QDataStream s(device());
     s.setByteOrder(QDataStream::LittleEndian);
     s >> that->header;
@@ -1310,7 +1311,7 @@ bool DDSHandler::ensureHeaderCached() const
     return true;
 }
 
-bool DDSHandler::verifyHeader(const DDSHeader &dds) const
+bool QDDSHandler::verifyHeader(const DDSHeader &dds) const
 {
     quint32 flags = dds.flags;
     quint32 requiredFlags = DDSHeader::DDSD_CAPS | DDSHeader::DDSD_HEIGHT

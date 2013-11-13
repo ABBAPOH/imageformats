@@ -207,17 +207,17 @@ static inline void decodeColor(quint16 color, quint8 & red, quint8 & green, quin
 
 static inline quint8 calcC2(quint8 c0, quint8 c1)
 {
-    return 2*c0/3 + c1/3;
+    return 2.0*c0/3.0 + c1/3.0;
 }
 
 static inline quint8 calcC2a(quint8 c0, quint8 c1)
 {
-    return c0/2 + c1/2;
+    return c0/2.0 + c1/2.0;
 }
 
 static inline quint8 calcC3(quint8 c0, quint8 c1)
 {
-    return c0/3 + 2*c1/3;
+    return c0/3.0 + 2.0*c1/3.0;
 }
 
 static void DXTFillColors(QRgb * result, quint16 c0, quint16 c1, quint32 table, bool dxt1a = false)

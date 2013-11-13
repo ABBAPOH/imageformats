@@ -1,3 +1,4 @@
 {
-    "Keys": [ "dds" ]
+    "Keys": [ "dds" ],
+    "MimeTypes": [ "image/x-dds" ]
 }

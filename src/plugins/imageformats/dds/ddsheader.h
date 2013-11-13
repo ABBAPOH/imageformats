@@ -24,7 +24,7 @@ enum Format {
     FORMAT_A2R10G10B10          = 35,
     FORMAT_A16B16G16R16         = 36,
 
-//    FORMAT_A8P8                 = 40,
+    FORMAT_A8P8                 = 40,
     FORMAT_P8                   = 41,
 
     FORMAT_L8                   = 50,
@@ -48,29 +48,29 @@ enum Format {
     FORMAT_DXT4                 = 0x34545844, // "DXT4"
     FORMAT_DXT5                 = 0x35545844, // "DXT5"
 
-//    FORMAT_D16_LOCKABLE         = 70,
-//    FORMAT_D32                  = 71,
-//    FORMAT_D15S1                = 73,
-//    FORMAT_D24S8                = 75,
-//    FORMAT_D24X8                = 77,
-//    FORMAT_D24X4S4              = 79,
-//    FORMAT_D16                  = 80,
+    FORMAT_D16_LOCKABLE         = 70,
+    FORMAT_D32                  = 71,
+    FORMAT_D15S1                = 73,
+    FORMAT_D24S8                = 75,
+    FORMAT_D24X8                = 77,
+    FORMAT_D24X4S4              = 79,
+    FORMAT_D16                  = 80,
 
-//    FORMAT_D32F_LOCKABLE        = 82,
-//    FORMAT_D24FS8               = 83,
+    FORMAT_D32F_LOCKABLE        = 82,
+    FORMAT_D24FS8               = 83,
 
-//    FORMAT_D32_LOCKABLE         = 84,
-//    FORMAT_S8_LOCKABLE          = 85,
+    FORMAT_D32_LOCKABLE         = 84,
+    FORMAT_S8_LOCKABLE          = 85,
 
     FORMAT_L16                  = 81,
 
-//    FORMAT_VERTEXDATA           =100,
-//    FORMAT_INDEX16              =101,
-//    FORMAT_INDEX32              =102,
+    FORMAT_VERTEXDATA           =100,
+    FORMAT_INDEX16              =101,
+    FORMAT_INDEX32              =102,
 
     FORMAT_Q16W16V16U16         = 110,
 
-//    FORMAT_MULTI2_ARGB8         = 0x3154454d, // "MET1"
+    FORMAT_MULTI2_ARGB8         = 0x3154454d, // "MET1"
 
     FORMAT_R16F                 = 111,
     FORMAT_G16R16F              = 112,
@@ -82,9 +82,9 @@ enum Format {
 
     FORMAT_CxV8U8               = 117,
 
-//    FORMAT_A1                   = 118,
-//    FORMAT_A2B10G10R10_XR_BIAS  = 119,
-//    FORMAT_BINARYBUFFER         = 199,
+    FORMAT_A1                   = 118,
+    FORMAT_A2B10G10R10_XR_BIAS  = 119,
+    FORMAT_BINARYBUFFER         = 199,
 
     FORMAT_LAST                 =0x7fffffff
 };

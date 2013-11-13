@@ -927,7 +927,8 @@ static QImage readLayer(QDataStream & s, const DDSHeader & dds, const int format
         return readValueBased(s, dds, width, height, true);
     case FORMAT_P8:
         return readPaletteBased(s, width, height);
-//    case FORMAT_A8P8:
+    case FORMAT_A8P8:
+        break;
     case FORMAT_A16B16G16R16:
         return loadARGB16(s, width, height);
     case FORMAT_V8U8:
@@ -972,28 +973,30 @@ static QImage readLayer(QDataStream & s, const DDSHeader & dds, const int format
         return loadRG32F(s, width, height);
     case FORMAT_A32B32G32R32F:
         return loadARGB32F(s, width, height);
-//    case FORMAT_D16_LOCKABLE:
-//    case FORMAT_D32:
-//    case FORMAT_D15S1:
-//    case FORMAT_D24S8:
-//    case FORMAT_D24X8:
-//    case FORMAT_D24X4S4:
-//    case FORMAT_D16:
-//    case FORMAT_D32F_LOCKABLE:
-//    case FORMAT_D24FS8:
-//    case FORMAT_D32_LOCKABLE:
-//    case FORMAT_S8_LOCKABLE:
-//    case FORMAT_VERTEXDATA:
-//    case FORMAT_INDEX16:
-//    case FORMAT_INDEX32:
+    case FORMAT_D16_LOCKABLE:
+    case FORMAT_D32:
+    case FORMAT_D15S1:
+    case FORMAT_D24S8:
+    case FORMAT_D24X8:
+    case FORMAT_D24X4S4:
+    case FORMAT_D16:
+    case FORMAT_D32F_LOCKABLE:
+    case FORMAT_D24FS8:
+    case FORMAT_D32_LOCKABLE:
+    case FORMAT_S8_LOCKABLE:
+    case FORMAT_VERTEXDATA:
+    case FORMAT_INDEX16:
+    case FORMAT_INDEX32:
+        break;
     case FORMAT_Q16W16V16U16:
         return loadQ16W16V16U16(s, width, height);
-//    case FORMAT_MULTI2_ARGB8:
+    case FORMAT_MULTI2_ARGB8:
+        break;
     case FORMAT_CxV8U8:
         return loadCxV8U8(s, width, height);
-//    case FORMAT_A1:
-//    case FORMAT_A2B10G10R10_XR_BIAS:
-//    case FORMAT_BINARYBUFFER:
+    case FORMAT_A1:
+    case FORMAT_A2B10G10R10_XR_BIAS:
+    case FORMAT_BINARYBUFFER:
     case FORMAT_LAST:
         break;
     }
@@ -1039,8 +1042,8 @@ static qint64 mipmapSize(const DDSHeader &dds, const int format, const int level
         return 256 + w*h*8;
     case FORMAT_A16B16G16R16:
         return w*h*4*2;
-//    case FORMAT_A8P8:
-//        break;
+    case FORMAT_A8P8:
+        break;
     case FORMAT_V8U8:
     case FORMAT_L6V5U5:
         return w*h*2;
@@ -1061,23 +1064,24 @@ static qint64 mipmapSize(const DDSHeader &dds, const int format, const int level
     case FORMAT_DXT4:
     case FORMAT_DXT5:
         return ((w+3)/4)*((h+3)/4)*16;
-//    case FORMAT_D16_LOCKABLE:
-//    case FORMAT_D32:
-//    case FORMAT_D15S1:
-//    case FORMAT_D24S8:
-//    case FORMAT_D24X8:
-//    case FORMAT_D24X4S4:
-//    case FORMAT_D16:
-//    case FORMAT_D32F_LOCKABLE:
-//    case FORMAT_D24FS8:
-//    case FORMAT_D32_LOCKABLE:
-//    case FORMAT_S8_LOCKABLE:
-//    case FORMAT_VERTEXDATA:
-//    case FORMAT_INDEX16:
-//    case FORMAT_INDEX32:
+    case FORMAT_D16_LOCKABLE:
+    case FORMAT_D32:
+    case FORMAT_D15S1:
+    case FORMAT_D24S8:
+    case FORMAT_D24X8:
+    case FORMAT_D24X4S4:
+    case FORMAT_D16:
+    case FORMAT_D32F_LOCKABLE:
+    case FORMAT_D24FS8:
+    case FORMAT_D32_LOCKABLE:
+    case FORMAT_S8_LOCKABLE:
+    case FORMAT_VERTEXDATA:
+    case FORMAT_INDEX16:
+    case FORMAT_INDEX32:
+        break;
     case FORMAT_Q16W16V16U16:
         return w*h*4*2;
-//    case FORMAT_MULTI2_ARGB8:
+    case FORMAT_MULTI2_ARGB8:
         break;
     case FORMAT_R16F:
         return w*h*1*2;
@@ -1093,9 +1097,9 @@ static qint64 mipmapSize(const DDSHeader &dds, const int format, const int level
         return w*h*4*4;
     case FORMAT_CxV8U8:
         return w*h*2;
-//    case FORMAT_A1:
-//    case FORMAT_A2B10G10R10_XR_BIAS:
-//    case FORMAT_BINARYBUFFER:
+    case FORMAT_A1:
+    case FORMAT_A2B10G10R10_XR_BIAS:
+    case FORMAT_BINARYBUFFER:
     case FORMAT_LAST:
         break;
     }

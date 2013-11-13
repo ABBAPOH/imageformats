@@ -45,6 +45,8 @@
 
 #include <QtCore/QDataStream>
 
+QT_BEGIN_NAMESPACE
+
 enum Format {
     FORMAT_UNKNOWN              = 0,
 
@@ -340,5 +342,7 @@ struct DDSHeaderDX10
 
 QDataStream & operator>>(QDataStream &s, DDSHeaderDX10 &header);
 QDataStream & operator<<(QDataStream &s, const DDSHeaderDX10 &header);
+
+QT_END_NAMESPACE
 
 #endif // DDSHEADER_H

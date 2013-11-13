@@ -49,6 +49,8 @@
 
 #include "ddsheader.h"
 
+QT_BEGIN_NAMESPACE
+
 enum Colors {
     Red = 0,
     Green,
@@ -1379,3 +1381,5 @@ bool QDDSHandler::verifyHeader(const DDSHeader &dds) const
 
     return true;
 }
+
+QT_END_NAMESPACE

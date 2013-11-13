@@ -46,6 +46,8 @@
 
 #include "qddshandler.h"
 
+QT_BEGIN_NAMESPACE
+
 QImageIOPlugin::Capabilities QDDSPlugin::capabilities(QIODevice *device, const QByteArray &format) const
 {
     if (!device || !device->isOpen())
@@ -68,5 +70,7 @@ QImageIOHandler *QDDSPlugin::create(QIODevice *device, const QByteArray &format)
     handler->setFormat(format);
     return handler;
 }
+
+QT_END_NAMESPACE
 
 #endif // QT_NO_IMAGEFORMATPLUGIN

@@ -42,6 +42,8 @@
 
 #include "ddsheader.h"
 
+QT_BEGIN_NAMESPACE
+
 QDataStream & operator>>(QDataStream &s, DDSPixelFormat &pixelFormat)
 {
     s >> pixelFormat.size;
@@ -131,3 +133,5 @@ QDataStream &operator<<(QDataStream &s, const DDSHeaderDX10 &header)
     s << header.reserved;
     return s;
 }
+
+QT_END_NAMESPACE

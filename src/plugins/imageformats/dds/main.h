@@ -51,6 +51,8 @@
 #undef QT_NO_IMAGEFORMAT_DDS
 #endif
 
+QT_BEGIN_NAMESPACE
+
 class QDDSPlugin : public QImageIOPlugin
 {
     Q_OBJECT
@@ -59,6 +61,8 @@ public:
     Capabilities capabilities(QIODevice *device, const QByteArray &format) const;
     QImageIOHandler *create(QIODevice *device, const QByteArray &format = QByteArray()) const;
 };
+
+QT_END_NAMESPACE
 
 #endif // QT_NO_IMAGEFORMATPLUGIN
 

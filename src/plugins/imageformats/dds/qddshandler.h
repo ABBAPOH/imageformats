@@ -46,6 +46,8 @@
 #include <QtGui/qimageiohandler.h>
 #include "ddsheader.h"
 
+QT_BEGIN_NAMESPACE
+
 class QDDSHandler : public QImageIOHandler
 {
 public:
@@ -73,5 +75,7 @@ private:
     int m_currentImage;
     mutable bool m_headerCached;
 };
+
+QT_END_NAMESPACE
 
 #endif // QDDSHANDLER_H

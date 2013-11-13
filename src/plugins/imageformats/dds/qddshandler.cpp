@@ -42,10 +42,10 @@
 
 #include "qddshandler.h"
 
-#include <QtCore/QDebug>
+#include <QtCore/qdebug.h>
 #include <QtCore/qmath.h>
 
-#include <QtGui/QImage>
+#include <QtGui/qimage.h>
 
 #include "ddsheader.h"
 

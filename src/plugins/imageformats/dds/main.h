@@ -43,7 +43,7 @@
 #ifndef MAIN_H
 #define MAIN_H
 
-#include <QtGui/QImageIOPlugin>
+#include <QtGui/qimageiohandler.h>
 
 class QDDSPlugin : public QImageIOPlugin
 {

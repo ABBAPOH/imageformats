@@ -43,7 +43,7 @@
 #ifndef QDDSHANDLER_H
 #define QDDSHANDLER_H
 
-#include <QtGui/QImageIOHandler>
+#include <QtGui/qimageiohandler.h>
 #include "ddsheader.h"
 
 class QDDSHandler : public QImageIOHandler

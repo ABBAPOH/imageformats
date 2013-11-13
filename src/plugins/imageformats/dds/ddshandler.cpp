@@ -90,6 +90,7 @@ static const FormatInfo formatInfos[] = {
     { FORMAT_A4L4,        DDSPixelFormat::DDPF_LA,   8,  0x0000000f, 0x00000000, 0x00000000, 0x000000f0 }, // 52
 
     { FORMAT_V8U8,        DDSPixelFormat::DDPF_NORMAL, 16, 0x000000ff, 0x0000ff00, 0x00000000, 0x00000000 }, // 60
+    { FORMAT_L6V5U5,                                0, 16, 0x0000001f, 0x000003e0, 0x0000fc00, 0x00000000 }, // 61
     { FORMAT_X8L8V8U8,                              0, 32, 0x000000ff, 0x0000ff00, 0x00ff0000, 0x00000000 }, // 62
     { FORMAT_Q8W8V8U8,    DDSPixelFormat::DDPF_NORMAL, 32, 0x000000ff, 0x0000ff00, 0x00ff0000, 0xff000000 }, // 63
     { FORMAT_V16U16,      DDSPixelFormat::DDPF_NORMAL, 32, 0x0000ffff, 0xffff0000, 0x00000000, 0x00000000 }, // 64
@@ -728,6 +729,23 @@ static QImage loadV8U8(QDataStream &s, quint32 width, quint32 height)
     return image;
 }
 
+static QImage loadL6V5U5(QDataStream &s, quint32 width, quint32 height)
+{
+    QImage image(width, height, QImage::Format_ARGB32);
+
+    quint16 tmp;
+    for (quint32 y = 0; y < height; y++) {
+        for (quint32 x = 0; x < width; x++) {
+            s >> tmp;
+            quint8 r = qint8((tmp & 0x001f) >> 0) * 0xff/0x1f + 128;
+            quint8 g = qint8((tmp & 0x03e0) >> 5) * 0xff/0x1f + 128;
+            quint8 b = quint8((tmp & 0xfc00) >> 10) * 0xff/0x3f;
+            image.setPixel(x, y, qRgba(r, g, 0xff, b));
+        }
+    }
+    return image;
+}
+
 static QImage loadX8L8V8U8(QDataStream &s, quint32 width, quint32 height)
 {
     QImage image(width, height, QImage::Format_ARGB32);
@@ -914,10 +932,10 @@ static QImage readLayer(QDataStream & s, const DDSHeader & dds, const int format
         return loadARGB16(s, width, height);
     case FORMAT_V8U8:
         return loadV8U8(s, width, height);
+    case FORMAT_L6V5U5:
+        return loadL6V5U5(s, width, height);
     case FORMAT_X8L8V8U8:
         return loadX8L8V8U8(s, width, height);
-    case FORMAT_L6V5U5:
-        break;
     case FORMAT_Q8W8V8U8:
         return loadQ8W8V8U8(s, width, height);
     case FORMAT_V16U16:
@@ -1024,9 +1042,8 @@ static qint64 mipmapSize(const DDSHeader &dds, const int format, const int level
 //    case FORMAT_A8P8:
 //        break;
     case FORMAT_V8U8:
-        return w*h*2;
     case FORMAT_L6V5U5:
-        break;
+        return w*h*2;
     case FORMAT_X8L8V8U8:
     case FORMAT_Q8W8V8U8:
     case FORMAT_V16U16:

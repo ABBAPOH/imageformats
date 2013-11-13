@@ -47,6 +47,10 @@
 
 #ifndef QT_NO_IMAGEFORMATPLUGIN
 
+#ifdef QT_NO_IMAGEFORMAT_DDS
+#undef QT_NO_IMAGEFORMAT_DDS
+#endif
+
 class QDDSPlugin : public QImageIOPlugin
 {
     Q_OBJECT

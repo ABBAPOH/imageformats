@@ -45,6 +45,8 @@
 
 #include <QtGui/qimageiohandler.h>
 
+#ifndef QT_NO_IMAGEFORMATPLUGIN
+
 class QDDSPlugin : public QImageIOPlugin
 {
     Q_OBJECT
@@ -53,5 +55,7 @@ public:
     Capabilities capabilities(QIODevice *device, const QByteArray &format) const;
     QImageIOHandler *create(QIODevice *device, const QByteArray &format = QByteArray()) const;
 };
+
+#endif // QT_NO_IMAGEFORMATPLUGIN
 
 #endif // MAIN_H

@@ -42,6 +42,8 @@
 
 #include "main.h"
 
+#ifndef QT_NO_IMAGEFORMATPLUGIN
+
 #include "qddshandler.h"
 
 QImageIOPlugin::Capabilities QDDSPlugin::capabilities(QIODevice *device, const QByteArray &format) const
@@ -66,3 +68,5 @@ QImageIOHandler *QDDSPlugin::create(QIODevice *device, const QByteArray &format)
     handler->setFormat(format);
     return handler;
 }
+
+#endif // QT_NO_IMAGEFORMATPLUGIN

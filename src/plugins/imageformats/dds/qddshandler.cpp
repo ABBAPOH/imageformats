@@ -49,10 +49,6 @@
 
 #include "ddsheader.h"
 
-#if QT_VERSION < 0x050000
-#define Q_STATIC_ASSERT(Condition) static_assert(bool(Condition), #Condition)
-#endif
-
 enum Colors {
     Red = 0,
     Green,

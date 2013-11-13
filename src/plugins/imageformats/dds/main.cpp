@@ -44,13 +44,6 @@
 
 #include "qddshandler.h"
 
-#if QT_VERSION < 0x050000
-QStringList QDDSPlugin::keys() const
-{
-    return QStringList() << "dds";
-}
-#endif
-
 QImageIOPlugin::Capabilities QDDSPlugin::capabilities(QIODevice *device, const QByteArray &format) const
 {
     if (!device || !device->isOpen())
@@ -73,8 +66,3 @@ QImageIOHandler *QDDSPlugin::create(QIODevice *device, const QByteArray &format)
     handler->setFormat(format);
     return handler;
 }
-
-#if QT_VERSION < 0x050000
-Q_EXPORT_STATIC_PLUGIN(QDDSPlugin)
-Q_EXPORT_PLUGIN2(dds, QDDSPlugin)
-#endif

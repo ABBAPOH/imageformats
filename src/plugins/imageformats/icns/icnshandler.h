@@ -3,13 +3,14 @@
 
 #include <cmath>
 #include <QtGui/QImageIOHandler>
+#include <QtGui/QImageReader>
 #include <QtGui/QImage>
 #include <QtCore/QVector>
 #include <QtCore/QBuffer>
 #if QT_VERSION >= 0x050000
 #include <QtCore/QRegularExpression>
 #endif
-#include <QDebug>
+#include <QtCore/QDebug>
 
 struct IcnsBlockHeader {
     quint32 OSType;
@@ -40,17 +41,17 @@ class QIcnsHandler : public QImageIOHandler
         IconGroupOver       = 0x72  // [NYI][DEPRECATED] "r" from OSType "over" (ostype: 0x6f766572)
     };
     enum IconBitDepth {
-        IconDepthAny    = 0, // placeholder
+        IconDepthUnk    = 0, // placeholder
         IconMono        = 1,
         Icon4bit        = 4,
         Icon8bit        = 8,
         Icon32bit       = 32
     };
     enum IconMaskType {
+        IconMaskUnk,    // Not identified yet
         IconNoMask,     // Plain icon without alpha
         IconPlusMask,   // Plain icon and alpha mask (double size)
-        IconIsMask,     // The whole icon entry is alpha mask
-        IconMaskUnk     // Not identified yet
+        IconIsMask      // The whole icon entry is alpha mask
     };
 
     class QIcnsIconEntry
@@ -111,7 +112,6 @@ private:
     bool scanDevice();
     QImage iconAlphaAt(int index);
 
-    //bool parseIconDetails(IcnsIconEntry & icon);
     bool addIcon(QIcnsIconEntry &icon);
 };
 

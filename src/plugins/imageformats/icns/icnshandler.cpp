@@ -67,12 +67,21 @@ bool QIcnsHandler::read(QImage *outImage)
 
     QIcnsIconEntry iconEntry = m_icons.at(m_currentIconIndex);
     if(m_scanned && m_stream.device()->seek(iconEntry.dataOffset())) {
-        if(m_stream.device()->peek(8).toHex() == "89504e470d0a1a0a")
+        QList<QByteArray> formats = QImageReader::supportedImageFormats();
+        if(m_stream.device()->peek(8).toHex() == "89504e470d0a1a0a") {
             // if PNG magic
-            img = QImage::fromData(m_stream.device()->peek(iconEntry.dataLength()), "png");
-        else if(m_stream.device()->peek(12).toHex() == "0000000c6a5020200d0a870a")
+            if(formats.contains("png"))
+                img = QImage::fromData(m_stream.device()->peek(iconEntry.dataLength()), "png");
+            else
+                qWarning("QIcnsHandler::read(): Read failed, PNG is not supported by your Qt distribution. OSType: %u", iconEntry.getOSType());
+        }
+        else if(m_stream.device()->peek(12).toHex() == "0000000c6a5020200d0a870a") {
             // if JPEG 2000 magic
-            img = QImage::fromData(m_stream.device()->peek(iconEntry.dataLength()), "jp2");
+            if(formats.contains("jp2"))
+                img = QImage::fromData(m_stream.device()->peek(iconEntry.dataLength()), "jp2");
+            else
+                qWarning("QIcnsHandler::read(): Read failed, JPEG2000 is not supported by your Qt distribution. OSType: %u", iconEntry.getOSType());
+        }
         else if(iconEntry.group() == IconGroupCompressed)
             qWarning("QIcnsHandler::read(): Unsupported compressed icon format, OSType: %u", iconEntry.getOSType());
         else if(iconEntry.height() == 0 || iconEntry.width() == 0)
@@ -718,9 +727,9 @@ QIcnsHandler::QIcnsIconEntry::QIcnsIconEntry()
     h.OSType = 0;
     h.length = 0;
     m_header = h;
-    m_iconGroup = IconGroup(0);
-    m_iconDepth = IconBitDepth(0);
-    m_iconMaskType = IconMaskType(0);
+    m_iconGroup = IconGroupUnk;
+    m_iconDepth = IconDepthUnk;
+    m_iconMaskType = IconMaskUnk;
     m_iconWidth = 0;
     m_iconHeight = 0;
     m_iconIsParsed = false;

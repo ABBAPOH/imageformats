@@ -165,14 +165,20 @@ bool QIcnsHandler::write(const QImage &image)
     // Currently uses non-hardcoded OSTypes.
     bool retValue = false;
 
-    const int width = image.size().width();
-    const int height = image.size().height();
+    QImage img = image;
+    const int width = img.size().width();
+    const int height = img.size().height();
     const bool sizeIsCorrect = (width == height) && (width >= 16) && ((width & (width - 1)) == 0);
     if (device->isWritable() && sizeIsCorrect) {
         // Construct icon OSType
         int i = width;
         uint p = 0;
         while (i >>= 1) {p++;}
+        if(p > 10) {
+            // Force resizing to 1024x1024. Values over 10 are reserved for retina icons
+            p = 10;
+            img = image.scaled(1024,1024);
+        }
         const QByteArray ostypebase = (p < 7) ? "ipc" : "ic"; // small / big icons naming policy
         const QByteArray ostypenum = (ostypebase.size() > 2 || p >= 10) ? QByteArray::number(p) : QByteArray::number(p).prepend("0");
         const quint32 ostype = QByteArray(ostypebase).append(ostypenum).toHex().toUInt(NULL,16);
@@ -191,7 +197,7 @@ bool QIcnsHandler::write(const QImage &image)
         // Construct image data
         QByteArray imageData;
         QBuffer buffer(&imageData);
-        if(buffer.open(QIODevice::WriteOnly) && image.save(&buffer, "png")) {
+        if(buffer.open(QIODevice::WriteOnly) && img.save(&buffer, "png")) {
             buffer.close();
             iconEntry.length = IcnsBlockHeaderSize + imageData.size();
             tocEntry.length = iconEntry.length;

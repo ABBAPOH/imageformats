@@ -11,11 +11,7 @@ DynamicLibrary {
         "main.h",
         "main.cpp",
         "icnshandler.h",
-        "icnshandler.cpp",
-        "icnsformat.h",
-        "icnspalette.h",
-        "icnsreader.h",
-        "icnsreader.cpp"
+        "icnshandler.cpp"
     ]
 
     Group {

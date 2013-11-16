@@ -191,6 +191,8 @@ struct DDSHeader
         DDSCAPS2_VOLUME          = 0x200000
     };
 
+    enum { ReservedCount = 11 };
+
     quint32 magic;
     quint32 size;
     quint32 flags;
@@ -199,7 +201,7 @@ struct DDSHeader
     quint32 pitchOrLinearSize;
     quint32 depth;
     quint32 mipMapCount;
-    quint32 reserved1[11];
+    quint32 reserved1[ReservedCount];
     DDSPixelFormat pixelFormat;
     quint32 caps;
     quint32 caps2;

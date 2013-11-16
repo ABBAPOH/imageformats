@@ -80,9 +80,8 @@ QDataStream & operator>>(QDataStream &s, DDSHeader &header)
     s >> header.pitchOrLinearSize;
     s >> header.depth;
     s >> header.mipMapCount;
-    for (int i = 0; i< 11; i++) {
+    for (int i = 0; i < DDSHeader::ReservedCount; i++)
         s >> header.reserved1[i];
-    }
     s >> header.pixelFormat;
     s >> header.caps;
     s >> header.caps2;
@@ -102,9 +101,8 @@ QDataStream & operator<<(QDataStream &s, const DDSHeader &header)
     s << header.pitchOrLinearSize;
     s << header.depth;
     s << header.mipMapCount;
-    for (int i = 0; i< 11; i++) {
+    for (int i = 0; i < DDSHeader::ReservedCount; i++)
         s << header.reserved1[i];
-    }
     s << header.pixelFormat;
     s << header.caps;
     s << header.caps2;

@@ -127,4 +127,4 @@ void DDSTest::testMipmaps()
 }
 
 QTEST_MAIN(DDSTest)
-#include "tst_dds.moc"
+#include "tst_qdds.moc"

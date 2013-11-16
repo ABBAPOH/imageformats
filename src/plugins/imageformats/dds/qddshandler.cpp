@@ -1205,29 +1205,25 @@ bool QDDSHandler::canRead() const
 
 bool QDDSHandler::read(QImage *outImage)
 {
-    if (!ensureHeaderCached())
+    if (!ensureHeaderCached() || device()->isSequential())
         return false;
 
-    if (!device()->isSequential()) {
-        qint64 pos = headerSize + mipmapOffset(m_header, m_format, m_currentImage);
-        if (!device()->seek(pos))
-            return false;
-        QDataStream s(device());
-        s.setByteOrder(QDataStream::LittleEndian);
+    qint64 pos = headerSize + mipmapOffset(m_header, m_format, m_currentImage);
+    if (!device()->seek(pos))
+        return false;
+    QDataStream s(device());
+    s.setByteOrder(QDataStream::LittleEndian);
 
-        QImage img;
-        if (isCubeMap(m_header))
-            img = readCubeMap(s, m_header, m_format);
-        else
-            img = readTexture(s, m_header, m_format, m_currentImage);
+    QImage img;
+    if (isCubeMap(m_header))
+        img = readCubeMap(s, m_header, m_format);
+    else
+        img = readTexture(s, m_header, m_format, m_currentImage);
 
-        bool ok = s.status() == QDataStream::Ok && !img.isNull();
-        if (ok)
-            *outImage = img;
-        return ok;
-    }
-
-    return false;
+    bool ok = s.status() == QDataStream::Ok && !img.isNull();
+    if (ok)
+        *outImage = img;
+    return ok;
 }
 
 bool QDDSHandler::write(const QImage &outImage)

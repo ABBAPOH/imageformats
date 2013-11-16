@@ -1238,7 +1238,7 @@ bool QDDSHandler::write(const QImage &outImage)
     dds.pitchOrLinearSize = 128;
     dds.depth = 0;
     dds.mipMapCount = 0;
-    for (int i = 0; i< DDSHeader::ReservedCount; i++)
+    for (int i = 0; i < DDSHeader::ReservedCount; i++)
         dds.reserved1[i] = 0;
     dds.caps = DDSHeader::DDSCAPS_TEXTURE;
     dds.caps2 = 0;

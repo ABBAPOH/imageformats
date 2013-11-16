@@ -1153,9 +1153,8 @@ static qint64 mipmapSize(const DDSHeader &dds, const int format, const int level
 static qint64 mipmapOffset(const DDSHeader &dds, const int format, const int level)
 {
     qint64 result = 0;
-    for (int i = 0; i < level; ++i) {
+    for (int i = 0; i < level; ++i)
         result += mipmapSize(dds, format, i);
-    }
     return result;
 }
 

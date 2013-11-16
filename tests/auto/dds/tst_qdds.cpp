@@ -1,7 +1,7 @@
 #include <QtTest/QtTest>
 #include <QtGui/QtGui>
 
-class DDSTest: public QObject
+class tst_qdds: public QObject
 {
     Q_OBJECT
 
@@ -29,7 +29,7 @@ static bool compareImages(const QImage &first, const QImage &second)
     return true;
 }
 
-void DDSTest::readImage_data()
+void tst_qdds::readImage_data()
 {
     QTest::addColumn<QString>("fileName");
     QTest::addColumn<QSize>("size");
@@ -81,7 +81,7 @@ void DDSTest::readImage_data()
     QTest::newRow("45") << QString("YUY2") << QSize(64, 64);
 }
 
-void DDSTest::readImage()
+void tst_qdds::readImage()
 {
     QFETCH(QString, fileName);
     QFETCH(QSize, size);
@@ -96,7 +96,7 @@ void DDSTest::readImage()
     QVERIFY(compareImages(image, QImage(sourcePath)) == true);
 }
 
-void DDSTest::testMipmaps_data()
+void tst_qdds::testMipmaps_data()
 {
     QTest::addColumn<QString>("fileName");
     QTest::addColumn<QSize>("size");
@@ -105,7 +105,7 @@ void DDSTest::testMipmaps_data()
     QTest::newRow("1") << QString("mipmaps") << QSize(64, 64) << 7;
 }
 
-void DDSTest::testMipmaps()
+void tst_qdds::testMipmaps()
 {
     QFETCH(QString, fileName);
     QFETCH(QSize, size);
@@ -126,5 +126,5 @@ void DDSTest::testMipmaps()
     }
 }
 
-QTEST_MAIN(DDSTest)
+QTEST_MAIN(tst_qdds)
 #include "tst_qdds.moc"

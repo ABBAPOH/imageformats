@@ -69,9 +69,9 @@ private:
     bool verifyHeader(const DDSHeader &dds) const;
 
 private:
-    DDSHeader header;
+    DDSHeader m_header;
     int m_format;
-    DDSHeaderDX10 header10;
+    DDSHeaderDX10 m_header10;
     int m_currentImage;
     mutable bool m_headerCached;
 };

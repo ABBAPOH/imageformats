@@ -1209,17 +1209,17 @@ bool QDDSHandler::read(QImage *outImage)
         return false;
 
     if (!device()->isSequential()) {
-        qint64 pos = headerSize + mipmapOffset(header, m_format, m_currentImage);
+        qint64 pos = headerSize + mipmapOffset(m_header, m_format, m_currentImage);
         if (!device()->seek(pos))
             return false;
         QDataStream s(device());
         s.setByteOrder(QDataStream::LittleEndian);
 
         QImage img;
-        if (isCubeMap(header))
-            img = readCubeMap(s, header, m_format);
+        if (isCubeMap(m_header))
+            img = readCubeMap(s, m_header, m_format);
         else
-            img = readTexture(s, header, m_format, m_currentImage);
+            img = readTexture(s, m_header, m_format, m_currentImage);
 
         bool ok = s.status() == QDataStream::Ok && !img.isNull();
         if (ok)
@@ -1287,7 +1287,7 @@ int QDDSHandler::imageCount() const
     if (!ensureHeaderCached())
         return 0;
 
-    return qMax<quint32>(1, header.mipMapCount);
+    return qMax<quint32>(1, m_header.mipMapCount);
 }
 
 bool QDDSHandler::jumpToImage(int imageNumber)
@@ -1333,19 +1333,19 @@ bool QDDSHandler::ensureHeaderCached() const
     QDDSHandler *that = const_cast<QDDSHandler *>(this);
     QDataStream s(device());
     s.setByteOrder(QDataStream::LittleEndian);
-    s >> that->header;
-    if (header.pixelFormat.fourCC == dx10Magic)
-        s >> that->header10;
+    s >> that->m_header;
+    if (m_header.pixelFormat.fourCC == dx10Magic)
+        s >> that->m_header10;
 
     device()->seek(oldPos);
 
     if (s.status() != QDataStream::Ok)
         return false;
 
-    if (!verifyHeader(header))
+    if (!verifyHeader(m_header))
         return false;
 
-    that->m_format = getFormat(header);
+    that->m_format = getFormat(m_header);
 
     m_headerCached = true;
     return true;

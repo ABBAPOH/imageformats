@@ -1365,7 +1365,7 @@ bool QDDSHandler::verifyHeader(const DDSHeader &dds) const
         return false;
     }
 
-    if (dds.width > INT32_MAX || dds.height > INT32_MAX) {
+    if (dds.width > INT_MAX || dds.height > INT_MAX) {
         qWarning() << "Can't read image with w/h bigger than INT_MAX";
         return false;
     }

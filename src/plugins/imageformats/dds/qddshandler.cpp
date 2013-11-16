@@ -1266,16 +1266,17 @@ bool QDDSHandler::write(const QImage &outImage)
     dds.pixelFormat.bBitMask = 0x000000ff;
 
     s << dds;
-    for (int width = 0; width < outImage.width(); width++)
+    for (int width = 0; width < outImage.width(); width++) {
         for (int height = 0; height < outImage.height(); height++) {
-        QRgb pixel = outImage.pixel(height, width);;
-        quint32 color;
-        quint8 alpha = qAlpha(pixel);
-        quint8 red = qRed(pixel);
-        quint8 green = qGreen(pixel);
-        quint8 blue = qBlue(pixel);
-        color = (alpha << 24) + (red << 16) + (green << 8) + blue;
-        s << color;
+            QRgb pixel = outImage.pixel(height, width);;
+            quint32 color;
+            quint8 alpha = qAlpha(pixel);
+            quint8 red = qRed(pixel);
+            quint8 green = qGreen(pixel);
+            quint8 blue = qBlue(pixel);
+            color = (alpha << 24) + (red << 16) + (green << 8) + blue;
+            s << color;
+        }
     }
 
     return true;

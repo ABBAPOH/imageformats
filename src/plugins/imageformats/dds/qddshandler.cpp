@@ -135,7 +135,7 @@ static const FormatInfo formatInfos[] = {
     { FORMAT_X8L8V8U8,                              0, 32, 0x000000ff, 0x0000ff00, 0x00ff0000, 0x00000000 }, // 62
     { FORMAT_Q8W8V8U8,    DDSPixelFormat::DDPF_NORMAL, 32, 0x000000ff, 0x0000ff00, 0x00ff0000, 0xff000000 }, // 63
     { FORMAT_V16U16,      DDSPixelFormat::DDPF_NORMAL, 32, 0x0000ffff, 0xffff0000, 0x00000000, 0x00000000 }, // 64
-    { FORMAT_A2W10V10U10, DDSPixelFormat::DDPF_NORMAL, 32, 0x3ff00000, 0x000ffc00, 0x000003ff, 0xc0000000 }, // 67
+    { FORMAT_A2W10V10U10, DDSPixelFormat::DDPF_NORMAL, 32, 0x3ff00000, 0x000ffc00, 0x000003ff, 0xc0000000 } // 67
 };
 static const size_t formatInfosSize = sizeof(formatInfos)/sizeof(FormatInfo);
 
@@ -158,7 +158,7 @@ static const Format knownFourCCs[] = {
     FORMAT_R32F,
     FORMAT_G32R32F,
     FORMAT_A32B32G32R32F,
-    FORMAT_CxV8U8,
+    FORMAT_CxV8U8
 };
 static const size_t knownFourCCsSize = sizeof(knownFourCCs)/sizeof(Format);
 
@@ -192,7 +192,7 @@ static inline quint32 readValue(QDataStream &s, quint32 size)
     for (unsigned bit = 0; bit < size/8; ++bit) {
         quint8 tmp;
         s >> tmp;
-        value = value + (quint32(tmp) << 8*bit);
+        value += (quint32(tmp) << 8*bit);
     }
     return value;
 }
@@ -209,11 +209,9 @@ static inline bool isCubeMap(const DDSHeader &dds)
 
 static inline QRgb yuv2rgb(quint8 Y, quint8 U, quint8 V)
 {
-    quint8 r, g, b;
-    r = Y + 1.13983 * (V - 128);
-    g = Y - 0.39465 * (U - 128) - 0.58060 * (V - 128);
-    b = Y + 2.03211 * (U - 128);
-    return qRgb(r, g, b);
+    return qRgb(quint8(Y + 1.13983 * (V - 128)),
+                quint8(Y - 0.39465 * (U - 128) - 0.58060 * (V - 128)),
+                quint8(Y + 2.03211 * (U - 128)));
 }
 
 static Format getFormat(const DDSHeader &dds)

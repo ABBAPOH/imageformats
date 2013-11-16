@@ -6,5 +6,5 @@ CONFIG += testcase
 
 DESTDIR = ../../../
 
-SOURCES += tst_dds.cpp
-RESOURCES += tst_dds.qrc
+SOURCES += tst_qdds.cpp
+RESOURCES += tst_qdds.qrc

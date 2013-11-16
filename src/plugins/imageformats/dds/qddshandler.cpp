@@ -1214,11 +1214,9 @@ bool QDDSHandler::read(QImage *outImage)
     QDataStream s(device());
     s.setByteOrder(QDataStream::LittleEndian);
 
-    QImage img;
-    if (isCubeMap(m_header))
-        img = readCubeMap(s, m_header, m_format);
-    else
-        img = readTexture(s, m_header, m_format, m_currentImage);
+    QImage img = isCubeMap(m_header) ?
+                readCubeMap(s, m_header, m_format) :
+                readTexture(s, m_header, m_format, m_currentImage);
 
     bool ok = s.status() == QDataStream::Ok && !img.isNull();
     if (ok)

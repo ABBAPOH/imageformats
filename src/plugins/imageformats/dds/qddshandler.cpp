@@ -1197,7 +1197,7 @@ QDDSHandler::QDDSHandler() :
 bool QDDSHandler::canRead() const
 {
     if (canRead(device())) {
-        setFormat("dds");
+        setFormat(QByteArrayLiteral("dds"));
         return true;
     }
     return false;

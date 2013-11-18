@@ -283,10 +283,7 @@ static void DXTFillColors(QRgb * result, quint16 c0, quint16 c1, quint32 table, 
         r[2] = calcC2a(r[0], r[1]);
         g[2] = calcC2a(g[0], g[1]);
         b[2] = calcC2a(b[0], b[1]);
-        r[3] = 0;
-        g[3] = 0;
-        b[3] = 0;
-        a[3] = 0;
+        r[3] = g[3] = b[3] = a[3] = 0;
     }
 
     for (int k = 0; k < 4; k++)

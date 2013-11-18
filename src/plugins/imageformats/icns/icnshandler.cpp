@@ -772,10 +772,12 @@ QIcnsHandler::QIcnsIconEntry::QIcnsIconEntry(IcnsBlockHeader &header, quint32 im
     // Width/height/mask:
     if(m_iconGroup != IconGroupCompressed) {
         const float bytespp = ((float)m_iconDepth / 8);
-        const quint32 r1 = sqrt(m_imageDataLength/bytespp);
-        const quint32 r2 = sqrt((m_imageDataLength/bytespp)/2);
-        const bool r1IsPowerOfTwoOrDevidesBy16 = ((r1 >= 16 && ((r1 & (r1 - 1)) == 0)) || r1 % 16 == 0);
-        const bool r2IsPowerOfTwoOrDevidesBy16 = ((r2 >= 16 && ((r2 & (r2 - 1)) == 0)) || r2 % 16 == 0);
+        const qreal r1 = sqrt(m_imageDataLength/bytespp);
+        const qreal r2 = sqrt((m_imageDataLength/bytespp)/2);
+        const quint32 r1u = (quint32)r1;
+        const quint32 r2u = (quint32)r2;
+        const bool r1IsPowerOfTwoOrDevidesBy16 = (r1u == r1 && r1u % 16 == 0) || (r1u == r1 && r1 >= 16 && ((r1u & (r1u - 1)) == 0));
+        const bool r2IsPowerOfTwoOrDevidesBy16 = (r2u == r2 && r2u % 16 == 0) || (r2u == r2 && r2 >= 16 && ((r2u & (r2u - 1)) == 0));
 
         if(r1IsPowerOfTwoOrDevidesBy16) {
             m_iconMaskType = mask.isEmpty() ? IconNoMask : IconIsMask;

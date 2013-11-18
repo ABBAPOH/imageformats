@@ -288,11 +288,11 @@ static void DXTFillColors(QRgb * result, quint16 c0, quint16 c1, quint32 table, 
 
     for (int k = 0; k < 4; k++)
         for (int l = 0; l < 4; l++) {
-        unsigned index = table & 0x0003;
-        table >>= 2;
+            unsigned index = table & 0x0003;
+            table >>= 2;
 
-        result[k*4+l] = qRgba(r[index], g[index], b[index], a[index]);
-    }
+            result[k*4+l] = qRgba(r[index], g[index], b[index], a[index]);
+        }
 }
 
 template <DXTVersions version>

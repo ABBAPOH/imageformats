@@ -129,8 +129,8 @@ void tst_qdds::readImage()
     QFETCH(QString, fileName);
     QFETCH(QSize, size);
 
-    QString path = QString(":/data/%1.dds").arg(fileName);
-    QString sourcePath = QString(":/data/%1.png").arg(fileName);
+    const QString path = QStringLiteral(":/data/") + fileName + QStringLiteral(".dds");
+    const QString sourcePath = QStringLiteral(":/data/") + fileName + QStringLiteral(".png");
     QImageReader reader(path);
     QVERIFY(reader.canRead());
     QImage image = reader.read();
@@ -154,7 +154,7 @@ void tst_qdds::testMipmaps()
     QFETCH(QSize, size);
     QFETCH(int, imageCount);
 
-    QString path = QString(":/data/%1.dds").arg(fileName);
+    const QString path = QStringLiteral(":/data/") + fileName + QStringLiteral(".dds");
     QImageReader reader(path);
     QVERIFY(reader.canRead());
     QCOMPARE(reader.imageCount(), imageCount);

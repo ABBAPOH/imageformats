@@ -230,8 +230,9 @@ static Format getFormat(const DDSHeader &dds)
                  format.rBitMask == info.rBitMask &&
                  format.bBitMask == info.bBitMask &&
                  format.bBitMask == info.bBitMask &&
-                 format.aBitMask == info.aBitMask)
+                 format.aBitMask == info.aBitMask) {
                 return info.format;
+            }
         }
     }
 

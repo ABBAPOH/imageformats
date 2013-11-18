@@ -134,7 +134,7 @@ void tst_qdds::readImage()
     QImageReader reader(path);
     QVERIFY(reader.canRead());
     QImage image = reader.read();
-    QVERIFY(!image.isNull());
+    QVERIFY2(!image.isNull(), qPrintable(reader.errorString()));
     QCOMPARE(image.size(), size);
     QVERIFY(compareImages(image, QImage(sourcePath)) == true);
 }
@@ -162,8 +162,8 @@ void tst_qdds::testMipmaps()
     for (int i = 0; i < reader.imageCount(); ++i) {
         reader.jumpToImage(i);
         QImage image = reader.read();
+        QVERIFY2(!image.isNull(), qPrintable(reader.errorString()));
         QCOMPARE(image.size(), size / (1 << i));
-        QVERIFY(!image.isNull());
         QString sourcePath = QString(":/data/%1 %2.png").arg(fileName).arg(i);
         QVERIFY(compareImages(image, QImage(sourcePath)) == true);
     }

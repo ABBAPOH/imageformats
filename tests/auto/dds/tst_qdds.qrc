@@ -100,5 +100,7 @@
         <file>data/X8R8G8B8.png</file>
         <file>data/YUY2.dds</file>
         <file>data/YUY2.png</file>
+        <file>data/RXGB.dds</file>
+        <file>data/RXGB.png</file>
     </qresource>
 </RCC>

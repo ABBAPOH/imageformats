@@ -151,6 +151,7 @@ static const Format knownFourCCs[] = {
     FORMAT_DXT3,
     FORMAT_DXT4,
     FORMAT_DXT5,
+    FORMAT_RXGB,
     FORMAT_Q16W16V16U16,
     FORMAT_R16F,
     FORMAT_G16R16F,
@@ -450,12 +451,12 @@ static inline QImage loadDXT5(QDataStream &s, quint32 width, quint32 height)
     return loadDXT<Five>(s, width, height);
 }
 
-#if 0
 static inline QImage loadRXGB(QDataStream &s, quint32 width, quint32 height)
 {
-    return loadDXT(RXGB, s, width, height);
+    return loadDXT<RXGB>(s, width, height);
 }
 
+#if 0
 static QImage loadATI2(QDataStream &s, quint32 width, quint32 height)
 {
     QImage img(width, height, QImage::Format_RGB32);
@@ -1000,6 +1001,8 @@ static QImage readLayer(QDataStream & s, const DDSHeader & dds, const int format
         return loadDXT4(s, width, height);
     case FORMAT_DXT5:
         return loadDXT5(s, width, height);
+    case FORMAT_RXGB:
+        return loadRXGB(s, width, height);
     case FORMAT_R16F:
         return loadR16F(s, width, height);
     case FORMAT_G16R16F:

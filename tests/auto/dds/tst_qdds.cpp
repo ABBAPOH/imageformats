@@ -121,6 +121,7 @@ void tst_qdds::readImage_data()
     QTest::newRow("43") << QString("X8L8V8U8") << QSize(64, 64);
     QTest::newRow("44") << QString("X8R8G8B8") << QSize(64, 64);
     QTest::newRow("45") << QString("YUY2") << QSize(64, 64);
+    QTest::newRow("46") << QString("RXGB") << QSize(64, 64);
 }
 
 void tst_qdds::readImage()

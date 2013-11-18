@@ -91,6 +91,7 @@ enum Format {
     FORMAT_DXT3                 = 0x33545844, // "DXT3"
     FORMAT_DXT4                 = 0x34545844, // "DXT4"
     FORMAT_DXT5                 = 0x35545844, // "DXT5"
+    FORMAT_RXGB                 = 0x42475852, // "RXGB"
 
     FORMAT_D16_LOCKABLE         = 70,
     FORMAT_D32                  = 71,

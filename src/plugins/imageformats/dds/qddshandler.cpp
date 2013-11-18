@@ -300,10 +300,10 @@ inline void setAlphaDXT32Helper(QRgb * rgbArr, quint64 alphas)
 {
     Q_STATIC_ASSERT(version == Two || version == Three);
     for (int i = 0; i < 16; i++) {
-        quint8 alpha = 16*(alphas & 0x0f);
+        quint8 alpha = 16 * (alphas & 0x0f);
         QRgb rgb = rgbArr[i];
         if (version == Two) // DXT2
-            rgbArr[i] = qRgba(qRed(rgb)*alpha/0xff, qGreen(rgb)*alpha/0xff, qBlue(rgb)*alpha/0xff, alpha);
+            rgbArr[i] = qRgba(qRed(rgb) * alpha / 0xff, qGreen(rgb) * alpha / 0xff, qBlue(rgb) * alpha / 0xff, alpha);
         else if (version == Three) // DXT3
             rgbArr[i] = qRgba(qRed(rgb), qGreen(rgb), qBlue(rgb), alpha);
         alphas = alphas >> 4;
@@ -318,17 +318,17 @@ inline void setAlphaDXT45Helper(QRgb * rgbArr, quint64 alphas)
     a[0] = alphas & 0xff;
     a[1] = (alphas >> 8) & 0xff;
     if (a[0] > a[1]) {
-        a[2] = (6*a[0] + 1*a[1])/7;
-        a[3] = (5*a[0] + 2*a[1])/7;
-        a[4] = (4*a[0] + 3*a[1])/7;
-        a[5] = (3*a[0] + 4*a[1])/7;
-        a[6] = (2*a[0] + 5*a[1])/7;
-        a[7] = (1*a[0] + 6*a[1])/7;
+        a[2] = (6*a[0] + 1*a[1]) / 7;
+        a[3] = (5*a[0] + 2*a[1]) / 7;
+        a[4] = (4*a[0] + 3*a[1]) / 7;
+        a[5] = (3*a[0] + 4*a[1]) / 7;
+        a[6] = (2*a[0] + 5*a[1]) / 7;
+        a[7] = (1*a[0] + 6*a[1]) / 7;
     } else {
-        a[2] = (4*a[0] + 1*a[1])/5;
-        a[3] = (3*a[0] + 2*a[1])/5;
-        a[4] = (2*a[0] + 3*a[1])/5;
-        a[5] = (1*a[0] + 4*a[1])/5;
+        a[2] = (4*a[0] + 1*a[1]) / 5;
+        a[3] = (3*a[0] + 2*a[1]) / 5;
+        a[4] = (2*a[0] + 3*a[1]) / 5;
+        a[5] = (1*a[0] + 4*a[1]) / 5;
         a[6] = 0;
         a[7] = 255;
     }
@@ -338,7 +338,7 @@ inline void setAlphaDXT45Helper(QRgb * rgbArr, quint64 alphas)
         quint8 alpha = a[index];
         QRgb rgb = rgbArr[i];
         if (version == Four) // DXT4
-            rgbArr[i] = qRgba(qRed(rgb)*alpha/0xff, qGreen(rgb)*alpha/0xff, qBlue(rgb)*alpha/0xff, alpha);
+            rgbArr[i] = qRgba(qRed(rgb) * alpha / 0xff, qGreen(rgb) * alpha / 0xff, qBlue(rgb) * alpha / 0xff, alpha);
         else if (version == Five) // DXT5
             rgbArr[i] = qRgba(qRed(rgb), qGreen(rgb), qBlue(rgb), alpha);
         alphas = alphas >> 3;
@@ -413,7 +413,7 @@ static QImage loadDXT(QDataStream &s, quint32 width, quint32 height)
                 for (int l = 0; l < 4; l++) {
                     quint32 x = j + l, y = i + k;
                     if (x < width && y < height) {
-                        QRgb pixel = arr[k*4+l];
+                        QRgb pixel = arr[k * 4 + l];
                         if (version == RXGB)
                             pixel = invertRXGBColors(pixel);
                         img.setPixel(x, y, pixel);
@@ -468,7 +468,7 @@ static QImage loadATI2(QDataStream &s, quint32 width, quint32 height)
             s >> alpha2;
 
             QRgb arr[16];
-            memset(arr, 0, sizeof(QRgb)*16);
+            memset(arr, 0, sizeof(QRgb) * 16);
             setAplphaDXT45(arr, alpha1, false);
             for (int i = 0; i < 16; ++i) {
                 quint8 a = qAlpha(arr[i]);
@@ -480,7 +480,7 @@ static QImage loadATI2(QDataStream &s, quint32 width, quint32 height)
                 for (int l = 0; l < 4; l++) {
                     quint32 x = j + l, y = i + k;
                     if (x < width && y < height) {
-                        QRgb pixel = arr[k*4+l];
+                        QRgb pixel = arr[k * 4 + l];
                         const quint8 nx = qBlue(pixel);
                         const quint8 ny = qAlpha(pixel);
 
@@ -567,9 +567,9 @@ static double readFloat16(QDataStream &s)
     quint16 fraction = value & 0x3FF;
 
     if (exp == 0)
-        return sign*qPow(2.0, -14.0)*fraction/1024.0;
+        return sign * qPow(2.0, -14.0) * fraction / 1024.0;
     else
-        return sign*qPow(2.0, exp - 15)*(1 + fraction/1024.0);
+        return sign * qPow(2.0, exp - 15) * (1 + fraction / 1024.0);
 }
 
 static inline float readFloat32(QDataStream &s)
@@ -705,8 +705,8 @@ static QImage loadCxV8U8(QDataStream &s, const quint32 width, const quint32 heig
             qint8 v, u;
             s >> v >> u;
 
-            double vd = v/127.0, ud = u/127.0;
-            quint8 c = 255*::sqrt(1 - vd*vd - ud*ud);
+            double vd = v / 127.0, ud = u / 127.0;
+            quint8 c = 255 * ::sqrt(1 - vd*vd - ud*ud);
             image.setPixel(x, y, qRgb(v + 128, u + 128, c));
         }
     }
@@ -1065,7 +1065,7 @@ static qint64 mipmapSize(const DDSHeader &dds, const int format, const int level
     case FORMAT_G16R16:
     case FORMAT_L8:
     case FORMAT_L16:
-        return w*h*dds.pixelFormat.rgbBitCount/8;
+        return w * h * dds.pixelFormat.rgbBitCount / 8;
     case FORMAT_A8R8G8B8:
     case FORMAT_A1R5G5B5:
     case FORMAT_A4R4G4B4:
@@ -1076,33 +1076,33 @@ static qint64 mipmapSize(const DDSHeader &dds, const int format, const int level
     case FORMAT_A2R10G10B10:
     case FORMAT_A8L8:
     case FORMAT_A4L4:
-        return w*h*dds.pixelFormat.rgbBitCount/8;
+        return w * h * dds.pixelFormat.rgbBitCount / 8;
     case FORMAT_P8:
-        return 256 + w*h*8;
+        return 256 + w * h * 8;
     case FORMAT_A16B16G16R16:
-        return w*h*4*2;
+        return w * h * 4 * 2;
     case FORMAT_A8P8:
         break;
     case FORMAT_V8U8:
     case FORMAT_L6V5U5:
-        return w*h*2;
+        return w * h * 2;
     case FORMAT_X8L8V8U8:
     case FORMAT_Q8W8V8U8:
     case FORMAT_V16U16:
     case FORMAT_A2W10V10U10:
-        return w*h*4;
+        return w * h * 4;
     case FORMAT_UYVY:
     case FORMAT_R8G8_B8G8:
     case FORMAT_YUY2:
     case FORMAT_G8R8_G8B8:
-        return w*h*2;
+        return w * h * 2;
     case FORMAT_DXT1:
-        return ((w+3)/4)*((h+3)/4)*8;
+        return ((w + 3)/4) * ((h + 3)/4) * 8;
     case FORMAT_DXT2:
     case FORMAT_DXT3:
     case FORMAT_DXT4:
     case FORMAT_DXT5:
-        return ((w+3)/4)*((h+3)/4)*16;
+        return ((w + 3)/4) * ((h + 3)/4) * 16;
     case FORMAT_D16_LOCKABLE:
     case FORMAT_D32:
     case FORMAT_D15S1:
@@ -1119,23 +1119,23 @@ static qint64 mipmapSize(const DDSHeader &dds, const int format, const int level
     case FORMAT_INDEX32:
         break;
     case FORMAT_Q16W16V16U16:
-        return w*h*4*2;
+        return w * h * 4 * 2;
     case FORMAT_MULTI2_ARGB8:
         break;
     case FORMAT_R16F:
-        return w*h*1*2;
+        return w * h * 1 * 2;
     case FORMAT_G16R16F:
-        return w*h*2*2;
+        return w * h * 2 * 2;
     case FORMAT_A16B16G16R16F:
-        return w*h*4*2;
+        return w * h * 4 * 2;
     case FORMAT_R32F:
-        return w*h*1*4;
+        return w * h * 1 * 4;
     case FORMAT_G32R32F:
-        return w*h*2*4;
+        return w * h * 2 * 4;
     case FORMAT_A32B32G32R32F:
-        return w*h*4*4;
+        return w * h * 4 * 4;
     case FORMAT_CxV8U8:
-        return w*h*2;
+        return w * h * 2;
     case FORMAT_A1:
     case FORMAT_A2B10G10R10_XR_BIAS:
     case FORMAT_BINARYBUFFER:

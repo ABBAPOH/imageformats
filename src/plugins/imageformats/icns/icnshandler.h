@@ -16,7 +16,6 @@ struct IcnsBlockHeader {
     quint32 OSType;
     quint32 length;
 };
-static const quint8 IcnsBlockHeaderSize = 8;
 
 class QIcnsHandler : public QImageIOHandler
 {
@@ -53,12 +52,17 @@ class QIcnsHandler : public QImageIOHandler
         IconPlusMask,   // Plain icon and alpha mask (double size)
         IconIsMask      // The whole icon entry is alpha mask
     };
+    enum IcnsFileState {
+        IcnsFileIsParsed,
+        IcnsFileIsNotParsed,
+        IcnsFileParsingError
+    };
 
-    class QIcnsIconEntry
+    class IcnsIconEntry
     {
     public:
-        QIcnsIconEntry();
-        QIcnsIconEntry(IcnsBlockHeader &header, quint32 imgDataOffset);
+        IcnsIconEntry();
+        IcnsIconEntry(IcnsBlockHeader &header, quint32 imgDataOffset);
         quint32             getOSType()     const { return m_header.OSType; }
         IconGroup           group()         const { return m_iconGroup; }
         IconBitDepth        depth()         const { return m_iconDepth; }
@@ -81,9 +85,11 @@ class QIcnsHandler : public QImageIOHandler
         quint32             m_imageDataLength;  // header.length - sizeof(header)
         quint32             m_imageDataOffset;  // Offset from the initial position of the file/device
         bool                m_imageDataIsRLE;   // 32bit raw icons may be in rle24 compressed state
+        bool                parseOSType();
     };
 
 public:
+    QIcnsHandler();
     QIcnsHandler(QIODevice *d, const QByteArray &format);
 
     bool canRead() const;
@@ -99,20 +105,22 @@ public:
     static bool canRead(QIODevice *device);
     static bool canWrite(QIODevice *device);
 
-    static QVector<QRgb> getColorTable(const IconBitDepth & depth);
-    static QByteArray getRGB32fromRLE24(const QByteArray & encodedBytes, quint32 expectedPixelCount);
-
 private:
     int m_currentIconIndex;
     QDataStream m_stream;
-    QVector<QIcnsIconEntry> m_icons;
-    QVector<QIcnsIconEntry> m_masks;
-    bool m_scanned;
+    QVector<IcnsIconEntry> m_icons;
+    QVector<IcnsIconEntry> m_masks;
+    IcnsFileState m_scanstate;
 
-    bool scanDevice();
-    QImage iconAlphaAt(int index);
+    bool isScanned() const;
+    bool isParsed() const;
+    void scanDevice();
+    QImage iconAlpha(int index);
+    bool addIcon(IcnsIconEntry &icon);
 
-    bool addIcon(QIcnsIconEntry &icon);
+    static QVector<QRgb> getColorTable(const IconBitDepth & depth);
+    static QImage readLowDepthIconFromStream(const IcnsIconEntry & icon, QDataStream & stream);
+    static QImage read32bitIconFromStream(const IcnsIconEntry & icon, QDataStream & stream);
 };
 
 #endif //ICNSHANDLER_H

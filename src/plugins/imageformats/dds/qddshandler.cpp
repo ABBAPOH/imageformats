@@ -105,37 +105,37 @@ struct FormatInfo
 };
 
 static const FormatInfo formatInfos[] = {
-    { FORMAT_A8R8G8B8,    DDSPixelFormat::DDPF_RGBA, 32, 0x00ff0000, 0x0000ff00, 0x000000ff, 0xff000000 }, // 21
-    { FORMAT_X8R8G8B8,    DDSPixelFormat::DDPF_RGB,  32, 0x00ff0000, 0x0000ff00, 0x000000ff, 0x00000000 }, // 22
-    { FORMAT_A2B10G10R10, DDSPixelFormat::DDPF_RGBA, 32, 0x000003ff, 0x0000fc00, 0x3ff00000, 0xc0000000 }, // 31
-    { FORMAT_A8B8G8R8,    DDSPixelFormat::DDPF_RGBA, 32, 0x000000ff, 0x0000ff00, 0x00ff0000, 0xff000000 }, // 32
-    { FORMAT_X8B8G8R8,    DDSPixelFormat::DDPF_RGB,  32, 0x000000ff, 0x0000ff00, 0x00ff0000, 0x00000000 }, // 33
-    { FORMAT_G16R16,      DDSPixelFormat::DDPF_RGBA, 32, 0x0000ffff, 0xffff0000, 0x00000000, 0x00000000 }, // 34
-    { FORMAT_G16R16,      DDSPixelFormat::DDPF_RGB,  32, 0x0000ffff, 0xffff0000, 0x00000000, 0x00000000 }, // 34
-    { FORMAT_A2R10G10B10, DDSPixelFormat::DDPF_RGBA, 32, 0x3ff00000, 0x000ffc00, 0x000003ff, 0xc0000000 }, // 35
+    { FORMAT_A8R8G8B8,    DDSPixelFormat::DDPF_RGBA, 32, 0x00ff0000, 0x0000ff00, 0x000000ff, 0xff000000 },
+    { FORMAT_X8R8G8B8,    DDSPixelFormat::DDPF_RGB,  32, 0x00ff0000, 0x0000ff00, 0x000000ff, 0x00000000 },
+    { FORMAT_A2B10G10R10, DDSPixelFormat::DDPF_RGBA, 32, 0x000003ff, 0x0000fc00, 0x3ff00000, 0xc0000000 },
+    { FORMAT_A8B8G8R8,    DDSPixelFormat::DDPF_RGBA, 32, 0x000000ff, 0x0000ff00, 0x00ff0000, 0xff000000 },
+    { FORMAT_X8B8G8R8,    DDSPixelFormat::DDPF_RGB,  32, 0x000000ff, 0x0000ff00, 0x00ff0000, 0x00000000 },
+    { FORMAT_G16R16,      DDSPixelFormat::DDPF_RGBA, 32, 0x0000ffff, 0xffff0000, 0x00000000, 0x00000000 },
+    { FORMAT_G16R16,      DDSPixelFormat::DDPF_RGB,  32, 0x0000ffff, 0xffff0000, 0x00000000, 0x00000000 },
+    { FORMAT_A2R10G10B10, DDSPixelFormat::DDPF_RGBA, 32, 0x3ff00000, 0x000ffc00, 0x000003ff, 0xc0000000 },
 
-    { FORMAT_R8G8B8,      DDSPixelFormat::DDPF_RGB,  24, 0x00ff0000, 0x0000ff00, 0x000000ff, 0x00000000 }, // 20
+    { FORMAT_R8G8B8,      DDSPixelFormat::DDPF_RGB,  24, 0x00ff0000, 0x0000ff00, 0x000000ff, 0x00000000 },
 
-    { FORMAT_R5G6B5,      DDSPixelFormat::DDPF_RGB,  16, 0x0000f800, 0x000007e0, 0x0000001f, 0x00000000 }, // 23
-    { FORMAT_X1R5G5B5,    DDSPixelFormat::DDPF_RGB,  16, 0x00007c00, 0x000003e0, 0x0000001f, 0x00000000 }, // 24
-    { FORMAT_A1R5G5B5,    DDSPixelFormat::DDPF_RGBA, 16, 0x00007c00, 0x000003e0, 0x0000001f, 0x00008000 }, // 25
-    { FORMAT_A4R4G4B4,    DDSPixelFormat::DDPF_RGBA, 16, 0x00000f00, 0x000000f0, 0x0000000f, 0x0000f000 }, // 26
-    { FORMAT_A8R3G3B2,    DDSPixelFormat::DDPF_RGBA, 16, 0x000000e0, 0x0000001c, 0x00000003, 0x0000ff00 }, // 29
-    { FORMAT_X4R4G4B4,    DDSPixelFormat::DDPF_RGB,  16, 0x00000f00, 0x000000f0, 0x0000000f, 0x00000000 }, // 30
-    { FORMAT_A8L8,        DDSPixelFormat::DDPF_LA,   16, 0x000000ff, 0x00000000, 0x00000000, 0x0000ff00 }, // 51
-    { FORMAT_L16,   DDSPixelFormat::DDPF_LUMINANCE,  16, 0x0000ffff, 0x00000000, 0x00000000, 0x00000000 }, // 81
+    { FORMAT_R5G6B5,      DDSPixelFormat::DDPF_RGB,  16, 0x0000f800, 0x000007e0, 0x0000001f, 0x00000000 },
+    { FORMAT_X1R5G5B5,    DDSPixelFormat::DDPF_RGB,  16, 0x00007c00, 0x000003e0, 0x0000001f, 0x00000000 },
+    { FORMAT_A1R5G5B5,    DDSPixelFormat::DDPF_RGBA, 16, 0x00007c00, 0x000003e0, 0x0000001f, 0x00008000 },
+    { FORMAT_A4R4G4B4,    DDSPixelFormat::DDPF_RGBA, 16, 0x00000f00, 0x000000f0, 0x0000000f, 0x0000f000 },
+    { FORMAT_A8R3G3B2,    DDSPixelFormat::DDPF_RGBA, 16, 0x000000e0, 0x0000001c, 0x00000003, 0x0000ff00 },
+    { FORMAT_X4R4G4B4,    DDSPixelFormat::DDPF_RGB,  16, 0x00000f00, 0x000000f0, 0x0000000f, 0x00000000 },
+    { FORMAT_A8L8,        DDSPixelFormat::DDPF_LA,   16, 0x000000ff, 0x00000000, 0x00000000, 0x0000ff00 },
+    { FORMAT_L16,   DDSPixelFormat::DDPF_LUMINANCE,  16, 0x0000ffff, 0x00000000, 0x00000000, 0x00000000 },
 
-    { FORMAT_R3G3B2,      DDSPixelFormat::DDPF_RGB,  8,  0x000000e0, 0x0000001c, 0x00000003, 0x00000000 }, // 27
-    { FORMAT_A8,        DDSPixelFormat::DDPF_ALPHA,  8,  0x00000000, 0x00000000, 0x00000000, 0x000000ff }, // 28
-    { FORMAT_L8,    DDSPixelFormat::DDPF_LUMINANCE,  8,  0x000000ff, 0x00000000, 0x00000000, 0x00000000 }, // 50
-    { FORMAT_A4L4,        DDSPixelFormat::DDPF_LA,   8,  0x0000000f, 0x00000000, 0x00000000, 0x000000f0 }, // 52
+    { FORMAT_R3G3B2,      DDSPixelFormat::DDPF_RGB,  8,  0x000000e0, 0x0000001c, 0x00000003, 0x00000000 },
+    { FORMAT_A8,        DDSPixelFormat::DDPF_ALPHA,  8,  0x00000000, 0x00000000, 0x00000000, 0x000000ff },
+    { FORMAT_L8,    DDSPixelFormat::DDPF_LUMINANCE,  8,  0x000000ff, 0x00000000, 0x00000000, 0x00000000 },
+    { FORMAT_A4L4,        DDSPixelFormat::DDPF_LA,   8,  0x0000000f, 0x00000000, 0x00000000, 0x000000f0 },
 
-    { FORMAT_V8U8,        DDSPixelFormat::DDPF_NORMAL, 16, 0x000000ff, 0x0000ff00, 0x00000000, 0x00000000 }, // 60
-    { FORMAT_L6V5U5,                                0, 16, 0x0000001f, 0x000003e0, 0x0000fc00, 0x00000000 }, // 61
-    { FORMAT_X8L8V8U8,                              0, 32, 0x000000ff, 0x0000ff00, 0x00ff0000, 0x00000000 }, // 62
-    { FORMAT_Q8W8V8U8,    DDSPixelFormat::DDPF_NORMAL, 32, 0x000000ff, 0x0000ff00, 0x00ff0000, 0xff000000 }, // 63
-    { FORMAT_V16U16,      DDSPixelFormat::DDPF_NORMAL, 32, 0x0000ffff, 0xffff0000, 0x00000000, 0x00000000 }, // 64
-    { FORMAT_A2W10V10U10, DDSPixelFormat::DDPF_NORMAL, 32, 0x3ff00000, 0x000ffc00, 0x000003ff, 0xc0000000 } // 67
+    { FORMAT_V8U8,        DDSPixelFormat::DDPF_NORMAL, 16, 0x000000ff, 0x0000ff00, 0x00000000, 0x00000000 },
+    { FORMAT_L6V5U5,                                0, 16, 0x0000001f, 0x000003e0, 0x0000fc00, 0x00000000 },
+    { FORMAT_X8L8V8U8,                              0, 32, 0x000000ff, 0x0000ff00, 0x00ff0000, 0x00000000 },
+    { FORMAT_Q8W8V8U8,    DDSPixelFormat::DDPF_NORMAL, 32, 0x000000ff, 0x0000ff00, 0x00ff0000, 0xff000000 },
+    { FORMAT_V16U16,      DDSPixelFormat::DDPF_NORMAL, 32, 0x0000ffff, 0xffff0000, 0x00000000, 0x00000000 },
+    { FORMAT_A2W10V10U10, DDSPixelFormat::DDPF_NORMAL, 32, 0x3ff00000, 0x000ffc00, 0x000003ff, 0xc0000000 }
 };
 static const size_t formatInfosSize = sizeof(formatInfos)/sizeof(FormatInfo);
 
@@ -545,10 +545,10 @@ static QImage readValueBased(QDataStream &s, const DDSHeader &dds, quint32 width
                 }
             }
 
-            if ( (flags & DDSPixelFormat::DDPF_LUMINANCE) ) {
+            if (flags & DDSPixelFormat::DDPF_LUMINANCE) {
                 colors[Green] = colors[Red];
                 colors[Blue] = colors[Red];
-            } else if ( (flags & DDSPixelFormat::DDPF_YUV) ) {
+            } else if (flags & DDSPixelFormat::DDPF_YUV) {
                 img.setPixel(x, y, yuv2rgb(colors[Red], colors[Green], colors[Blue]));
                 continue;
             }

@@ -162,7 +162,7 @@ static const Format knownFourCCs[] = {
 };
 static const size_t knownFourCCsSize = sizeof(knownFourCCs)/sizeof(Format);
 
-static inline int shift(quint32 mask)
+static inline int maskToShift(quint32 mask)
 {
     if (mask == 0)
         return 0;
@@ -173,7 +173,7 @@ static inline int shift(quint32 mask)
     return result;
 }
 
-static inline int bits(quint32 mask)
+static inline int maskLength(quint32 mask)
 {
     int result = 0;
     while (mask) {
@@ -514,8 +514,8 @@ static QImage readValueBased(QDataStream &s, const DDSHeader &dds, quint32 width
     masks[Blue] = dds.pixelFormat.bBitMask;
     masks[Alpha] = hasAlpha ? dds.pixelFormat.aBitMask : 0;
     for (int i = 0; i < ColorCount; ++i) {
-        shifts[i] = ::shift(masks[i]);
-        bits[i] = ::bits(masks[i]);
+        shifts[i] = ::maskToShift(masks[i]);
+        bits[i] = ::maskLength(masks[i]);
 
         // move mask to the left
         if (bits[i] <= 8)

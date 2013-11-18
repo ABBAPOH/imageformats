@@ -189,10 +189,10 @@ static inline quint32 readValue(QDataStream &s, quint32 size)
     Q_ASSERT(size == 8 || size == 16 || size == 24 || size == 32);
 
     quint32 value = 0;
-    for (unsigned bit = 0; bit < size/8; ++bit) {
-        quint8 tmp;
+    quint8 tmp;
+    for (unsigned bit = 0; bit < size; bit += 8) {
         s >> tmp;
-        value += (quint32(tmp) << 8*bit);
+        value += (quint32(tmp) << bit);
     }
     return value;
 }

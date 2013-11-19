@@ -177,12 +177,12 @@ bool QIcnsHandler::write(const QImage &image)
     int i = width;
     uint p = 0;
     while (i >>= 1) {p++;}
-    if (p > 10) {
-        // Force resizing to 1024x1024. Values over 10 are reserved for retina icons
+    if (p > 10) { // Force resizing to 1024x1024. Values over 10 are reserved for retina icons
         p = 10;
         img = img.scaled(1024,1024);
     }
-    const QByteArray ostypebase = (p < 7) ? "ipc" : "ic"; // small / big icons naming policy
+    // Small / big icons naming policy
+    const QByteArray ostypebase = (p < 7) ? QByteArrayLiteral("ipc") : QByteArrayLiteral("ic");
     const QByteArray ostypenum = (ostypebase.size() > 2 || p >= 10) ? QByteArray::number(p) : QByteArray::number(p).prepend("0");
     const quint32 ostype = QByteArray(ostypebase).append(ostypenum).toHex().toUInt(NULL,16);
     // Construct ICNS Header
@@ -268,11 +268,11 @@ QImage QIcnsHandler::readLowDepthIconFromStream(const QIcnsHandler::IcnsIconEntr
             }
             case Icon4bit: {
                 quint8 value = ((byte & 0xF0) >> 4); // left 4 bits
-                cindex = (value < pow(2,icon.depth())) ? value : 0;
+                cindex = (value < qPow(2,icon.depth())) ? value : 0;
                 break;
             }
             default: //8bit
-                cindex = (byte < pow(2,icon.depth())) ? byte : 0;
+                cindex = (byte < qPow(2,icon.depth())) ? byte : 0;
             }
             byte = byte << icon.depth();
             img.setPixel(x,y,cindex);
@@ -815,8 +815,8 @@ bool QIcnsHandler::IcnsIconEntry::parseOSType()
     m_iconMaskType = IconMaskUnk; // default for invalid ones
     if (m_iconGroup != IconGroupCompressed) {
         const qreal bytespp = ((qreal)m_iconDepth / 8);
-        const qreal r1 = sqrt(m_imageDataLength/bytespp);
-        const qreal r2 = sqrt((m_imageDataLength/bytespp)/2);
+        const qreal r1 = qSqrt(m_imageDataLength/bytespp);
+        const qreal r2 = qSqrt((m_imageDataLength/bytespp)/2);
         const quint32 r1u = (quint32)r1;
         const quint32 r2u = (quint32)r2;
         const bool r1IsPowerOfTwoOrDevidesBy16 = (r1u == r1 && r1u % 16 == 0) || (r1u == r1 && r1 >= 16 && ((r1u & (r1u - 1)) == 0));
@@ -869,8 +869,8 @@ bool QIcnsHandler::IcnsIconEntry::parseOSType()
         // Just for experimental/research purposes.
         // Effectively does nothing at all, just tests Apple's naming policy for OSTypes.
         if (m_iconDepth <= 10) {
-            m_iconWidth = pow(2,m_iconDepth);
-            m_iconHeight = pow(2,m_iconDepth);
+            m_iconWidth = qPow(2,m_iconDepth);
+            m_iconHeight = qPow(2,m_iconDepth);
         }
         else {
             qDebug() << "IcnsIconEntry::parseOSType(): Compressed format id > 10 (retina?). OSType:" << OSType.constData();

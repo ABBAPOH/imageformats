@@ -1,12 +1,12 @@
 #ifndef ICNSHANDLER_H
 #define ICNSHANDLER_H
 
-#include <cmath>
 #include <QtGui/QImageIOHandler>
 #include <QtGui/QImageReader>
 #include <QtGui/QImage>
 #include <QtCore/QVector>
 #include <QtCore/QBuffer>
+#include <QtCore/QtMath>
 #if QT_VERSION >= 0x050000
 #include <QtCore/QRegularExpression>
 #endif

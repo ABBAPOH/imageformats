@@ -16,7 +16,7 @@ static QDataStream &operator<<(QDataStream &out, IcnsBlockHeader &p)
     return out;
 }
 
-static QByteArray getRGB32fromRLE24(const QByteArray &RLEBytes, quint32 estPxsNum)
+static QByteArray RLE24toRGB32(const QByteArray &RLEBytes, quint32 estPxsNum)
 {
     if (RLEBytes.isEmpty()) {
         qWarning("getRGB32fromRLE24(): Encoded bytes are empty!");
@@ -118,13 +118,13 @@ bool QIcnsHandler::read(QImage *outImage)
         if (m_stream.device()->peek(8).toHex() == QByteArrayLiteral("89504e470d0a1a0a")) { // if PNG magic
             img = QImage::fromData(m_stream.device()->peek(icon.dataLength()), "png");
             if (img.isNull()) {
-                qWarning("QIcnsHandler::read(): Read failed, PNG is not supported by your Qt distribution. OSType: %u", icon.getOSType());
+                qWarning("QIcnsHandler::read(): Failed, PNG is not supported by your Qt distribution. OSType: %u", icon.getOSType());
             }
         }
         else if (m_stream.device()->peek(12).toHex() == QByteArrayLiteral("0000000c6a5020200d0a870a")) { // if JPEG 2000 magic
             img = QImage::fromData(m_stream.device()->peek(icon.dataLength()), "jp2");
             if (img.isNull()) {
-                qWarning("QIcnsHandler::read(): Read failed, JPEG2000 is not supported by your Qt distribution. OSType: %u", icon.getOSType());
+                qWarning("QIcnsHandler::read(): Failed, JPEG2000 is not supported by your Qt distribution. OSType: %u", icon.getOSType());
             }
         }
         else if (icon.group() == IconGroupCompressed) {
@@ -163,8 +163,8 @@ bool QIcnsHandler::read(QImage *outImage)
 bool QIcnsHandler::write(const QImage &image)
 {
     QIODevice *device = QImageIOHandler::device();
-    // NOTE: Experemental implementation. Just for simple brainless converting tasks / testing purposes.
-    // LIMITATIONS: Writes complete icns file containing only signle square icon in PNG format to a device.
+    // NOTE: Experimental implementation. Just for simple converting tasks / testing purposes.
+    // LIMITATIONS: Writes a complete icns file containing only one square icon in PNG format to a device.
     // Currently uses non-hardcoded OSTypes.
     QImage img = image;
     const int width = img.size().width();
@@ -290,7 +290,7 @@ QImage QIcnsHandler::read32bitIconFromStream(const QIcnsHandler::IcnsIconEntry &
     }
     QImage img = QImage(icon.width(), icon.height(), QImage::Format_RGB32);
     if (icon.isRLE24()) {
-        data = getRGB32fromRLE24(data, icon.width()*icon.height());
+        data = RLE24toRGB32(data, icon.width()*icon.height());
     }
     if (data.isEmpty()) {
         qWarning("QIcnsHandler::read32bitIconFromStream(): RLE24 decompression failed. Icon OSType: %u", icon.getOSType());
@@ -814,7 +814,7 @@ bool QIcnsHandler::IcnsIconEntry::parseOSType()
     m_iconHeight = 0; // default for invalid ones
     m_iconMaskType = IconMaskUnk; // default for invalid ones
     if (m_iconGroup != IconGroupCompressed) {
-        const float bytespp = ((float)m_iconDepth / 8);
+        const qreal bytespp = ((qreal)m_iconDepth / 8);
         const qreal r1 = sqrt(m_imageDataLength/bytespp);
         const qreal r2 = sqrt((m_imageDataLength/bytespp)/2);
         const quint32 r1u = (quint32)r1;
@@ -840,9 +840,7 @@ bool QIcnsHandler::IcnsIconEntry::parseOSType()
         }
         else {
             if (m_iconDepth == Icon32bit) {
-                // 32bit icon may be compressed with RLE24.
-                // TODO: Find a way to drop hardcoded values?
-                m_imageDataIsRLE = true;
+                m_imageDataIsRLE = true; // 32bit icon may be encoded
                 switch(m_iconGroup) {
                 case IconGroupSmall :
                     m_iconWidth = 16;

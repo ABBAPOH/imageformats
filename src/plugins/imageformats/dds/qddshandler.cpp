@@ -800,7 +800,6 @@ static QImage loadX8L8V8U8(QDataStream &s, quint32 width, quint32 height)
     for (quint32 y = 0; y < height; y++) {
         for (quint32 x = 0; x < width; x++) {
             s >> v >> u >> a >> l;
-
             image.setPixel(x, y, qRgba(v + 128, u + 128, 255, a));
         }
     }

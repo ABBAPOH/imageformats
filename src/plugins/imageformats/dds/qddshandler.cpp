@@ -706,9 +706,11 @@ static QImage loadCxV8U8(QDataStream &s, const quint32 width, const quint32 heig
             qint8 v, u;
             s >> v >> u;
 
-            double vd = v / 127.0, ud = u / 127.0;
-            quint8 c = 255 * sqrt(1 - vd*vd - ud*ud);
-            image.setPixel(x, y, qRgb(v + 128, u + 128, c));
+            quint8 vn = v + 128, un = u + 128;
+
+            double vd = vn / 127.5 - 1.0, ud = un / 127.5 - 1.0;
+            quint8 c = 255 * sqrt(1.0 - vd*vd - ud*ud);
+            image.setPixel(x, y, qRgb(vn, un, c));
         }
     }
 

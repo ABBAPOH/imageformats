@@ -102,5 +102,7 @@
         <file>data/YUY2.png</file>
         <file>data/RXGB.dds</file>
         <file>data/RXGB.png</file>
+        <file>data/ATI2.dds</file>
+        <file>data/ATI2.png</file>
     </qresource>
 </RCC>

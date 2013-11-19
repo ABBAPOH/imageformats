@@ -92,6 +92,7 @@ enum Format {
     FORMAT_DXT4                 = 0x34545844, // "DXT4"
     FORMAT_DXT5                 = 0x35545844, // "DXT5"
     FORMAT_RXGB                 = 0x42475852, // "RXGB"
+    FORMAT_ATI2                 = 0x32495441, // "ATI2"
 
     FORMAT_D16_LOCKABLE         = 70,
     FORMAT_D32                  = 71,

@@ -152,6 +152,7 @@ static const Format knownFourCCs[] = {
     FORMAT_DXT4,
     FORMAT_DXT5,
     FORMAT_RXGB,
+    FORMAT_ATI2,
     FORMAT_Q16W16V16U16,
     FORMAT_R16F,
     FORMAT_G16R16F,
@@ -456,7 +457,6 @@ static inline QImage loadRXGB(QDataStream &s, quint32 width, quint32 height)
     return loadDXT<RXGB>(s, width, height);
 }
 
-#if 0
 static QImage loadATI2(QDataStream &s, quint32 width, quint32 height)
 {
     QImage img(width, height, QImage::Format_RGB32);
@@ -470,25 +470,27 @@ static QImage loadATI2(QDataStream &s, quint32 width, quint32 height)
 
             QRgb arr[16];
             memset(arr, 0, sizeof(QRgb) * 16);
-            setAplphaDXT45(arr, alpha1, false);
+            setAlphaDXT<Five>(arr, alpha1);
             for (int i = 0; i < 16; ++i) {
                 quint8 a = qAlpha(arr[i]);
                 arr[i] = qRgba(0, 0, a, 0);
             }
-            setAplphaDXT45(arr, alpha2, false);
+            setAlphaDXT<Five>(arr, alpha2);
 
             for (int k = 0; k < 4; k++) {
                 for (int l = 0; l < 4; l++) {
                     quint32 x = j + l, y = i + k;
                     if (x < width && y < height) {
                         QRgb pixel = arr[k * 4 + l];
-                        const quint8 nx = qBlue(pixel);
-                        const quint8 ny = qAlpha(pixel);
+                        const quint8 nx = qAlpha(pixel);
+                        const quint8 ny = qBlue(pixel);
 
-                        const float fx = float(nx) / 127.5f - 1.0f;
-                        const float fy = float(ny) / 127.5f - 1.0f;
-                        const float fz = sqrtf(1.0f - fx*fx - fy*fy);
-                        const quint8 nz = quint8((fz + 1.0f) * 127.5f);
+                        // TODO: formulas can be incorrect
+                        const double fx = nx / 127.5 - 1.0;
+                        const double fy = ny / 127.5 - 1.0;
+                        const double fxfy = 1.0 - fx*fx - fy*fy;
+                        const double fz = fxfy > 0 ? sqrt(fxfy) : -1.0;
+                        const quint8 nz = quint8((fz + 1.0) * 127.5);
 
                         img.setPixel(x, y, qRgb(nx, ny, nz));
                     }
@@ -498,7 +500,6 @@ static QImage loadATI2(QDataStream &s, quint32 width, quint32 height)
     }
     return img;
 }
-#endif
 
 static QImage readValueBased(QDataStream &s, const DDSHeader &dds, quint32 width, quint32 height, bool hasAlpha)
 {
@@ -1005,6 +1006,8 @@ static QImage readLayer(QDataStream & s, const DDSHeader & dds, const int format
         return loadDXT5(s, width, height);
     case FORMAT_RXGB:
         return loadRXGB(s, width, height);
+    case FORMAT_ATI2:
+        return loadATI2(s, width, height);
     case FORMAT_R16F:
         return loadR16F(s, width, height);
     case FORMAT_G16R16F:

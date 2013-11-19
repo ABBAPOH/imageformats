@@ -250,20 +250,20 @@ static inline void decodeColor(quint16 color, quint8 & red, quint8 & green, quin
 
 static inline quint8 calcC2(quint8 c0, quint8 c1)
 {
-    return 2.0*c0/3.0 + c1/3.0;
+    return 2.0 * c0 / 3.0 + c1 / 3.0;
 }
 
 static inline quint8 calcC2a(quint8 c0, quint8 c1)
 {
-    return c0/2.0 + c1/2.0;
+    return c0 / 2.0 + c1 / 2.0;
 }
 
 static inline quint8 calcC3(quint8 c0, quint8 c1)
 {
-    return c0/3.0 + 2.0*c1/3.0;
+    return c0 / 3.0 + 2.0 * c1 / 3.0;
 }
 
-static void DXTFillColors(QRgb * result, quint16 c0, quint16 c1, quint32 table, bool dxt1a = false)
+static void DXTFillColors(QRgb *result, quint16 c0, quint16 c1, quint32 table, bool dxt1a = false)
 {
     quint8 r[4];
     quint8 g[4];
@@ -293,12 +293,12 @@ static void DXTFillColors(QRgb * result, quint16 c0, quint16 c1, quint32 table, 
             unsigned index = table & 0x0003;
             table >>= 2;
 
-            result[k*4+l] = qRgba(r[index], g[index], b[index], a[index]);
+            result[k * 4 + l] = qRgba(r[index], g[index], b[index], a[index]);
         }
 }
 
 template <DXTVersions version>
-inline void setAlphaDXT32Helper(QRgb * rgbArr, quint64 alphas)
+inline void setAlphaDXT32Helper(QRgb *rgbArr, quint64 alphas)
 {
     Q_STATIC_ASSERT(version == Two || version == Three);
     for (int i = 0; i < 16; i++) {
@@ -313,7 +313,7 @@ inline void setAlphaDXT32Helper(QRgb * rgbArr, quint64 alphas)
 }
 
 template <DXTVersions version>
-inline void setAlphaDXT45Helper(QRgb * rgbArr, quint64 alphas)
+inline void setAlphaDXT45Helper(QRgb *rgbArr, quint64 alphas)
 {
     Q_STATIC_ASSERT(version == Four || version == Five);
     quint8 a[8];
@@ -353,31 +353,31 @@ inline void setAlphaDXT(QRgb * /*rgbArr*/, quint64 /*alphas*/)
 }
 
 template <>
-inline void setAlphaDXT<Two>(QRgb * rgbArr, quint64 alphas)
+inline void setAlphaDXT<Two>(QRgb *rgbArr, quint64 alphas)
 {
     setAlphaDXT32Helper<Two>(rgbArr, alphas);
 }
 
 template <>
-inline void setAlphaDXT<Three>(QRgb * rgbArr, quint64 alphas)
+inline void setAlphaDXT<Three>(QRgb *rgbArr, quint64 alphas)
 {
     setAlphaDXT32Helper<Three>(rgbArr, alphas);
 }
 
 template <>
-inline void setAlphaDXT<Four>(QRgb * rgbArr, quint64 alphas)
+inline void setAlphaDXT<Four>(QRgb *rgbArr, quint64 alphas)
 {
     setAlphaDXT45Helper<Four>(rgbArr, alphas);
 }
 
 template <>
-inline void setAlphaDXT<Five>(QRgb * rgbArr, quint64 alphas)
+inline void setAlphaDXT<Five>(QRgb *rgbArr, quint64 alphas)
 {
     setAlphaDXT45Helper<Five>(rgbArr, alphas);
 }
 
 template <>
-inline void setAlphaDXT<RXGB>(QRgb * rgbArr, quint64 alphas)
+inline void setAlphaDXT<RXGB>(QRgb *rgbArr, quint64 alphas)
 {
     setAlphaDXT45Helper<Five>(rgbArr, alphas);
 }
@@ -488,7 +488,7 @@ static QImage loadATI2(QDataStream &s, quint32 width, quint32 height)
                         // TODO: formulas can be incorrect
                         const double fx = nx / 127.5 - 1.0;
                         const double fy = ny / 127.5 - 1.0;
-                        const double fxfy = 1.0 - fx*fx - fy*fy;
+                        const double fxfy = 1.0 - fx * fx - fy * fy;
                         const double fz = fxfy > 0 ? sqrt(fxfy) : -1.0;
                         const quint8 nz = quint8((fz + 1.0) * 127.5);
 
@@ -710,7 +710,7 @@ static QImage loadCxV8U8(QDataStream &s, const quint32 width, const quint32 heig
             const quint8 vn = v + 128, un = u + 128;
 
             const double vd = vn / 127.5 - 1.0, ud = un / 127.5 - 1.0;
-            const quint8 c = 255 * sqrt(1.0 - vd*vd - ud*ud);
+            const quint8 c = 255 * sqrt(1.0 - vd * vd - ud * ud);
             image.setPixel(x, y, qRgb(vn, un, c));
         }
     }
@@ -853,7 +853,7 @@ static QImage loadA2W10V10U10(QDataStream &s, quint32 width, quint32 height)
             quint8 r = qint8((tmp & 0x3ff00000) >> 20 >> 2) + 128;
             quint8 g = qint8((tmp & 0x000ffc00) >> 10 >> 2) + 128;
             quint8 b = qint8((tmp & 0x000003ff) >> 0 >> 2) + 128;
-            quint8 a = 0xff*((tmp & 0xc0000000) >> 30) / 3;
+            quint8 a = 0xff * ((tmp & 0xc0000000) >> 30) / 3;
             // dunno why we should swap b and r here
             image.setPixel(x, y, qRgba(b, g, r, a));
         }
@@ -1176,7 +1176,7 @@ static QImage readCubeMap(QDataStream & s, const DDSHeader & dds, const int fmt)
         const QImage face = readLayer(s, dds, fmt, dds.width, dds.height);
 
         // Compute face offsets.
-        int offset_x = faceOffsets[i].x* dds.width;
+        int offset_x = faceOffsets[i].x * dds.width;
         int offset_y = faceOffsets[i].y * dds.height;
 
         // Copy face on the image.

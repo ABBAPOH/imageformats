@@ -79,8 +79,8 @@ class QIcnsHandler : public QImageIOHandler
         IconGroup           m_iconGroup;        // ASCII character number pointing to a format
         IconBitDepth        m_iconDepth;        // Color depth for uncompr. icons or icon format num for compressed
         IconMaskType        m_iconMaskType;     // For Uncompressed icons only
-        quint32             m_iconWidth;        //
-        quint32             m_iconHeight;       //
+        quint32             m_iconWidth;        // For Uncompressed icons only
+        quint32             m_iconHeight;       // For Uncompressed icons only
         bool                m_iconIsParsed;     //
         quint32             m_imageDataLength;  // header.length - sizeof(header)
         quint32             m_imageDataOffset;  // Offset from the initial position of the file/device

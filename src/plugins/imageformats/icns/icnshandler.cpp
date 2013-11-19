@@ -62,11 +62,11 @@ QIcnsHandler::QIcnsHandler()
 
 QIcnsHandler::QIcnsHandler(QIODevice * d, const QByteArray &format)
 {
-    this->setDevice(d);
-    this->setFormat(format);
+    setDevice(d);
+    setFormat(format);
     m_stream.setDevice(d);
     m_currentIconIndex = 0;
-    scanDevice();
+    m_scanstate = IcnsFileIsNotParsed;
 }
 
 QByteArray QIcnsHandler::name() const
@@ -76,8 +76,8 @@ QByteArray QIcnsHandler::name() const
 
 bool QIcnsHandler::canRead(QIODevice *device)
 {
-    if (!device) {
-        qWarning("QIcnsHandler::canRead() called with no device");
+    if (!device || !device->isReadable()) {
+        qWarning("QIcnsHandler::canRead() called without a readable device");
         return false;
     }
     if (device->isSequential()) {
@@ -89,8 +89,8 @@ bool QIcnsHandler::canRead(QIODevice *device)
 
 bool QIcnsHandler::canWrite(QIODevice *device)
 {
-    if (!device) {
-        qWarning("QIcnsHandler::canRead() called with no device");
+    if (!device || !device->isWritable()) {
+        qWarning("QIcnsHandler::canRead() called without a writable device");
         return false;
     }
     return true;
@@ -151,13 +151,13 @@ bool QIcnsHandler::read(QImage *outImage)
                            << "Unsupported icon bit depth:" << icon.depth();
             }
             }
-            if (!img.isNull()) {
-                QImage alpha = iconAlpha(m_currentIconIndex);
-                if (!alpha.isNull())
-                    img.setAlphaChannel(alpha);
-                //TODO: Replace with QPainter compositions in the future?
-            }
         }
+    }
+    if (!img.isNull()) {
+        QImage alpha = iconAlpha(m_currentIconIndex);
+        if (!alpha.isNull())
+            img.setAlphaChannel(alpha);
+        //TODO: Replace with QPainter compositions in the future?
     }
     *outImage = img;
     return !img.isNull();
@@ -224,6 +224,10 @@ bool QIcnsHandler::write(const QImage &image)
 
 int QIcnsHandler::imageCount() const
 {
+    if (!isScanned()) {
+        QIcnsHandler* that = const_cast<QIcnsHandler *>(this);
+        that->scanDevice();
+    }
     return m_icons.size();
 }
 
@@ -633,11 +637,12 @@ bool QIcnsHandler::addIcon(IcnsIconEntry &icon)
 
 void QIcnsHandler::scanDevice()
 {
-    m_stream.device()->seek(0);
-
+    if (!m_stream.device()->seek(0)) {
+        m_scanstate = IcnsFileParsingError;
+        return;
+    }
     IcnsBlockHeader blockHeader;
     while (!m_stream.atEnd()) {
-
         m_stream >> blockHeader;
         if (m_stream.status() != QDataStream::Ok) {
             m_scanstate = IcnsFileParsingError;
@@ -803,10 +808,13 @@ bool QIcnsHandler::IcnsIconEntry::parseOSType()
     const QString mask = (4 <= match.size()) ? match.at(4) : "";
 #endif
     // Icon group:
-    m_iconGroup = group.isEmpty() ? IconGroup(0) : IconGroup(group.at(0).toLatin1());
+    m_iconGroup = group.isEmpty() ? IconGroupUnk : IconGroup(group.at(0).toLatin1());
     // Icon depth:
     m_iconDepth = depth.toUInt() > 0 ? IconBitDepth(depth.toUInt()) : IconMono;
     // Width/height/mask:
+    m_iconWidth = 0; // default for invalid ones
+    m_iconHeight = 0; // default for invalid ones
+    m_iconMaskType = IconMaskUnk; // default for invalid ones
     if (m_iconGroup != IconGroupCompressed) {
         const float bytespp = ((float)m_iconDepth / 8);
         const qreal r1 = sqrt(m_imageDataLength/bytespp);
@@ -833,7 +841,6 @@ bool QIcnsHandler::IcnsIconEntry::parseOSType()
             m_iconHeight = 12;
         }
         else {
-            m_iconMaskType = IconMaskUnk;
             if (m_iconDepth == Icon32bit) {
                 // 32bit icon may be compressed with RLE24.
                 // TODO: Find a way to drop hardcoded values?
@@ -856,19 +863,13 @@ bool QIcnsHandler::IcnsIconEntry::parseOSType()
                     m_iconHeight = 128;
                     break;
                 default :
-                    m_iconWidth = 0;
-                    m_iconHeight = 0;
-                    qWarning() << "IcnsIconEntry::parseOSType(): 32bit icon from an unknown group. OSType:" << OSType.constData();
+                    qWarning() << "IcnsIconEntry::parseOSType(): 32bit icon from an unknown group. OSType:"
+                               << OSType.constData();
                 }
-            }
-            else {
-                m_iconWidth = 0;
-                m_iconHeight = 0;
             }
         }
     }
     else {
-        m_iconMaskType = IconMaskUnk;
         // Just for experimental/research purposes.
         // Effectively does nothing at all, just tests Apple's naming policy for OSTypes.
         if (m_iconDepth <= 10) {
@@ -876,8 +877,6 @@ bool QIcnsHandler::IcnsIconEntry::parseOSType()
             m_iconHeight = pow(2,m_iconDepth);
         }
         else {
-            m_iconWidth = 0;
-            m_iconHeight = 0;
             qDebug() << "IcnsIconEntry::parseOSType(): Compressed format id > 10 (retina?). OSType:" << OSType.constData();
         }
     }

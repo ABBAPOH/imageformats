@@ -1,5 +1,5 @@
 <RCC>
     <qresource prefix="/">
-        <file>data/andromeda.icns</file>
+        <file>data/andromeda-nojp2.icns</file>
     </qresource>
 </RCC>

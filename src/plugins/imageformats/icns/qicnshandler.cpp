@@ -19,13 +19,10 @@ static QDataStream &operator<<(QDataStream &out, IcnsBlockHeader &p)
 static QByteArray getRGB32fromRLE24(const QByteArray &RLEBytes, quint32 estPxsNum)
 {
     if (RLEBytes.isEmpty()) {
-        qWarning("getRGB32fromRLE24(): encoded bytes are empty!");
+        qWarning("getRGB32fromRLE24(): Encoded bytes are empty!");
         return RLEBytes;
     }
     QByteArray RGBBytes((estPxsNum * 3), 0);
-    qDebug("getRGB32fromRLE24(): Compressed RLE data size is %d", RLEBytes.size());
-    qDebug("getRGB32fromRLE24(): Decompressed will be %d bytes (%u pixels)",RGBBytes.size(),estPxsNum);
-    qDebug("getRGB32fromRLE24(): Decoding RLE data into RGB pixels...");
     qint32 RLEOffset = (*((quint32*)RLEBytes.constData()) == 0) ? 4 : 0; // Sometimes zero-padding is present
     // Data is stored in red run, green run,blue run
     for (quint8 colorNRun = 0; colorNRun < 3; colorNRun++) {
@@ -134,7 +131,7 @@ bool QIcnsHandler::read(QImage *outImage)
             qWarning("QIcnsHandler::read(): Unsupported compressed icon format, OSType: %u", icon.getOSType());
         }
         else if (icon.height() == 0 || icon.width() == 0) {
-            qWarning("QIcnsHandler::read(): Sizes are not known for raw icon, OSType: %u", icon.getOSType());
+            qWarning("QIcnsHandler::read(): Size of a raw icon is unknown, OSType: %u", icon.getOSType());
         }
         else {
             switch(icon.depth()) {
@@ -147,7 +144,7 @@ bool QIcnsHandler::read(QImage *outImage)
                 img = read32bitIconFromStream(icon, m_stream);
                 break;
             default: {
-                qWarning() << "QIcnsHandler::read(): Icon:" << m_currentIconIndex
+                qWarning() << "QIcnsHandler::read(): Icon #:" << m_currentIconIndex
                            << "Unsupported icon bit depth:" << icon.depth();
             }
             }
@@ -183,7 +180,7 @@ bool QIcnsHandler::write(const QImage &image)
     if (p > 10) {
         // Force resizing to 1024x1024. Values over 10 are reserved for retina icons
         p = 10;
-        img = image.scaled(1024,1024);
+        img = img.scaled(1024,1024);
     }
     const QByteArray ostypebase = (p < 7) ? "ipc" : "ic"; // small / big icons naming policy
     const QByteArray ostypenum = (ostypebase.size() > 2 || p >= 10) ? QByteArray::number(p) : QByteArray::number(p).prepend("0");
@@ -296,7 +293,7 @@ QImage QIcnsHandler::read32bitIconFromStream(const QIcnsHandler::IcnsIconEntry &
         data = getRGB32fromRLE24(data, icon.width()*icon.height());
     }
     if (data.isEmpty()) {
-        qWarning() << "QIcnsHandler::read32bitIconFromStream(): RLE24 decompression failed. Icon OSType:" << icon.getOSType();
+        qWarning("QIcnsHandler::read32bitIconFromStream(): RLE24 decompression failed. Icon OSType: %u", icon.getOSType());
         return QImage();
     }
     quint32 pixel = 0;
@@ -630,8 +627,9 @@ bool QIcnsHandler::addIcon(IcnsIconEntry &icon)
             m_icons << icon;
         }
     }
-    else
-        qWarning() << "QIcnsHandler::addIcon(): Unable to parse icon, OSType:" << icon.getOSType();
+    else {
+        qWarning("QIcnsHandler::addIcon(): Unable to parse icon, OSType: %u", icon.getOSType());
+    }
     return icon.isValid();
 }
 
@@ -880,11 +878,7 @@ bool QIcnsHandler::IcnsIconEntry::parseOSType()
             qDebug() << "IcnsIconEntry::parseOSType(): Compressed format id > 10 (retina?). OSType:" << OSType.constData();
         }
     }
-    if (hasMatch) {
-        qDebug() << "IcnsIconEntry::parseOSType(): Parsed (OSType, <junk>, <group>, <depth>, <mask>):"
-                 << OSType.constData() << junk << group << depth << mask;
-    }
-    else {
+    if (!hasMatch) {
         qWarning() << "IcnsIconEntry::parseOSType(): Parsing failed, ignored. Reg exp: no match for OSType:" << OSType.constData();
     }
     return hasMatch;

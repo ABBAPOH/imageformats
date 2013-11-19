@@ -512,8 +512,8 @@ static QImage readValueBased(QDataStream &s, const DDSHeader &dds, quint32 width
     masks[Blue] = dds.pixelFormat.bBitMask;
     masks[Alpha] = hasAlpha ? dds.pixelFormat.aBitMask : 0;
     for (int i = 0; i < ColorCount; ++i) {
-        shifts[i] = ::maskToShift(masks[i]);
-        bits[i] = ::maskLength(masks[i]);
+        shifts[i] = maskToShift(masks[i]);
+        bits[i] = maskLength(masks[i]);
 
         // move mask to the left
         if (bits[i] <= 8)
@@ -526,7 +526,7 @@ static QImage readValueBased(QDataStream &s, const DDSHeader &dds, quint32 width
 
     for (quint32 y = 0; y < height; y++) {
         for (quint32 x = 0; x < width; x++) {
-            quint32 value = ::readValue(s, dds.pixelFormat.rgbBitCount);
+            quint32 value = readValue(s, dds.pixelFormat.rgbBitCount);
             quint8 colors[ColorCount];
 
             for (int c = 0; c < ColorCount; ++c) {
@@ -707,7 +707,7 @@ static QImage loadCxV8U8(QDataStream &s, const quint32 width, const quint32 heig
             s >> v >> u;
 
             double vd = v / 127.0, ud = u / 127.0;
-            quint8 c = 255 * ::sqrt(1 - vd*vd - ud*ud);
+            quint8 c = 255 * sqrt(1 - vd*vd - ud*ud);
             image.setPixel(x, y, qRgb(v + 128, u + 128, c));
         }
     }
@@ -1159,8 +1159,7 @@ static qint64 mipmapOffset(const DDSHeader &dds, const int format, const int lev
 
 static QImage readCubeMap(QDataStream & s, const DDSHeader & dds, const int fmt)
 {
-    bool hasAlpha = ::hasAlpha(dds);
-    QImage::Format format = hasAlpha ? QImage::Format_ARGB32 : QImage::Format_RGB32;
+    QImage::Format format = hasAlpha(dds) ? QImage::Format_ARGB32 : QImage::Format_RGB32;
     QImage img(4 * dds.width, 3 * dds.height, format);
 
     img.fill(0);
@@ -1169,7 +1168,7 @@ static QImage readCubeMap(QDataStream & s, const DDSHeader & dds, const int fmt)
         if (!(dds.caps2 & faceFlags[i]))
             continue; // Skip face.
 
-        const QImage face = ::readLayer(s, dds, fmt, dds.width, dds.height);
+        const QImage face = readLayer(s, dds, fmt, dds.width, dds.height);
 
         // Compute face offsets.
         int offset_x = faceOffsets[i].x* dds.width;

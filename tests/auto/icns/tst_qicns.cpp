@@ -30,10 +30,10 @@ void tst_qicns::readIcons_data()
 
 void tst_qicns::readIcons()
 {
-    QFETCH(int, iconN);
     const QString path = QFINDTESTDATA(":/data/andromeda-nojp2.icns");
     QImageReader reader(path);
     QVERIFY(reader.canRead());
+    QFETCH(int, iconN);
     QVERIFY2(reader.jumpToImage(iconN), qPrintable(reader.errorString()));
     QVERIFY2(!reader.read().isNull(), qPrintable(reader.errorString()));
 }

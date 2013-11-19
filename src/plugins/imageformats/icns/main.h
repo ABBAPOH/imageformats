@@ -1,4 +1,4 @@
-#include "icnshandler.h"
+#include "qicnshandler.h"
 
 #include <QtGui/QImageIOPlugin>
 

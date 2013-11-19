@@ -10,8 +10,8 @@ DynamicLibrary {
     files : [
         "main.h",
         "main.cpp",
-        "icnshandler.h",
-        "icnshandler.cpp"
+        "qicnshandler.h",
+        "qicnshandler.cpp"
     ]
 
     Group {

@@ -1,4 +1,4 @@
-#include "icnshandler.h"
+#include "qicnshandler.h"
 
 static const quint8 IcnsBlockHeaderSize = 8;
 

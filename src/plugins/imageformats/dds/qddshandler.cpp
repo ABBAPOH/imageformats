@@ -348,8 +348,10 @@ inline void setAlphaDXT45Helper(QRgb *rgbArr, quint64 alphas)
 }
 
 template <DXTVersions version>
-inline void setAlphaDXT(QRgb * /*rgbArr*/, quint64 /*alphas*/)
+inline void setAlphaDXT(QRgb *rgbArr, quint64 alphas)
 {
+    Q_UNUSED(rgbArr);
+    Q_UNUSED(alphas);
 }
 
 template <>

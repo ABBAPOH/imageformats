@@ -7,9 +7,7 @@
 #include <QtCore/QVector>
 #include <QtCore/QBuffer>
 #include <QtCore/QtMath>
-#if QT_VERSION >= 0x050000
 #include <QtCore/QRegularExpression>
-#endif
 #include <QtCore/QDebug>
 
 QT_BEGIN_NAMESPACE

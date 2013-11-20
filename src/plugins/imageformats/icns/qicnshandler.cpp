@@ -793,7 +793,6 @@ bool QIcnsHandler::IcnsIconEntry::parse()
 {
     const QByteArray OSType = QByteArray::fromHex(QByteArray::number(m_header.OSType,16));
     // Typical OSType naming: <junk><group><depth><mask>;
-#if QT_VERSION >= 0x050000
     const char* pattern = "^(?<junk>[\\D]{0,4})(?<group>[a-z|A-Z]{1})(?<depth>\\d{0,2})(?<mask>[#mk]{0,2})$";
     QRegularExpression regexp(pattern);
     QRegularExpressionMatch match = regexp.match(OSType);
@@ -802,16 +801,6 @@ bool QIcnsHandler::IcnsIconEntry::parse()
     const QString group = match.captured("group");
     const QString depth = match.captured("depth");
     const QString mask = match.captured("mask");
-#else
-    const char* pattern = "^([\\D]{0,4})([a-z|A-Z]{1})(\\d{0,2})([#mk]{0,2})$";
-    QRegExp regexp(pattern);
-    const bool hasMatch = (regexp.indexIn(OSType) >= 0);
-    QStringList match = regexp.capturedTexts();
-    const QString junk = (1 <= match.size()) ? match.at(1) : "";
-    const QString group = (2 <= match.size()) ? match.at(2) : "";
-    const QString depth = (3 <= match.size()) ? match.at(3) : "";
-    const QString mask = (4 <= match.size()) ? match.at(4) : "";
-#endif
     // Icon group:
     m_iconGroup = group.isEmpty() ? IconGroupUnk : IconGroup(group.at(0).toLatin1());
     // Icon depth:

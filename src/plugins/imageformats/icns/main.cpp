@@ -26,16 +26,6 @@ QImageIOHandler *QIcnsPlugin::create(QIODevice *device, const QByteArray &format
     return handler;
 }
 
-#if QT_VERSION < 0x050000
-QStringList QIcnsPlugin::keys() const
-{
-     return QStringList() << "icns";
-}
-
-Q_EXPORT_STATIC_PLUGIN(QIcnsPlugin)
-Q_EXPORT_PLUGIN2(qicns, QIcnsPlugin)
-#endif
-
 QT_END_NAMESPACE
 
 #endif // QT_NO_IMAGEFORMATPLUGIN

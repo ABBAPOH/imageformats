@@ -550,13 +550,12 @@ static QImage readUnsignedImage(QDataStream &s, const DDSHeader &dds, quint32 wi
                 }
             }
 
-            if (flags & DDSPixelFormat::FlagLuminance) {
+            if (flags & DDSPixelFormat::FlagLuminance)
                 line[x] = qRgba(colors[Red], colors[Red], colors[Red], colors[Alpha]);
-            } else if (flags & DDSPixelFormat::FlagYUV) {
+            else if (flags & DDSPixelFormat::FlagYUV)
                 line[x] = yuv2rgb(colors[Red], colors[Green], colors[Blue]);
-            } else {
+            else
                 line[x] = qRgba(colors[Red], colors[Green], colors[Blue], colors[Alpha]);
-            }
         }
     }
 

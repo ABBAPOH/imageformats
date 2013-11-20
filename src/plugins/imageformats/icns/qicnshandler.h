@@ -1,8 +1,8 @@
-#ifndef ICNSHANDLER_H
-#define ICNSHANDLER_H
+
+#ifndef QICNSHANDLER_H
+#define QICNSHANDLER_H
 
 #include <QtGui/QImageIOHandler>
-#include <QtGui/QImageReader>
 #include <QtGui/QImage>
 #include <QtCore/QVector>
 #include <QtCore/QBuffer>
@@ -11,6 +11,8 @@
 #include <QtCore/QRegularExpression>
 #endif
 #include <QtCore/QDebug>
+
+QT_BEGIN_NAMESPACE
 
 struct IcnsBlockHeader {
     quint32 OSType;
@@ -33,11 +35,11 @@ class QIcnsHandler : public QImageIOHandler
         IconGroupThumbnail  = 0x74, // "t" for "thumbnail" (128x128)
         IconGroupCompressed = 0x63, // "c" for "compressed"? (various sizes)
         // Legacy icons spotted:
-        IconGroupICON       = 0x4E, // [SUPPORTED][DEPRECATED] "N" from OSType "ICON" (32x32)
-        IconGroupOpen       = 0x6E, // [NYI][DEPRECATED] "n" from OSType "open" (ostype: 0x6f70656e)
-        IconGroupTile       = 0x65, // [NYI][DEPRECATED] "e" from OSType "tile" (ostype: 0x74696c65)
-        IconGroupDrop       = 0x70, // [NYI][DEPRECATED] "p" from OSTypes "drop" and "odrp" (0x64726f70, 0x6f647270)
-        IconGroupOver       = 0x72  // [NYI][DEPRECATED] "r" from OSType "over" (ostype: 0x6f766572)
+        IconGroupICON       = 0x4E, // [FULL SUPPORT] "N" from OSType "ICON" (32x32)
+        IconGroupOpen       = 0x6E, // [NYI,UNKNOWN] "n" from OSType "open" (ostype: 0x6f70656e)
+        IconGroupTile       = 0x65, // [NYI,UNKNOWN] "e" from OSType "tile" (ostype: 0x74696c65)
+        IconGroupDrop       = 0x70, // [NYI,UNKNOWN] "p" from OSTypes "drop" and "odrp" (0x64726f70, 0x6f647270)
+        IconGroupOver       = 0x72  // [NYI,UNKNOWN] "r" from OSType "over" (ostype: 0x6f766572)
     };
     enum IconBitDepth {
         IconDepthUnk    = 0, // placeholder
@@ -73,6 +75,7 @@ class QIcnsHandler : public QImageIOHandler
         quint32             dataOffset()    const { return m_imageDataOffset; }
         bool                isValid()       const { return m_iconIsParsed; }
         bool                isRLE24()       const { return m_imageDataIsRLE; }
+        bool                isAlphaMask()   const { return (mask() == IconIsMask || mask() == IconPlusMask); }
 
     private:
         IcnsBlockHeader     m_header;           // Original block header
@@ -85,7 +88,7 @@ class QIcnsHandler : public QImageIOHandler
         quint32             m_imageDataLength;  // header.length - sizeof(header)
         quint32             m_imageDataOffset;  // Offset from the initial position of the file/device
         bool                m_imageDataIsRLE;   // 32bit raw icons may be in rle24 compressed state
-        bool                parseOSType();
+        bool                parse();
     };
 
 public:
@@ -115,12 +118,15 @@ private:
     bool isScanned() const;
     bool isParsed() const;
     void scanDevice();
-    QImage iconAlpha(int index);
     bool addIcon(IcnsIconEntry &icon);
+    IcnsIconEntry getIconMask(const IcnsIconEntry &icon) const;
 
     static QVector<QRgb> getColorTable(const IconBitDepth & depth);
+    static QImage readMaskFromStream(const IcnsIconEntry & mask, QDataStream & stream);
     static QImage readLowDepthIconFromStream(const IcnsIconEntry & icon, QDataStream & stream);
     static QImage read32bitIconFromStream(const IcnsIconEntry & icon, QDataStream & stream);
 };
 
-#endif //ICNSHANDLER_H
+QT_END_NAMESPACE
+
+#endif /* QICNSHANDLER_H */

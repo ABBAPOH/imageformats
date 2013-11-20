@@ -1,12 +1,15 @@
+
 #include "main.h"
+
+#ifndef QT_NO_IMAGEFORMATPLUGIN
+
+#include "qicnshandler.h"
+
+QT_BEGIN_NAMESPACE
 
 QImageIOPlugin::Capabilities QIcnsPlugin::capabilities(QIODevice *device, const QByteArray &format) const
 {
-    if (format == "icns")
-        return Capabilities(CanRead | CanWrite);
-    if (!format.isEmpty())
-        return 0;
-    if (!device->isOpen())
+    if (!device || !device->isOpen() || format != "icns")
         return 0;
 
     Capabilities cap;
@@ -32,3 +35,7 @@ QStringList QIcnsPlugin::keys() const
 Q_EXPORT_STATIC_PLUGIN(QIcnsPlugin)
 Q_EXPORT_PLUGIN2(qicns, QIcnsPlugin)
 #endif
+
+QT_END_NAMESPACE
+
+#endif // QT_NO_IMAGEFORMATPLUGIN

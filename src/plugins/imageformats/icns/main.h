@@ -1,6 +1,13 @@
-#include "qicnshandler.h"
 
 #include <QtGui/QImageIOPlugin>
+
+#ifndef QT_NO_IMAGEFORMATPLUGIN
+
+#ifdef QT_NO_IMAGEFORMAT_ICNS
+#undef QT_NO_IMAGEFORMAT_ICNS
+#endif
+
+QT_BEGIN_NAMESPACE
 
 class QIcnsPlugin : public QImageIOPlugin
 {
@@ -16,3 +23,7 @@ public:
     QStringList keys() const;
 #endif
 };
+
+QT_END_NAMESPACE
+
+#endif // QT_NO_IMAGEFORMATPLUGIN

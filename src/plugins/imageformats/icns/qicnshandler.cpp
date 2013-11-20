@@ -19,7 +19,7 @@ static QDataStream &operator<<(QDataStream &out, IcnsBlockHeader &p)
 static QByteArray RLE24toRGB32(const QByteArray &RLEBytes, quint32 estPxsNum)
 {
     if (RLEBytes.isEmpty()) {
-        qWarning("getRGB32fromRLE24(): Encoded bytes are empty!");
+        qWarning("RLE24toRGB32(): Encoded bytes are empty!");
         return RLEBytes;
     }
     QByteArray RGBBytes((estPxsNum * 3), 0);
@@ -49,274 +49,6 @@ static QByteArray RLE24toRGB32(const QByteArray &RLEBytes, quint32 estPxsNum)
         }
     }
     return RGBBytes;
-}
-
-QIcnsHandler::QIcnsHandler()
-{
-    m_currentIconIndex = 0;
-    m_scanstate = IcnsFileIsNotParsed;
-}
-
-QIcnsHandler::QIcnsHandler(QIODevice * d, const QByteArray &format)
-{
-    setDevice(d);
-    setFormat(format);
-    m_stream.setDevice(d);
-    m_currentIconIndex = 0;
-    m_scanstate = IcnsFileIsNotParsed;
-}
-
-QByteArray QIcnsHandler::name() const
-{
-    return "icns";
-}
-
-bool QIcnsHandler::canRead(QIODevice *device)
-{
-    if (!device || !device->isReadable()) {
-        qWarning("QIcnsHandler::canRead() called without a readable device");
-        return false;
-    }
-    if (device->isSequential()) {
-        qWarning("QIcnsHandler::canRead() called on sequential device (NYI)");
-        return false;
-    }
-    return device->peek(4) == "icns";
-}
-
-bool QIcnsHandler::canWrite(QIODevice *device)
-{
-    if (!device || !device->isWritable()) {
-        qWarning("QIcnsHandler::canRead() called without a writable device");
-        return false;
-    }
-    return true;
-}
-
-bool QIcnsHandler::canRead() const
-{
-    if (canRead(device())) {
-        setFormat("icns");
-        return true;
-    }
-    return false;
-}
-
-bool QIcnsHandler::read(QImage *outImage)
-{
-    QImage img;
-    if (!isScanned())
-        scanDevice();
-    if (!isParsed()) {
-        qWarning("QIcnsHandler::read(): The device was not parced properly!");
-        *outImage = img;
-        return false;
-    }
-
-    IcnsIconEntry icon = m_icons.at(m_currentIconIndex);
-    if (m_stream.device()->seek(icon.dataOffset())) {
-        if (m_stream.device()->peek(8).toHex() == QByteArrayLiteral("89504e470d0a1a0a")) { // if PNG magic
-            img = QImage::fromData(m_stream.device()->peek(icon.dataLength()), "png");
-            if (img.isNull()) {
-                qWarning("QIcnsHandler::read(): Failed, PNG is not supported by your Qt distribution. OSType: %u", icon.getOSType());
-            }
-        }
-        else if (m_stream.device()->peek(12).toHex() == QByteArrayLiteral("0000000c6a5020200d0a870a")) { // if JPEG 2000 magic
-            img = QImage::fromData(m_stream.device()->peek(icon.dataLength()), "jp2");
-            if (img.isNull()) {
-                qWarning("QIcnsHandler::read(): Failed, JPEG2000 is not supported by your Qt distribution. OSType: %u", icon.getOSType());
-            }
-        }
-        else if (icon.group() == IconGroupCompressed) {
-            qWarning("QIcnsHandler::read(): Unsupported compressed icon format, OSType: %u", icon.getOSType());
-        }
-        else if (icon.height() == 0 || icon.width() == 0) {
-            qWarning("QIcnsHandler::read(): Size of a raw icon is unknown, OSType: %u", icon.getOSType());
-        }
-        else {
-            switch(icon.depth()) {
-            case IconMono:
-            case Icon4bit:
-            case Icon8bit:
-                img = readLowDepthIconFromStream(icon, m_stream);
-                break;
-            case Icon32bit:
-                img = read32bitIconFromStream(icon, m_stream);
-                break;
-            default: {
-                qWarning() << "QIcnsHandler::read(): Icon #:" << m_currentIconIndex
-                           << "Unsupported icon bit depth:" << icon.depth();
-            }
-            }
-        }
-    }
-    if (!img.isNull()) {
-        QImage alpha = iconAlpha(m_currentIconIndex);
-        if (!alpha.isNull())
-            img.setAlphaChannel(alpha);
-        //TODO: Replace with QPainter compositions in the future?
-    }
-    *outImage = img;
-    return !img.isNull();
-}
-
-bool QIcnsHandler::write(const QImage &image)
-{
-    QIODevice *device = QImageIOHandler::device();
-    // NOTE: Experimental implementation. Just for simple converting tasks / testing purposes.
-    // LIMITATIONS: Writes a complete icns file containing only one square icon in PNG format to a device.
-    // Currently uses non-hardcoded OSTypes.
-    QImage img = image;
-    const int width = img.size().width();
-    const int height = img.size().height();
-    const bool sizeIsCorrect = (width == height) && (width >= 16) && ((width & (width - 1)) == 0);
-    if (!device->isWritable() && !sizeIsCorrect) {
-        return false;
-    }
-    // Construct icon OSType
-    int i = width;
-    uint p = 0;
-    while (i >>= 1) {p++;}
-    if (p > 10) { // Force resizing to 1024x1024. Values over 10 are reserved for retina icons
-        p = 10;
-        img = img.scaled(1024,1024);
-    }
-    // Small / big icons naming policy
-    const QByteArray ostypebase = (p < 7) ? QByteArrayLiteral("ipc") : QByteArrayLiteral("ic");
-    const QByteArray ostypenum = (ostypebase.size() > 2 || p >= 10) ? QByteArray::number(p) : QByteArray::number(p).prepend("0");
-    const quint32 ostype = QByteArray(ostypebase).append(ostypenum).toHex().toUInt(NULL,16);
-    // Construct ICNS Header
-    IcnsBlockHeader fileHeader;
-    fileHeader.OSType = OSType_icns;
-    // Construct TOC Header
-    IcnsBlockHeader tocHeader;
-    tocHeader.OSType = OSType_TOC_;
-    // Construct TOC Entry
-    IcnsBlockHeader tocEntry;
-    tocEntry.OSType = ostype;
-    // Construct Icon block
-    IcnsBlockHeader iconEntry;
-    iconEntry.OSType = ostype;
-    // Construct image data
-    QByteArray imageData;
-    QBuffer buffer(&imageData);
-    if (!buffer.open(QIODevice::WriteOnly) && !img.save(&buffer, "png")) {
-        return false;
-    }
-    buffer.close();
-    iconEntry.length = IcnsBlockHeaderSize + imageData.size();
-    tocEntry.length = iconEntry.length;
-    tocHeader.length = IcnsBlockHeaderSize*2;
-    fileHeader.length = IcnsBlockHeaderSize + tocHeader.length + iconEntry.length;
-    // Write everything
-    QDataStream stream(device);
-    stream.setByteOrder(QDataStream::BigEndian);
-    stream << fileHeader << tocHeader << tocEntry << iconEntry;
-    stream.writeRawData(imageData.constData(),imageData.size());
-    if (stream.status() != QDataStream::Ok) {
-        return false;
-    }
-    return true;
-}
-
-int QIcnsHandler::imageCount() const
-{
-    if (!isScanned()) {
-        QIcnsHandler* that = const_cast<QIcnsHandler *>(this);
-        that->scanDevice();
-    }
-    return m_icons.size();
-}
-
-bool QIcnsHandler::jumpToImage(int imageNumber)
-{
-    if (imageNumber < imageCount())
-        m_currentIconIndex = imageNumber;
-    return (imageNumber < imageCount()) ? true : false;
-}
-
-bool QIcnsHandler::jumpToNextImage()
-{
-    return jumpToImage(m_currentIconIndex + 1);
-}
-
-QImage QIcnsHandler::readLowDepthIconFromStream(const QIcnsHandler::IcnsIconEntry &icon, QDataStream &stream)
-{
-    QImage img;
-    quint8 byte = 0;
-    quint32 pixel = 0;
-    const QImage::Format format = (icon.depth() == IconMono) ? QImage::Format_Mono : QImage::Format_Indexed8;
-    QVector<QRgb> colortable = getColorTable(icon.depth());
-    if (colortable.size() < 2) {
-        return img;
-    }
-    img = QImage(icon.width(), icon.height(), format);
-    img.setColorTable(colortable);
-    for (uint y = 0; y < icon.height(); y++) {
-        for (uint x = 0; x < icon.width(); x++) {
-            if (stream.status() != QDataStream::Ok) {
-                return img;
-            }
-            if (pixel % (8 / icon.depth()) == 0) {
-                stream >> byte;
-            }
-            quint8 cindex = 0;
-            switch(icon.depth()) {
-            case IconMono: {
-                cindex = (byte & 0x80) ? 1 : 0; // left 1 bit
-                break;
-            }
-            case Icon4bit: {
-                quint8 value = ((byte & 0xF0) >> 4); // left 4 bits
-                cindex = (value < qPow(2,icon.depth())) ? value : 0;
-                break;
-            }
-            default: //8bit
-                cindex = (byte < qPow(2,icon.depth())) ? byte : 0;
-            }
-            byte = byte << icon.depth();
-            img.setPixel(x,y,cindex);
-            pixel++;
-        }
-    }
-    return img;
-}
-
-QImage QIcnsHandler::read32bitIconFromStream(const QIcnsHandler::IcnsIconEntry &icon, QDataStream &stream)
-{
-    QByteArray data = stream.device()->peek(icon.dataLength());
-    if (data.isEmpty()) {
-        return QImage();
-    }
-    QImage img = QImage(icon.width(), icon.height(), QImage::Format_RGB32);
-    if (icon.isRLE24()) {
-        data = RLE24toRGB32(data, icon.width()*icon.height());
-    }
-    if (data.isEmpty()) {
-        qWarning("QIcnsHandler::read32bitIconFromStream(): RLE24 decompression failed. Icon OSType: %u", icon.getOSType());
-        return QImage();
-    }
-    quint32 pixel = 0;
-    QDataStream bastream(data);
-    for (uint y = 0; y < icon.height(); y++) {
-        for (uint x = 0; x < icon.width(); x++) {
-            quint8 r, g, b;
-            bastream >> r >> g >> b;
-            img.setPixel(x,y,qRgb(r,g,b));
-            pixel++;
-        }
-    }
-    return img;
-}
-
-bool QIcnsHandler::isScanned() const
-{
-    return (m_scanstate != IcnsFileIsNotParsed);
-}
-
-bool QIcnsHandler::isParsed() const
-{
-    return (m_scanstate == IcnsFileIsParsed);
 }
 
 QVector<QRgb> QIcnsHandler::getColorTable(const IconBitDepth &depth)
@@ -612,6 +344,311 @@ QVector<QRgb> QIcnsHandler::getColorTable(const IconBitDepth &depth)
     return table;
 }
 
+QImage QIcnsHandler::readMaskFromStream(const IcnsIconEntry &mask, QDataStream &stream)
+{
+    QImage img;
+    if (!mask.isAlphaMask()) {
+        return img;
+    }
+    if (mask.depth() != IconMono && mask.depth() != Icon8bit) {
+        qWarning() << "QIcnsHandler::readMaskFromStream(): Mask has unusual bit depth, can't read:"
+                   << mask.depth() << "OSType:" << mask.getOSType();
+        return img;
+    }
+    const qreal bytespp = ((qreal)mask.depth() / 8);
+    const quint32 imageDataSize = (mask.width() * mask.height()) * bytespp;
+    const quint32 pos = (mask.mask() == IconPlusMask) ? (mask.dataOffset() + imageDataSize) : mask.dataOffset();
+    const qint64 oldPos = stream.device()->pos();
+    if (stream.device()->seek(pos)) {
+        img = QImage(mask.width(), mask.height(), QImage::Format_RGB32);
+        quint8 byte = 0;
+        quint32 pixel = 0;
+        for (quint32 y = 0; y < mask.height(); y++) {
+            for (quint32 x = 0; x < mask.width(); x++) {
+                if (pixel % (8 / mask.depth()) == 0) {
+                    stream >> byte;
+                }
+                quint8 alpha = (mask.depth() == IconMono) ? (byte >> 7) * 0xFF : byte;
+                byte = byte << 1;
+                img.setPixel(x,y,qRgb(alpha,alpha,alpha));
+                pixel++;
+            }
+        }
+        stream.device()->seek(oldPos);
+    }
+    return img;
+}
+
+QImage QIcnsHandler::readLowDepthIconFromStream(const IcnsIconEntry &icon, QDataStream &stream)
+{
+    QImage img;
+    quint8 byte = 0;
+    quint32 pixel = 0;
+    const QImage::Format format = (icon.depth() == IconMono) ? QImage::Format_Mono : QImage::Format_Indexed8;
+    QVector<QRgb> colortable = getColorTable(icon.depth());
+    if (colortable.size() < 2) {
+        return img;
+    }
+    img = QImage(icon.width(), icon.height(), format);
+    img.setColorTable(colortable);
+    for (uint y = 0; y < icon.height(); y++) {
+        for (uint x = 0; x < icon.width(); x++) {
+            if (stream.status() != QDataStream::Ok) {
+                return img;
+            }
+            if (pixel % (8 / icon.depth()) == 0) {
+                stream >> byte;
+            }
+            quint8 cindex = 0;
+            switch(icon.depth()) {
+            case IconMono: {
+                cindex = (byte & 0x80) ? 1 : 0; // left 1 bit
+                break;
+            }
+            case Icon4bit: {
+                quint8 value = ((byte & 0xF0) >> 4); // left 4 bits
+                cindex = (value < qPow(2,icon.depth())) ? value : 0;
+                break;
+            }
+            default: //8bit
+                cindex = (byte < qPow(2,icon.depth())) ? byte : 0;
+            }
+            byte = byte << icon.depth();
+            img.setPixel(x,y,cindex);
+            pixel++;
+        }
+    }
+    return img;
+}
+
+QImage QIcnsHandler::read32bitIconFromStream(const IcnsIconEntry &icon, QDataStream &stream)
+{
+    QByteArray data = stream.device()->peek(icon.dataLength());
+    if (data.isEmpty()) {
+        return QImage();
+    }
+    QImage img = QImage(icon.width(), icon.height(), QImage::Format_RGB32);
+    if (icon.isRLE24()) {
+        data = RLE24toRGB32(data, icon.width()*icon.height());
+    }
+    if (data.isEmpty()) {
+        qWarning("QIcnsHandler::read32bitIconFromStream(): RLE24 decompression failed. Icon OSType: %u", icon.getOSType());
+        return QImage();
+    }
+    quint32 pixel = 0;
+    QDataStream bastream(data);
+    for (uint y = 0; y < icon.height(); y++) {
+        for (uint x = 0; x < icon.width(); x++) {
+            quint8 r, g, b;
+            bastream >> r >> g >> b;
+            img.setPixel(x,y,qRgb(r,g,b));
+            pixel++;
+        }
+    }
+    return img;
+}
+
+QIcnsHandler::QIcnsHandler()
+{
+    m_currentIconIndex = 0;
+    m_scanstate = IcnsFileIsNotParsed;
+}
+
+QIcnsHandler::QIcnsHandler(QIODevice * d, const QByteArray &format)
+{
+    setDevice(d);
+    setFormat(format);
+    m_stream.setDevice(d);
+    m_currentIconIndex = 0;
+    m_scanstate = IcnsFileIsNotParsed;
+}
+
+QByteArray QIcnsHandler::name() const
+{
+    return "icns";
+}
+
+bool QIcnsHandler::canRead(QIODevice *device)
+{
+    if (!device || !device->isReadable()) {
+        qWarning("QIcnsHandler::canRead() called without a readable device");
+        return false;
+    }
+    if (device->isSequential()) {
+        qWarning("QIcnsHandler::canRead() called on sequential device (NYI)");
+        return false;
+    }
+    return device->peek(4) == "icns";
+}
+
+bool QIcnsHandler::canWrite(QIODevice *device)
+{
+    if (!device || !device->isWritable()) {
+        qWarning("QIcnsHandler::canRead() called without a writable device");
+        return false;
+    }
+    return true;
+}
+
+bool QIcnsHandler::canRead() const
+{
+    if (canRead(device())) {
+        setFormat("icns");
+        return true;
+    }
+    return false;
+}
+
+bool QIcnsHandler::read(QImage *outImage)
+{
+    QImage img;
+    if (!isScanned()) {
+        scanDevice();
+    }
+    if (!isParsed()) {
+        qWarning("QIcnsHandler::read(): The device was not parced properly!");
+        *outImage = img;
+        return false;
+    }
+
+    IcnsIconEntry icon = m_icons.at(m_currentIconIndex);
+    if (m_stream.device()->seek(icon.dataOffset())) {
+        if (m_stream.device()->peek(8).toHex() == QByteArrayLiteral("89504e470d0a1a0a")) { // if PNG magic
+            img = QImage::fromData(m_stream.device()->peek(icon.dataLength()), "png");
+            if (img.isNull()) {
+                qWarning("QIcnsHandler::read(): Failed, PNG is not supported by your Qt distribution. OSType: %u", icon.getOSType());
+            }
+        }
+        else if (m_stream.device()->peek(12).toHex() == QByteArrayLiteral("0000000c6a5020200d0a870a")) { // if JPEG 2000 magic
+            img = QImage::fromData(m_stream.device()->peek(icon.dataLength()), "jp2");
+            if (img.isNull()) {
+                qWarning("QIcnsHandler::read(): Failed, JPEG2000 is not supported by your Qt distribution. OSType: %u", icon.getOSType());
+            }
+        }
+        else if (icon.group() == IconGroupCompressed) {
+            qWarning("QIcnsHandler::read(): Unsupported compressed icon format, OSType: %u", icon.getOSType());
+        }
+        else if (icon.height() == 0 || icon.width() == 0) {
+            qWarning("QIcnsHandler::read(): Size of a raw icon is unknown, OSType: %u", icon.getOSType());
+        }
+        else {
+            switch(icon.depth()) {
+            case IconMono:
+            case Icon4bit:
+            case Icon8bit:
+                img = readLowDepthIconFromStream(icon, m_stream);
+                break;
+            case Icon32bit:
+                img = read32bitIconFromStream(icon, m_stream);
+                break;
+            default: {
+                qWarning() << "QIcnsHandler::read(): Icon #:" << m_currentIconIndex
+                           << "Unsupported icon bit depth:" << icon.depth();
+            }
+            }
+        }
+    }
+    if (!img.isNull()) {
+        QImage alpha = readMaskFromStream(getIconMask(icon), m_stream);
+        if (!alpha.isNull()) {
+            //FIXME: Replace with QPainter compositions in the future or do some other way?
+            img.setAlphaChannel(alpha);
+        }
+    }
+    *outImage = img;
+    return !img.isNull();
+}
+
+bool QIcnsHandler::write(const QImage &image)
+{
+    QIODevice *device = QImageIOHandler::device();
+    // NOTE: Experimental implementation. Just for simple converting tasks / testing purposes.
+    // LIMITATIONS: Writes a complete icns file containing only one square icon in PNG format to a device.
+    // Currently uses non-hardcoded OSTypes.
+    QImage img = image;
+    const int width = img.size().width();
+    const int height = img.size().height();
+    const bool sizeIsCorrect = (width == height) && (width >= 16) && ((width & (width - 1)) == 0);
+    if (!device->isWritable() && !sizeIsCorrect) {
+        return false;
+    }
+    // Construct icon OSType
+    int i = width;
+    uint p = 0;
+    while (i >>= 1) { p++; }
+    if (p > 10) { // Force resizing to 1024x1024. Values over 10 are reserved for retina icons
+        p = 10;
+        img = img.scaled(1024,1024);
+    }
+    // Small / big icons naming policy
+    const QByteArray ostypebase = (p < 7) ? QByteArrayLiteral("ipc") : QByteArrayLiteral("ic");
+    const QByteArray ostypenum = (ostypebase.size() > 2 || p >= 10) ? QByteArray::number(p) : QByteArray::number(p).prepend("0");
+    const quint32 ostype = QByteArray(ostypebase).append(ostypenum).toHex().toUInt(NULL,16);
+    // Construct ICNS Header
+    IcnsBlockHeader fileHeader;
+    fileHeader.OSType = OSType_icns;
+    // Construct TOC Header
+    IcnsBlockHeader tocHeader;
+    tocHeader.OSType = OSType_TOC_;
+    // Construct TOC Entry
+    IcnsBlockHeader tocEntry;
+    tocEntry.OSType = ostype;
+    // Construct Icon block
+    IcnsBlockHeader iconEntry;
+    iconEntry.OSType = ostype;
+    // Construct image data
+    QByteArray imageData;
+    QBuffer buffer(&imageData);
+    if (!buffer.open(QIODevice::WriteOnly) && !img.save(&buffer, "png")) {
+        return false;
+    }
+    buffer.close();
+    iconEntry.length = IcnsBlockHeaderSize + imageData.size();
+    tocEntry.length = iconEntry.length;
+    tocHeader.length = IcnsBlockHeaderSize * 2;
+    fileHeader.length = IcnsBlockHeaderSize + tocHeader.length + iconEntry.length;
+    // Write everything
+    QDataStream stream(device);
+    stream.setByteOrder(QDataStream::BigEndian);
+    stream << fileHeader << tocHeader << tocEntry << iconEntry;
+    stream.writeRawData(imageData.constData(),imageData.size());
+    if (stream.status() != QDataStream::Ok) {
+        return false;
+    }
+    return true;
+}
+
+int QIcnsHandler::imageCount() const
+{
+    if (!isScanned()) {
+        QIcnsHandler* that = const_cast<QIcnsHandler *>(this);
+        that->scanDevice();
+    }
+    return m_icons.size();
+}
+
+bool QIcnsHandler::jumpToImage(int imageNumber)
+{
+    if (imageNumber < imageCount())
+        m_currentIconIndex = imageNumber;
+    return (imageNumber < imageCount()) ? true : false;
+}
+
+bool QIcnsHandler::jumpToNextImage()
+{
+    return jumpToImage(m_currentIconIndex + 1);
+}
+
+bool QIcnsHandler::isScanned() const
+{
+    return (m_scanstate != IcnsFileIsNotParsed);
+}
+
+bool QIcnsHandler::isParsed() const
+{
+    return (m_scanstate == IcnsFileIsParsed);
+}
+
 bool QIcnsHandler::addIcon(IcnsIconEntry &icon)
 {
     if (icon.isValid()) {
@@ -684,72 +721,23 @@ void QIcnsHandler::scanDevice()
     m_scanstate = IcnsFileIsParsed;
 }
 
-QImage QIcnsHandler::iconAlpha(int index)
+QIcnsHandler::IcnsIconEntry QIcnsHandler::getIconMask(const IcnsIconEntry &icon) const
 {
-    QImage img;
-    IcnsIconEntry icon = m_icons.at(index);
-    if (icon.width() > 0 && icon.height() > 0) {
-        bool hasMask = false;
-        bool isMask = false;
-        int maskIndex;
-        if (icon.mask() == IconPlusMask) {
-            isMask = true;
-            hasMask = true;
-        }
-        else {
-            IconBitDepth targetDepth = (icon.depth() == Icon32bit) ? Icon8bit : IconMono;
-            for (int i = 0; i < m_masks.size(); i++) {
-                bool suitable = m_masks.at(i).group() == icon.group() ||
-                        (m_masks.at(i).height() == icon.height() &&
-                         m_masks.at(i).width() == icon.width());
-                if (suitable) {
-                    if (m_masks.at(i).depth() == targetDepth) {
-                        maskIndex = i;
-                        hasMask = true;
-                    }
+    IcnsIconEntry mask = icon;
+    if (icon.isValid() && !icon.isAlphaMask()) {
+        IconBitDepth targetDepth = (icon.depth() == Icon32bit) ? Icon8bit : IconMono;
+        for (int i = 0; i < m_masks.size(); i++) {
+            bool suitable = m_masks.at(i).group() == icon.group() ||
+                    (m_masks.at(i).height() == icon.height() &&
+                     m_masks.at(i).width() == icon.width());
+            if (suitable) {
+                if (m_masks.at(i).depth() == targetDepth) {
+                    mask = m_masks.at(i);
                 }
-            }
-        }
-        if (hasMask) {
-            IcnsIconEntry mask = isMask ? icon : m_masks.at(maskIndex);
-            if (mask.depth() != IconMono && mask.depth() != Icon8bit) {
-                qWarning() << "IcnsReader::getA8MaskForIcon(): Mask has unusual bit depth, can't read:"
-                           << mask.depth() << "OSType:" << mask.getOSType();
-                return img;
-            }
-            const quint32 width = mask.width();
-            const quint32 height = mask.height();
-            const quint32 pixelCount = width * height;
-            const float bytesPerPixel = ((float)mask.depth() / 8);
-            const quint32 imageDataSize = pixelCount * bytesPerPixel;
-            const quint32 basePos = mask.dataOffset();
-            const quint32 pos = (mask.mask() == IconPlusMask) ? (basePos + imageDataSize) : basePos;
-            const qint64 oldPos = m_stream.device()->pos();
-            if (m_stream.device()->seek(pos)) {
-                img = QImage(width, height, QImage::Format_RGB32);
-                quint8 byte = 0;
-                quint32 pixel = 0;
-                for (quint32 y = 0; y < height; y++) {
-                    for (quint32 x = 0; x < width; x++) {
-                        if (mask.depth() == IconMono) {
-                            if (pixel % 8 == 0)
-                                m_stream >> byte;
-                            quint8 alpha = (byte >> 7) * 0xFF;
-                            byte = byte << 1;
-                            img.setPixel(x,y,qRgb(alpha,alpha,alpha));
-                        }
-                        else {
-                            m_stream >> byte;
-                            img.setPixel(x,y,qRgb(byte,byte,byte));
-                        }
-                        pixel++;
-                    }
-                }
-                m_stream.device()->seek(oldPos);
             }
         }
     }
-    return img;
+    return mask;
 }
 
 QIcnsHandler::IcnsIconEntry::IcnsIconEntry()
@@ -779,10 +767,10 @@ QIcnsHandler::IcnsIconEntry::IcnsIconEntry(IcnsBlockHeader &header, quint32 imgD
     m_imageDataLength = header.length - IcnsBlockHeaderSize;
     m_imageDataIsRLE = false; // Always false unless spotted
     // Parse everything else:
-    m_iconIsParsed = parseOSType();
+    m_iconIsParsed = parse();
 }
 
-bool QIcnsHandler::IcnsIconEntry::parseOSType()
+bool QIcnsHandler::IcnsIconEntry::parse()
 {
     const QByteArray OSType = QByteArray::fromHex(QByteArray::number(m_header.OSType,16));
     // Typical OSType naming: <junk><group><depth><mask>;
@@ -859,7 +847,7 @@ bool QIcnsHandler::IcnsIconEntry::parseOSType()
                     m_iconHeight = 128;
                     break;
                 default :
-                    qWarning() << "IcnsIconEntry::parseOSType(): 32bit icon from an unknown group. OSType:"
+                    qWarning() << "IcnsIconEntry::parse(): 32bit icon from an unknown group. OSType:"
                                << OSType.constData();
                 }
             }
@@ -873,11 +861,11 @@ bool QIcnsHandler::IcnsIconEntry::parseOSType()
             m_iconHeight = qPow(2,m_iconDepth);
         }
         else {
-            qDebug() << "IcnsIconEntry::parseOSType(): Compressed format id > 10 (retina?). OSType:" << OSType.constData();
+            qDebug() << "IcnsIconEntry::parse(): Compressed format id > 10 (retina?). OSType:" << OSType.constData();
         }
     }
     if (!hasMatch) {
-        qWarning() << "IcnsIconEntry::parseOSType(): Parsing failed, ignored. Reg exp: no match for OSType:" << OSType.constData();
+        qWarning() << "IcnsIconEntry::parse(): Parsing failed, ignored. Reg exp: no match for OSType:" << OSType.constData();
     }
     return hasMatch;
 }

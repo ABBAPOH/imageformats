@@ -1,4 +1,7 @@
 
+#ifndef MAIN_H
+#define MAIN_H
+
 #include <QtGui/QImageIOPlugin>
 
 #ifndef QT_NO_IMAGEFORMATPLUGIN
@@ -22,3 +25,5 @@ public:
 QT_END_NAMESPACE
 
 #endif // QT_NO_IMAGEFORMATPLUGIN
+
+#endif // MAIN_H

@@ -25,7 +25,7 @@ class QIcnsHandler : public QImageIOHandler
         OSType_icnV     = 0x69636E56
     };
     enum IconGroup {
-        IconGroupUnk        = 0,    // placeholder
+        IconGroupUnk        = 0,
         IconGroupMini       = 0x6D, // "m" for "mini" (16x12)
         IconGroupSmall      = 0x73, // "s" for "small" (16x16)
         IconGroupLarge      = 0x6C, // "l" for "large" (32x32)
@@ -34,25 +34,25 @@ class QIcnsHandler : public QImageIOHandler
         IconGroupCompressed = 0x63, // "c" for "compressed"? (various sizes)
         // Legacy icons spotted:
         IconGroupICON       = 0x4E, // [FULL SUPPORT] "N" from OSType "ICON" (32x32)
-        IconGroupOpen       = 0x6E, // [NYI,UNKNOWN] "n" from OSType "open" (ostype: 0x6f70656e)
-        IconGroupTile       = 0x65, // [NYI,UNKNOWN] "e" from OSType "tile" (ostype: 0x74696c65)
-        IconGroupDrop       = 0x70, // [NYI,UNKNOWN] "p" from OSTypes "drop" and "odrp" (0x64726f70, 0x6f647270)
-        IconGroupOver       = 0x72  // [NYI,UNKNOWN] "r" from OSType "over" (ostype: 0x6f766572)
+        IconGroupOpen       = 0x6E, // [NYI, UNKNOWN] "n" from OSType "open" (ostype: 0x6f70656e)
+        IconGroupTile       = 0x65, // [NYI, UNKNOWN] "e" from OSType "tile" (ostype: 0x74696c65)
+        IconGroupDrop       = 0x70, // [NYI, UNKNOWN] "p" from OSTypes "drop" and "odrp" (0x64726f70, 0x6f647270)
+        IconGroupOver       = 0x72  // [NYI, UNKNOWN] "r" from OSType "over" (ostype: 0x6f766572)
     };
     enum IconBitDepth {
-        IconDepthUnk    = 0, // placeholder
+        IconDepthUnk    = 0,
         IconMono        = 1,
         Icon4bit        = 4,
         Icon8bit        = 8,
         Icon32bit       = 32
     };
     enum IconMaskType {
-        IconMaskUnk,    // Not identified yet
+        IconMaskUnk,
         IconNoMask,     // Plain icon without alpha
         IconPlusMask,   // Plain icon and alpha mask (double size)
         IconIsMask      // The whole icon entry is alpha mask
     };
-    enum IcnsFileState {
+    enum IcnsState {
         IcnsFileIsParsed,
         IcnsFileIsNotParsed,
         IcnsFileParsingError
@@ -64,28 +64,28 @@ class QIcnsHandler : public QImageIOHandler
         IcnsIconEntry();
         IcnsIconEntry(IcnsBlockHeader &header, quint32 imgDataOffset);
         quint32             getOSType()     const { return m_header.OSType; }
-        IconGroup           group()         const { return m_iconGroup; }
-        IconBitDepth        depth()         const { return m_iconDepth; }
-        IconMaskType        mask()          const { return m_iconMaskType; }
-        quint32             width()         const { return m_iconWidth; }
-        quint32             height()        const { return m_iconHeight; }
-        quint32             dataLength()    const { return m_imageDataLength; }
-        quint32             dataOffset()    const { return m_imageDataOffset; }
-        bool                isValid()       const { return m_iconIsParsed; }
-        bool                isRLE24()       const { return m_imageDataIsRLE; }
+        IconGroup           group()         const { return m_group; }
+        IconBitDepth        depth()         const { return m_depth; }
+        IconMaskType        mask()          const { return m_mask; }
+        quint32             width()         const { return m_width; }
+        quint32             height()        const { return m_height; }
+        quint32             dataLength()    const { return m_dataLength; }
+        quint32             dataOffset()    const { return m_dataOffset; }
+        bool                isValid()       const { return m_isValid; }
+        bool                isRLE24()       const { return m_dataIsRLE; }
         bool                isAlphaMask()   const { return (mask() == IconIsMask || mask() == IconPlusMask); }
 
     private:
-        IcnsBlockHeader     m_header;           // Original block header
-        IconGroup           m_iconGroup;        // ASCII character number pointing to a format
-        IconBitDepth        m_iconDepth;        // Color depth for uncompr. icons or icon format num for compressed
-        IconMaskType        m_iconMaskType;     // For Uncompressed icons only
-        quint32             m_iconWidth;        // For Uncompressed icons only
-        quint32             m_iconHeight;       // For Uncompressed icons only
-        bool                m_iconIsParsed;     //
-        quint32             m_imageDataLength;  // header.length - sizeof(header)
-        quint32             m_imageDataOffset;  // Offset from the initial position of the file/device
-        bool                m_imageDataIsRLE;   // 32bit raw icons may be in rle24 compressed state
+        IcnsBlockHeader     m_header;       // Original block header
+        IconGroup           m_group;        // ASCII character number pointing to a format
+        IconBitDepth        m_depth;        // Color depth for uncompr. icons or icon format num for compressed
+        IconMaskType        m_mask;         // For Uncompressed icons only
+        quint32             m_width;        // For Uncompressed icons only
+        quint32             m_height;       // For Uncompressed icons only
+        bool                m_isValid;      // True if correctly parsed
+        quint32             m_dataLength;   // header.length - sizeof(header)
+        quint32             m_dataOffset;   // Offset from the initial position of the file/device
+        bool                m_dataIsRLE;    // 32bit raw icons may be in rle24 compressed state
         bool                parse();
     };
 
@@ -115,7 +115,7 @@ private:
     QDataStream m_stream;
     QVector<IcnsIconEntry> m_icons;
     QVector<IcnsIconEntry> m_masks;
-    IcnsFileState m_scanstate;
+    IcnsState m_scanstate;
 
     bool isScanned() const;
     bool isParsed() const;

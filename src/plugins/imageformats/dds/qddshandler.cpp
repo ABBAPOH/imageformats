@@ -941,6 +941,18 @@ static QImage loadG8R8G8B8(QDataStream &s, quint32 width, quint32 height)
     return image;
 }
 
+static QImage loadA2R10G10B10(QDataStream &s, const DDSHeader &dds, quint32 width, quint32 height)
+{
+    QImage result = readValueBased(s, dds, width, height, true);
+    for (quint32 y = 0; y < height; y++) {
+        for (quint32 x = 0; x < width; x++) {
+            QRgb pixel = result.pixel(x, y);
+            result.setPixel(x, y, qRgba(qBlue(pixel), qGreen(pixel), qRed(pixel), qAlpha(pixel)));
+        }
+    }
+    return result;
+}
+
 static QImage readLayer(QDataStream & s, const DDSHeader & dds, const int format, quint32 width, quint32 height)
 {
     if (width * height == 0)
@@ -963,12 +975,13 @@ static QImage readLayer(QDataStream & s, const DDSHeader & dds, const int format
     case FormatA4R4G4B4:
     case FormatA8:
     case FormatA8R3G3B2:
-    case FormatA2B10G10R10:
     case FormatA8B8G8R8:
-    case FormatA2R10G10B10:
     case FormatA8L8:
     case FormatA4L4:
         return readValueBased(s, dds, width, height, true);
+    case FormatA2R10G10B10:
+    case FormatA2B10G10R10:
+        return loadA2R10G10B10(s, dds, width, height);
     case FormatP8:
         return readPaletteBased(s, width, height);
     case FormatA8P8:

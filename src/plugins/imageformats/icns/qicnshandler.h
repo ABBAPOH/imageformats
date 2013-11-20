@@ -101,9 +101,13 @@ public:
 
     QByteArray name() const;
 
+    bool supportsOption(ImageOption option) const;
+    QVariant option(ImageOption option) const;
+
     int imageCount() const;
     bool jumpToImage(int imageNumber);
     bool jumpToNextImage();
+
 
     static bool canRead(QIODevice *device);
     static bool canWrite(QIODevice *device);

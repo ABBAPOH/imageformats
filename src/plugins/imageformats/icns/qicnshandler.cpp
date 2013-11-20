@@ -618,6 +618,25 @@ bool QIcnsHandler::write(const QImage &image)
     return true;
 }
 
+bool QIcnsHandler::supportsOption(QImageIOHandler::ImageOption option) const
+{
+    return (option == QImageIOHandler::Name || option == QImageIOHandler::SubType);
+}
+
+QVariant QIcnsHandler::option(QImageIOHandler::ImageOption option) const
+{
+    if (supportsOption(option)) {
+        if (!isScanned()) {
+            QIcnsHandler* that = const_cast<QIcnsHandler *>(this);
+            that->scanDevice();
+        }
+        if (m_currentIconIndex >= 0 && m_currentIconIndex <= m_icons.size()) {
+            return QByteArray::fromHex(QByteArray::number(m_icons.at(m_currentIconIndex).getOSType(),16));
+        }
+    }
+    return QVariant();
+}
+
 int QIcnsHandler::imageCount() const
 {
     if (!isScanned()) {

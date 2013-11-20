@@ -322,25 +322,24 @@ QImage QIcnsHandler::readMaskFromStream(const IcnsIconEntry &mask, QDataStream &
     }
     const qreal bytespp = ((qreal)mask.depth() / 8);
     const quint32 imageDataSize = (mask.width() * mask.height()) * bytespp;
-    const quint32 pos = (mask.mask() == IconPlusMask) ? (mask.dataOffset() + imageDataSize) : mask.dataOffset();
+    const qint64 pos = (mask.mask() == IconPlusMask) ? (mask.dataOffset() + imageDataSize) : mask.dataOffset();
     const qint64 oldPos = stream.device()->pos();
     if (stream.device()->seek(pos)) {
         img = QImage(mask.width(), mask.height(), QImage::Format_RGB32);
         quint8 byte = 0;
-        quint32 pixel = 0;
-        for (quint32 y = 0; y < mask.height(); y++) {
-            for (quint32 x = 0; x < mask.width(); x++) {
-                if (pixel % (8 / mask.depth()) == 0) {
-                    stream >> byte;
-                }
-                if (stream.status() != QDataStream::Ok) {
-                    return img;
-                }
-                quint8 alpha = (mask.depth() == IconMono) ? (byte >> 7) * 0xFF : byte;
-                byte = byte << 1;
-                img.setPixel(x,y,qRgb(alpha,alpha,alpha));
-                pixel++;
+        for (quint32 pixel = 0; pixel < (mask.width() * mask.height()); pixel++) {
+            const quint32 y = pixel / mask.height();
+            const quint32 x = pixel - (mask.width() * y);
+            if (pixel % (8 / mask.depth()) == 0) {
+                stream >> byte;
             }
+            if (stream.status() != QDataStream::Ok) {
+                return img;
+            }
+            quint8 alpha = (mask.depth() == IconMono) ? (byte >> 7) * 0xFF : byte;
+            byte = byte << 1;
+            QRgb *line = reinterpret_cast<QRgb *>(img.scanLine(y));
+            line[x] = qRgb(alpha,alpha,alpha);
         }
         stream.device()->seek(oldPos);
     }
@@ -351,7 +350,6 @@ QImage QIcnsHandler::readLowDepthIconFromStream(const IcnsIconEntry &icon, QData
 {
     QImage img;
     quint8 byte = 0;
-    quint32 pixel = 0;
     const QImage::Format format = (icon.depth() == IconMono) ? QImage::Format_Mono : QImage::Format_Indexed8;
     QVector<QRgb> colortable = getColorTable(icon.depth());
     if (colortable.size() < 2) {
@@ -359,32 +357,31 @@ QImage QIcnsHandler::readLowDepthIconFromStream(const IcnsIconEntry &icon, QData
     }
     img = QImage(icon.width(), icon.height(), format);
     img.setColorTable(colortable);
-    for (uint y = 0; y < icon.height(); y++) {
-        for (uint x = 0; x < icon.width(); x++) {
-            if (pixel % (8 / icon.depth()) == 0) {
-                stream >> byte;
-            }
-            if (stream.status() != QDataStream::Ok) {
-                return img;
-            }
-            quint8 cindex = 0;
-            switch(icon.depth()) {
-            case IconMono: {
-                cindex = (byte & 0x80) ? 1 : 0; // left 1 bit
-                break;
-            }
-            case Icon4bit: {
-                quint8 value = ((byte & 0xF0) >> 4); // left 4 bits
-                cindex = (value < qPow(2,icon.depth())) ? value : 0;
-                break;
-            }
-            default: //8bit
-                cindex = (byte < qPow(2,icon.depth())) ? byte : 0;
-            }
-            byte = byte << icon.depth();
-            img.setPixel(x,y,cindex);
-            pixel++;
+    for (quint32 pixel = 0; pixel < (icon.width() * icon.height()); pixel++) {
+        const quint32 y = pixel / icon.height();
+        const quint32 x = pixel - (icon.width() * y);
+        if (pixel % (8 / icon.depth()) == 0) {
+            stream >> byte;
         }
+        if (stream.status() != QDataStream::Ok) {
+            return img;
+        }
+        quint8 cindex = 0;
+        switch(icon.depth()) {
+        case IconMono: {
+            cindex = (byte & 0x80) ? 1 : 0; // left 1 bit
+            break;
+        }
+        case Icon4bit: {
+            quint8 value = ((byte & 0xF0) >> 4); // left 4 bits
+            cindex = (value < qPow(2,icon.depth())) ? value : 0;
+            break;
+        }
+        default: //8bit
+            cindex = (byte < qPow(2,icon.depth())) ? byte : 0;
+        }
+        byte = byte << icon.depth();
+        img.setPixel(x,y,cindex);
     }
     return img;
 }
@@ -393,17 +390,16 @@ QImage QIcnsHandler::read32bitIconFromStream(const IcnsIconEntry &icon, QDataStr
 {
     QImage img = QImage(icon.width(), icon.height(), QImage::Format_RGB32);
     if (!icon.isRLE24()) {
-        quint32 pixel = 0;
-        for (uint y = 0; (y < icon.height()); y++) {
-            for (uint x = 0; (x < icon.width()); x++) {
-                quint8 r, g, b;
-                stream >> r >> g >> b;
-                if (stream.status() != QDataStream::Ok) {
-                    return img;
-                }
-                img.setPixel(x,y,qRgb(r,g,b));
-                pixel++;
+        for (quint32 pixel = 0; pixel < (icon.width() * icon.height()); pixel++) {
+            const quint32 y = pixel / icon.height();
+            const quint32 x = pixel - (icon.width() * y);
+            quint8 r, g, b;
+            stream >> r >> g >> b;
+            if (stream.status() != QDataStream::Ok) {
+                return img;
             }
+            QRgb *line = reinterpret_cast<QRgb *>(img.scanLine(y));
+            line[x] = qRgb(r,g,b);
         }
     }
     else {
@@ -440,11 +436,12 @@ QImage QIcnsHandler::read32bitIconFromStream(const IcnsIconEntry &icon, QDataStr
                     }
                     const quint32 y = pixel / icon.height();
                     const quint32 x = pixel - (icon.width() * y);
-                    const QRgb rgb = img.pixel(x,y);
+                    QRgb *line = reinterpret_cast<QRgb *>(img.scanLine(y));
+                    QRgb rgb = line[x];
                     const int r = (colorNRun == 0) ? value : qRed(rgb);
                     const int g = (colorNRun == 1) ? value : qGreen(rgb);
                     const int b = (colorNRun == 2) ? value : qBlue(rgb);
-                    img.setPixel(x,y,qRgb(r,g,b));
+                    line[x] = qRgb(r, g, b);
                     pixel++;
                 }
             }

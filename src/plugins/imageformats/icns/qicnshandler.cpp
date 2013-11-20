@@ -417,35 +417,32 @@ QImage QIcnsHandler::read32bitIconFromStream(const IcnsIconEntry &icon, QDataStr
             while ((pixel < estPxsNum) && !stream.atEnd()) {
                 quint8 byte, value;
                 stream >> byte;
-                if ((byte & 0x80) == 0) {
-                    // High bit is clear: different values
-                    quint8 runLength = (0xFF & byte) + 1; // 1 <= len <= 128
-                    for (quint8 i = 0; (i < runLength) && (pixel < estPxsNum) && !stream.atEnd(); i++) {
-                        stream >> value;
-                        const quint32 y = pixel / icon.height();
-                        const quint32 x = pixel - (icon.width() * y);
-                        const QRgb rgb = img.pixel(x,y);
-                        const int r = (colorNRun == 0) ? value : qRed(rgb);
-                        const int g = (colorNRun == 1) ? value : qGreen(rgb);
-                        const int b = (colorNRun == 2) ? value : qBlue(rgb);
-                        img.setPixel(x,y,qRgb(r,g,b));
-                        pixel++;
+                const bool bitIsClear = ((byte & 0x80) == 0);
+                // If high bit is clear: run of different values; else: same value
+                quint8 runLength = bitIsClear ? ((0xFF & byte) + 1) : ((0xFF & byte) - 125);
+                // Length of the run for for different values: 1 <= len <= 128
+                // Length of the run for same values: 3 <= len <= 130
+                if (!bitIsClear) {
+                    if (stream.atEnd()) {
+                        return img;
                     }
-                }
-                else if (!stream.atEnd()) {
-                    // High bit is set: same value
-                    quint8 runLength = (0xFF & byte) - 125; // 3 <= len <= 130
                     stream >> value;
-                    for (quint8 i = 0; (i < runLength) && (pixel < estPxsNum); i++) {
-                        const quint32 y = pixel / icon.height();
-                        const quint32 x = pixel - (icon.width() * y);
-                        const QRgb rgb = img.pixel(x,y);
-                        const int r = (colorNRun == 0) ? value : qRed(rgb);
-                        const int g = (colorNRun == 1) ? value : qGreen(rgb);
-                        const int b = (colorNRun == 2) ? value : qBlue(rgb);
-                        img.setPixel(x,y,qRgb(r,g,b));
-                        pixel++;
+                }
+                for (quint8 i = 0; (i < runLength) && (pixel < estPxsNum); i++) {
+                    if (bitIsClear) {
+                        if (stream.atEnd()) {
+                            return img;
+                        }
+                        stream >> value;
                     }
+                    const quint32 y = pixel / icon.height();
+                    const quint32 x = pixel - (icon.width() * y);
+                    const QRgb rgb = img.pixel(x,y);
+                    const int r = (colorNRun == 0) ? value : qRed(rgb);
+                    const int g = (colorNRun == 1) ? value : qGreen(rgb);
+                    const int b = (colorNRun == 2) ? value : qBlue(rgb);
+                    img.setPixel(x,y,qRgb(r,g,b));
+                    pixel++;
                 }
             }
         }

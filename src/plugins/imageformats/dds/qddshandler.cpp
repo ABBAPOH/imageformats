@@ -1194,7 +1194,7 @@ static QImage readCubeMap(QDataStream & s, const DDSHeader & dds, const int fmt)
         // Copy face on the image.
         for (quint32 y = 0; y < dds.height; y++) {
             const QRgb *src = reinterpret_cast<const QRgb *>(face.scanLine(y));
-            QRgb *dst = reinterpret_cast<QRgb *>(img.scanLine( y + offset_y )) + offset_x;
+            QRgb *dst = reinterpret_cast<QRgb *>(img.scanLine(y + offset_y)) + offset_x;
             memcpy(dst, src, sizeof(QRgb) * dds.width);
         }
     }

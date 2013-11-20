@@ -227,7 +227,7 @@ static Format getFormat(const DDSHeader &dds)
     } else {
         for (size_t i = 0; i < formatInfosSize; ++i) {
             const FormatInfo &info = formatInfos[i];
-            if ( (format.flags & info.flags) == info.flags &&
+            if ((format.flags & info.flags) == info.flags &&
                  format.rgbBitCount == info.bitCount &&
                  format.rBitMask == info.rBitMask &&
                  format.bBitMask == info.bBitMask &&

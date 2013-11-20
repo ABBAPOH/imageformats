@@ -44,7 +44,7 @@
 
 QT_BEGIN_NAMESPACE
 
-QDataStream & operator>>(QDataStream &s, DDSPixelFormat &pixelFormat)
+QDataStream &operator>>(QDataStream &s, DDSPixelFormat &pixelFormat)
 {
     s >> pixelFormat.size;
     s >> pixelFormat.flags;
@@ -57,7 +57,7 @@ QDataStream & operator>>(QDataStream &s, DDSPixelFormat &pixelFormat)
     return s;
 }
 
-QDataStream & operator<<(QDataStream &s, const DDSPixelFormat &pixelFormat)
+QDataStream &operator<<(QDataStream &s, const DDSPixelFormat &pixelFormat)
 {
     s << pixelFormat.size;
     s << pixelFormat.flags;
@@ -70,7 +70,7 @@ QDataStream & operator<<(QDataStream &s, const DDSPixelFormat &pixelFormat)
     return s;
 }
 
-QDataStream & operator>>(QDataStream &s, DDSHeader &header)
+QDataStream &operator>>(QDataStream &s, DDSHeader &header)
 {
     s >> header.magic;
     s >> header.size;
@@ -91,7 +91,7 @@ QDataStream & operator>>(QDataStream &s, DDSHeader &header)
     return s;
 }
 
-QDataStream & operator<<(QDataStream &s, const DDSHeader &header)
+QDataStream &operator<<(QDataStream &s, const DDSHeader &header)
 {
     s << header.magic;
     s << header.size;

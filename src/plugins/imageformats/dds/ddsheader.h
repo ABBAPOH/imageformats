@@ -212,8 +212,8 @@ struct DDSHeader
     quint32 reserved2;
 };
 
-QDataStream & operator>>(QDataStream &s, DDSHeader &header);
-QDataStream & operator<<(QDataStream &s, const DDSHeader &header);
+QDataStream &operator>>(QDataStream &s, DDSHeader &header);
+QDataStream &operator<<(QDataStream &s, const DDSHeader &header);
 
 struct DDSHeaderDX10
 {
@@ -224,8 +224,8 @@ struct DDSHeaderDX10
     quint32 reserved;
 };
 
-QDataStream & operator>>(QDataStream &s, DDSHeaderDX10 &header);
-QDataStream & operator<<(QDataStream &s, const DDSHeaderDX10 &header);
+QDataStream &operator>>(QDataStream &s, DDSHeaderDX10 &header);
+QDataStream &operator<<(QDataStream &s, const DDSHeaderDX10 &header);
 
 QT_END_NAMESPACE
 

@@ -384,7 +384,7 @@ inline void setAlphaDXT<RXGB>(QRgb *rgbArr, quint64 alphas)
     setAlphaDXT45Helper<Five>(rgbArr, alphas);
 }
 
-static QRgb invertRXGBColors(QRgb pixel)
+static inline QRgb invertRXGBColors(QRgb pixel)
 {
     return qRgb(qAlpha(pixel), qGreen(pixel), qBlue(pixel));
 }

@@ -160,8 +160,8 @@ struct DDSPixelFormat
     quint32 aBitMask;
 };
 
-QDataStream & operator>>(QDataStream &s, DDSPixelFormat &pixelFormat);
-QDataStream & operator<<(QDataStream &s, const DDSPixelFormat &pixelFormat);
+QDataStream &operator>>(QDataStream &s, DDSPixelFormat &pixelFormat);
+QDataStream &operator<<(QDataStream &s, const DDSPixelFormat &pixelFormat);
 
 struct DDSHeader
 {

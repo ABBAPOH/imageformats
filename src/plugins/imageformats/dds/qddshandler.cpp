@@ -547,14 +547,12 @@ static QImage readUnsignedImage(QDataStream &s, const DDSHeader &dds, quint32 wi
             }
 
             if (flags & DDSPixelFormat::FlagLuminance) {
-                colors[Green] = colors[Red];
-                colors[Blue] = colors[Red];
+                img.setPixel(x, y, qRgba(colors[Red], colors[Red], colors[Red], colors[Alpha]));
             } else if (flags & DDSPixelFormat::FlagYUV) {
                 img.setPixel(x, y, yuv2rgb(colors[Red], colors[Green], colors[Blue]));
-                continue;
+            } else {
+                img.setPixel(x, y, qRgba(colors[Red], colors[Green], colors[Blue], colors[Alpha]));
             }
-
-            img.setPixel(x, y, qRgba(colors[Red], colors[Green], colors[Blue], colors[Alpha]));
         }
     }
 

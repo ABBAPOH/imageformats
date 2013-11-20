@@ -395,7 +395,7 @@ static QImage readDXT(QDataStream &s, quint32 width, quint32 height)
     QImage::Format format = (version == Two || version == Four) ?
                 QImage::Format_ARGB32_Premultiplied : QImage::Format_ARGB32;
 
-    QImage img(width, height, format);
+    QImage image(width, height, format);
 
     for (quint32 i = 0; i < height; i += 4) {
         for (quint32 j = 0; j < width; j += 4) {
@@ -415,9 +415,9 @@ static QImage readDXT(QDataStream &s, quint32 width, quint32 height)
 
             for (int k = 0; k < 4; k++) {
                 for (int l = 0; l < 4; l++) {
-                    quint32 x = j + l, y = i + k;
+                    const quint32 x = j + l, y = i + k;
                     if (x < width && y < height) {
-                        QRgb *line = reinterpret_cast<QRgb *>(img.scanLine(y));
+                        QRgb *line = reinterpret_cast<QRgb *>(image.scanLine(y));
                         QRgb pixel = arr[k * 4 + l];
                         if (version == RXGB)
                             pixel = invertRXGBColors(pixel);
@@ -427,7 +427,7 @@ static QImage readDXT(QDataStream &s, quint32 width, quint32 height)
             }
         }
     }
-    return img;
+    return image;
 }
 
 static inline QImage readDXT1(QDataStream &s, quint32 width, quint32 height)
@@ -462,7 +462,7 @@ static inline QImage readRXGB(QDataStream &s, quint32 width, quint32 height)
 
 static QImage readATI2(QDataStream &s, quint32 width, quint32 height)
 {
-    QImage img(width, height, QImage::Format_RGB32);
+    QImage image(width, height, QImage::Format_RGB32);
 
     for (quint32 i = 0; i < height; i += 4) {
         for (quint32 j = 0; j < width; j += 4) {
@@ -484,7 +484,7 @@ static QImage readATI2(QDataStream &s, quint32 width, quint32 height)
                 for (int l = 0; l < 4; l++) {
                     quint32 x = j + l, y = i + k;
                     if (x < width && y < height) {
-                        QRgb *line = reinterpret_cast<QRgb *>(img.scanLine(y));
+                        QRgb *line = reinterpret_cast<QRgb *>(image.scanLine(y));
                         QRgb pixel = arr[k * 4 + l];
                         const quint8 nx = qAlpha(pixel);
                         const quint8 ny = qBlue(pixel);
@@ -502,7 +502,7 @@ static QImage readATI2(QDataStream &s, quint32 width, quint32 height)
             }
         }
     }
-    return img;
+    return image;
 }
 
 static QImage readUnsignedImage(QDataStream &s, const DDSHeader &dds, quint32 width, quint32 height, bool hasAlpha)
@@ -527,11 +527,11 @@ static QImage readUnsignedImage(QDataStream &s, const DDSHeader &dds, quint32 wi
 
     const QImage::Format format = hasAlpha ? QImage::Format_ARGB32 : QImage::Format_RGB32;
 
-    QImage img(width, height, format);
+    QImage image(width, height, format);
 
     for (quint32 y = 0; y < height; y++) {
         for (quint32 x = 0; x < width; x++) {
-            QRgb *line = reinterpret_cast<QRgb *>(img.scanLine(y));
+            QRgb *line = reinterpret_cast<QRgb *>(image.scanLine(y));
 
             quint32 value = readValue(s, dds.pixelFormat.rgbBitCount);
             quint8 colors[ColorCount];
@@ -559,7 +559,7 @@ static QImage readUnsignedImage(QDataStream &s, const DDSHeader &dds, quint32 wi
         }
     }
 
-    return img;
+    return image;
 }
 
 static double readFloat16(QDataStream &s)
@@ -591,25 +591,25 @@ static inline float readFloat32(QDataStream &s)
 
 static QImage readR16F(QDataStream &s, const quint32 width, const quint32 height)
 {
-    QImage img(width, height, QImage::Format_RGB32);
+    QImage image(width, height, QImage::Format_RGB32);
 
     for (quint32 y = 0; y < height; y++) {
-        QRgb *line = reinterpret_cast<QRgb *>(img.scanLine(y));
+        QRgb *line = reinterpret_cast<QRgb *>(image.scanLine(y));
         for (quint32 x = 0; x < width; x++) {
             quint8 r = readFloat16(s) * 255;
             line[x] = qRgba(r, 0, 0, 0);
         }
     }
 
-    return img;
+    return image;
 }
 
 static QImage readRG16F(QDataStream &s, const quint32 width, const quint32 height)
 {
-    QImage img(width, height, QImage::Format_RGB32);
+    QImage image(width, height, QImage::Format_RGB32);
 
     for (quint32 y = 0; y < height; y++) {
-        QRgb *line = reinterpret_cast<QRgb *>(img.scanLine(y));
+        QRgb *line = reinterpret_cast<QRgb *>(image.scanLine(y));
         for (quint32 x = 0; x < width; x++) {
             quint8 r = readFloat16(s) * 255;
             quint8 g = readFloat16(s) * 255;
@@ -617,15 +617,15 @@ static QImage readRG16F(QDataStream &s, const quint32 width, const quint32 heigh
         }
     }
 
-    return img;
+    return image;
 }
 
 static QImage readARGB16F(QDataStream &s, const quint32 width, const quint32 height)
 {
-    QImage img(width, height, QImage::Format_ARGB32);
+    QImage image(width, height, QImage::Format_ARGB32);
 
     for (quint32 y = 0; y < height; y++) {
-        QRgb *line = reinterpret_cast<QRgb *>(img.scanLine(y));
+        QRgb *line = reinterpret_cast<QRgb *>(image.scanLine(y));
         for (quint32 x = 0; x < width; x++) {
             quint8 colors[ColorCount];
             for (int c = 0; c < ColorCount; ++c)
@@ -635,30 +635,30 @@ static QImage readARGB16F(QDataStream &s, const quint32 width, const quint32 hei
         }
     }
 
-    return img;
+    return image;
 }
 
 static QImage readR32F(QDataStream &s, const quint32 width, const quint32 height)
 {
-    QImage img(width, height, QImage::Format_RGB32);
+    QImage image(width, height, QImage::Format_RGB32);
 
     for (quint32 y = 0; y < height; y++) {
-        QRgb *line = reinterpret_cast<QRgb *>(img.scanLine(y));
+        QRgb *line = reinterpret_cast<QRgb *>(image.scanLine(y));
         for (quint32 x = 0; x < width; x++) {
             quint8 r = readFloat32(s) * 255;
             line[x] = qRgba(r, 0, 0, 0);
         }
     }
 
-    return img;
+    return image;
 }
 
 static QImage readRG32F(QDataStream &s, const quint32 width, const quint32 height)
 {
-    QImage img(width, height, QImage::Format_RGB32);
+    QImage image(width, height, QImage::Format_RGB32);
 
     for (quint32 y = 0; y < height; y++) {
-        QRgb *line = reinterpret_cast<QRgb *>(img.scanLine(y));
+        QRgb *line = reinterpret_cast<QRgb *>(image.scanLine(y));
         for (quint32 x = 0; x < width; x++) {
             quint8 r = readFloat32(s) * 255;
             quint8 g = readFloat32(s) * 255;
@@ -666,15 +666,15 @@ static QImage readRG32F(QDataStream &s, const quint32 width, const quint32 heigh
         }
     }
 
-    return img;
+    return image;
 }
 
 static QImage readARGB32F(QDataStream &s, const quint32 width, const quint32 height)
 {
-    QImage img(width, height, QImage::Format_ARGB32);
+    QImage image(width, height, QImage::Format_ARGB32);
 
     for (quint32 y = 0; y < height; y++) {
-        QRgb *line = reinterpret_cast<QRgb *>(img.scanLine(y));
+        QRgb *line = reinterpret_cast<QRgb *>(image.scanLine(y));
         for (quint32 x = 0; x < width; x++) {
             quint8 colors[ColorCount];
             for (int c = 0; c < ColorCount; ++c)
@@ -683,7 +683,7 @@ static QImage readARGB32F(QDataStream &s, const quint32 width, const quint32 hei
         }
     }
 
-    return img;
+    return image;
 }
 
 static QImage readQ16W16V16U16(QDataStream &s, const quint32 width, const quint32 height)
@@ -730,22 +730,22 @@ static QImage readCxV8U8(QDataStream &s, const quint32 width, const quint32 heig
 
 static QImage readPaletteImage(QDataStream & s, quint32 width, quint32 height)
 {
-    QImage img(width, height, QImage::Format_Indexed8);
+    QImage image(width, height, QImage::Format_Indexed8);
     for (int i = 0; i < 256; ++i) {
         quint8 r, g, b, a;
         s >> r >> g >> b >> a;
-        img.setColor(i, qRgba(r, g, b, a));
+        image.setColor(i, qRgba(r, g, b, a));
     }
 
     for (quint32 y = 0; y < height; y++) {
         for (quint32 x = 0; x < width; x++) {
             quint8 index;
             s >> index;
-            img.setPixel(x, y, index);
+            image.setPixel(x, y, index);
         }
     }
 
-    return img;
+    return image;
 }
 
 static QImage readARGB16(QDataStream &s, quint32 width, quint32 height)
@@ -962,15 +962,15 @@ static QImage readG8R8G8B8(QDataStream &s, quint32 width, quint32 height)
 
 static QImage readA2R10G10B10(QDataStream &s, const DDSHeader &dds, quint32 width, quint32 height)
 {
-    QImage result = readUnsignedImage(s, dds, width, height, true);
+    QImage image = readUnsignedImage(s, dds, width, height, true);
     for (quint32 y = 0; y < height; y++) {
-        QRgb *line = reinterpret_cast<QRgb *>(result.scanLine(y));
+        QRgb *line = reinterpret_cast<QRgb *>(image.scanLine(y));
         for (quint32 x = 0; x < width; x++) {
-            QRgb pixel = result.pixel(x, y);
+            QRgb pixel = image.pixel(x, y);
             line[x] = qRgba(qBlue(pixel), qGreen(pixel), qRed(pixel), qAlpha(pixel));
         }
     }
-    return result;
+    return image;
 }
 
 static QImage readLayer(QDataStream & s, const DDSHeader & dds, const int format, quint32 width, quint32 height)
@@ -1199,9 +1199,9 @@ static qint64 mipmapOffset(const DDSHeader &dds, const int format, const int lev
 static QImage readCubeMap(QDataStream & s, const DDSHeader & dds, const int fmt)
 {
     QImage::Format format = hasAlpha(dds) ? QImage::Format_ARGB32 : QImage::Format_RGB32;
-    QImage img(4 * dds.width, 3 * dds.height, format);
+    QImage image(4 * dds.width, 3 * dds.height, format);
 
-    img.fill(0);
+    image.fill(0);
 
     for (int i = 0; i < 6; i++) {
         if (!(dds.caps2 & faceFlags[i]))
@@ -1216,12 +1216,12 @@ static QImage readCubeMap(QDataStream & s, const DDSHeader & dds, const int fmt)
         // Copy face on the image.
         for (quint32 y = 0; y < dds.height; y++) {
             const QRgb *src = reinterpret_cast<const QRgb *>(face.scanLine(y));
-            QRgb *dst = reinterpret_cast<QRgb *>(img.scanLine(y + offset_y)) + offset_x;
+            QRgb *dst = reinterpret_cast<QRgb *>(image.scanLine(y + offset_y)) + offset_x;
             memcpy(dst, src, sizeof(QRgb) * dds.width);
         }
     }
 
-    return img;
+    return image;
 }
 
 QDDSHandler::QDDSHandler() :
@@ -1250,13 +1250,13 @@ bool QDDSHandler::read(QImage *outImage)
     QDataStream s(device());
     s.setByteOrder(QDataStream::LittleEndian);
 
-    QImage img = isCubeMap(m_header) ?
+    QImage image = isCubeMap(m_header) ?
                 readCubeMap(s, m_header, m_format) :
                 readTexture(s, m_header, m_format, m_currentImage);
 
-    bool ok = s.status() == QDataStream::Ok && !img.isNull();
+    bool ok = s.status() == QDataStream::Ok && !image.isNull();
     if (ok)
-        *outImage = img;
+        *outImage = image;
     return ok;
 }
 

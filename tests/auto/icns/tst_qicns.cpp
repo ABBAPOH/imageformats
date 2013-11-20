@@ -12,30 +12,31 @@ private slots:
 
 void tst_qicns::readIcons_data()
 {
-    QTest::addColumn<int>("iconN");
+    QTest::addColumn<QString>("fileName");
+    QTest::addColumn<QSize>("size");
+    QTest::addColumn<int>("imageCount");
 
-    QTest::newRow("1") << 1;
-    QTest::newRow("2") << 2;
-    QTest::newRow("3") << 3;
-    QTest::newRow("4") << 4;
-    QTest::newRow("5") << 5;
-    QTest::newRow("6") << 6;
-    QTest::newRow("7") << 7;
-    QTest::newRow("8") << 8;
-    QTest::newRow("9") << 9;
-    QTest::newRow("10") << 10;
-    QTest::newRow("11") << 11;
-    QTest::newRow("12") << 12;
+    QTest::newRow("1") << QStringLiteral("andromeda-nojp2") << QSize(1024, 1024) << 15;
 }
 
 void tst_qicns::readIcons()
 {
-    const QString path = QFINDTESTDATA(":/data/andromeda-nojp2.icns");
+    QFETCH(QString, fileName);
+    QFETCH(QSize, size);
+    QFETCH(int, imageCount);
+
+    const QString path = QStringLiteral(":/data/") + fileName + QStringLiteral(".icns");
     QImageReader reader(path);
     QVERIFY(reader.canRead());
-    QFETCH(int, iconN);
-    QVERIFY2(reader.jumpToImage(iconN), qPrintable(reader.errorString()));
-    QVERIFY2(!reader.read().isNull(), qPrintable(reader.errorString()));
+    QCOMPARE(reader.imageCount(), imageCount);
+
+    for (int i = 0; i < reader.imageCount(); ++i) {
+        QVERIFY2(reader.jumpToImage(i), qPrintable(reader.errorString()));
+        QImage image = reader.read();
+        if (i == 0)
+            QCOMPARE(image.size(), size);
+        QVERIFY2(!image.isNull(), qPrintable(reader.errorString()));
+    }
 }
 
 QTEST_MAIN(tst_qicns)

@@ -390,7 +390,7 @@ static inline QRgb invertRXGBColors(QRgb pixel)
 }
 
 template <DXTVersions version>
-static QImage loadDXT(QDataStream &s, quint32 width, quint32 height)
+static QImage readDXT(QDataStream &s, quint32 width, quint32 height)
 {
     QImage::Format format = (version == Two || version == Four) ?
                 QImage::Format_ARGB32_Premultiplied : QImage::Format_ARGB32;
@@ -429,37 +429,37 @@ static QImage loadDXT(QDataStream &s, quint32 width, quint32 height)
     return img;
 }
 
-static inline QImage loadDXT1(QDataStream &s, quint32 width, quint32 height)
+static inline QImage readDXT1(QDataStream &s, quint32 width, quint32 height)
 {
-    return loadDXT<One>(s, width, height);
+    return readDXT<One>(s, width, height);
 }
 
-static inline QImage loadDXT2(QDataStream &s, quint32 width, quint32 height)
+static inline QImage readDXT2(QDataStream &s, quint32 width, quint32 height)
 {
-    return loadDXT<Two>(s, width, height);
+    return readDXT<Two>(s, width, height);
 }
 
-static inline QImage loadDXT3(QDataStream &s, quint32 width, quint32 height)
+static inline QImage readDXT3(QDataStream &s, quint32 width, quint32 height)
 {
-    return loadDXT<Three>(s, width, height);
+    return readDXT<Three>(s, width, height);
 }
 
-static inline QImage loadDXT4(QDataStream &s, quint32 width, quint32 height)
+static inline QImage readDXT4(QDataStream &s, quint32 width, quint32 height)
 {
-    return loadDXT<Four>(s, width, height);
+    return readDXT<Four>(s, width, height);
 }
 
-static inline QImage loadDXT5(QDataStream &s, quint32 width, quint32 height)
+static inline QImage readDXT5(QDataStream &s, quint32 width, quint32 height)
 {
-    return loadDXT<Five>(s, width, height);
+    return readDXT<Five>(s, width, height);
 }
 
-static inline QImage loadRXGB(QDataStream &s, quint32 width, quint32 height)
+static inline QImage readRXGB(QDataStream &s, quint32 width, quint32 height)
 {
-    return loadDXT<RXGB>(s, width, height);
+    return readDXT<RXGB>(s, width, height);
 }
 
-static QImage loadATI2(QDataStream &s, quint32 width, quint32 height)
+static QImage readATI2(QDataStream &s, quint32 width, quint32 height)
 {
     QImage img(width, height, QImage::Format_RGB32);
 
@@ -503,7 +503,7 @@ static QImage loadATI2(QDataStream &s, quint32 width, quint32 height)
     return img;
 }
 
-static QImage readValueBased(QDataStream &s, const DDSHeader &dds, quint32 width, quint32 height, bool hasAlpha)
+static QImage readUnsignedImage(QDataStream &s, const DDSHeader &dds, quint32 width, quint32 height, bool hasAlpha)
 {
     quint32 flags = dds.pixelFormat.flags;
 
@@ -588,7 +588,7 @@ static inline float readFloat32(QDataStream &s)
     return value;
 }
 
-static QImage loadR16F(QDataStream &s, const quint32 width, const quint32 height)
+static QImage readR16F(QDataStream &s, const quint32 width, const quint32 height)
 {
     QImage img(width, height, QImage::Format_RGB32);
 
@@ -602,7 +602,7 @@ static QImage loadR16F(QDataStream &s, const quint32 width, const quint32 height
     return img;
 }
 
-static QImage loadRG16F(QDataStream &s, const quint32 width, const quint32 height)
+static QImage readRG16F(QDataStream &s, const quint32 width, const quint32 height)
 {
     QImage img(width, height, QImage::Format_RGB32);
 
@@ -617,7 +617,7 @@ static QImage loadRG16F(QDataStream &s, const quint32 width, const quint32 heigh
     return img;
 }
 
-static QImage loadARGB16F(QDataStream &s, const quint32 width, const quint32 height)
+static QImage readARGB16F(QDataStream &s, const quint32 width, const quint32 height)
 {
     QImage img(width, height, QImage::Format_ARGB32);
 
@@ -634,7 +634,7 @@ static QImage loadARGB16F(QDataStream &s, const quint32 width, const quint32 hei
     return img;
 }
 
-static QImage loadR32F(QDataStream &s, const quint32 width, const quint32 height)
+static QImage readR32F(QDataStream &s, const quint32 width, const quint32 height)
 {
     QImage img(width, height, QImage::Format_RGB32);
 
@@ -648,7 +648,7 @@ static QImage loadR32F(QDataStream &s, const quint32 width, const quint32 height
     return img;
 }
 
-static QImage loadRG32F(QDataStream &s, const quint32 width, const quint32 height)
+static QImage readRG32F(QDataStream &s, const quint32 width, const quint32 height)
 {
     QImage img(width, height, QImage::Format_RGB32);
 
@@ -663,7 +663,7 @@ static QImage loadRG32F(QDataStream &s, const quint32 width, const quint32 heigh
     return img;
 }
 
-static QImage loadARGB32F(QDataStream &s, const quint32 width, const quint32 height)
+static QImage readARGB32F(QDataStream &s, const quint32 width, const quint32 height)
 {
     QImage img(width, height, QImage::Format_ARGB32);
 
@@ -680,7 +680,7 @@ static QImage loadARGB32F(QDataStream &s, const quint32 width, const quint32 hei
     return img;
 }
 
-static QImage loadQ16W16V16U16(QDataStream &s, const quint32 width, const quint32 height)
+static QImage readQ16W16V16U16(QDataStream &s, const quint32 width, const quint32 height)
 {
     QImage image(width, height, QImage::Format_ARGB32);
 
@@ -700,7 +700,7 @@ static QImage loadQ16W16V16U16(QDataStream &s, const quint32 width, const quint3
 }
 
 // TODO: this seems incorrect
-static QImage loadCxV8U8(QDataStream &s, const quint32 width, const quint32 height)
+static QImage readCxV8U8(QDataStream &s, const quint32 width, const quint32 height)
 {
     QImage image(width, height, QImage::Format_RGB32);
 
@@ -720,7 +720,7 @@ static QImage loadCxV8U8(QDataStream &s, const quint32 width, const quint32 heig
     return image;
 }
 
-static QImage readPaletteBased(QDataStream & s, quint32 width, quint32 height)
+static QImage readPaletteImage(QDataStream & s, quint32 width, quint32 height)
 {
     QImage img(width, height, QImage::Format_Indexed8);
     for (int i = 0; i < 256; ++i) {
@@ -740,7 +740,7 @@ static QImage readPaletteBased(QDataStream & s, quint32 width, quint32 height)
     return img;
 }
 
-static QImage loadARGB16(QDataStream &s, quint32 width, quint32 height)
+static QImage readARGB16(QDataStream &s, quint32 width, quint32 height)
 {
     QImage image(width, height, QImage::Format_ARGB32);
 
@@ -759,7 +759,7 @@ static QImage loadARGB16(QDataStream &s, quint32 width, quint32 height)
     return image;
 }
 
-static QImage loadV8U8(QDataStream &s, quint32 width, quint32 height)
+static QImage readV8U8(QDataStream &s, quint32 width, quint32 height)
 {
     QImage image(width, height, QImage::Format_RGB32);
 
@@ -774,7 +774,7 @@ static QImage loadV8U8(QDataStream &s, quint32 width, quint32 height)
     return image;
 }
 
-static QImage loadL6V5U5(QDataStream &s, quint32 width, quint32 height)
+static QImage readL6V5U5(QDataStream &s, quint32 width, quint32 height)
 {
     QImage image(width, height, QImage::Format_ARGB32);
 
@@ -791,7 +791,7 @@ static QImage loadL6V5U5(QDataStream &s, quint32 width, quint32 height)
     return image;
 }
 
-static QImage loadX8L8V8U8(QDataStream &s, quint32 width, quint32 height)
+static QImage readX8L8V8U8(QDataStream &s, quint32 width, quint32 height)
 {
     QImage image(width, height, QImage::Format_ARGB32);
 
@@ -807,7 +807,7 @@ static QImage loadX8L8V8U8(QDataStream &s, quint32 width, quint32 height)
     return image;
 }
 
-static QImage loadQ8W8V8U8(QDataStream &s, quint32 width, quint32 height)
+static QImage readQ8W8V8U8(QDataStream &s, quint32 width, quint32 height)
 {
     QImage image(width, height, QImage::Format_ARGB32);
 
@@ -826,7 +826,7 @@ static QImage loadQ8W8V8U8(QDataStream &s, quint32 width, quint32 height)
     return image;
 }
 
-static QImage loadV16U16(QDataStream &s, quint32 width, quint32 height)
+static QImage readV16U16(QDataStream &s, quint32 width, quint32 height)
 {
     QImage image(width, height, QImage::Format_RGB32);
 
@@ -843,7 +843,7 @@ static QImage loadV16U16(QDataStream &s, quint32 width, quint32 height)
     return image;
 }
 
-static QImage loadA2W10V10U10(QDataStream &s, quint32 width, quint32 height)
+static QImage readA2W10V10U10(QDataStream &s, quint32 width, quint32 height)
 {
     QImage image(width, height, QImage::Format_ARGB32);
 
@@ -863,7 +863,7 @@ static QImage loadA2W10V10U10(QDataStream &s, quint32 width, quint32 height)
     return image;
 }
 
-static QImage loadUYVY(QDataStream &s, quint32 width, quint32 height)
+static QImage readUYVY(QDataStream &s, quint32 width, quint32 height)
 {
     QImage image(width, height, QImage::Format_RGB32);
 
@@ -883,7 +883,7 @@ static QImage loadUYVY(QDataStream &s, quint32 width, quint32 height)
     return image;
 }
 
-static QImage loadR8G8B8G8(QDataStream &s, quint32 width, quint32 height)
+static QImage readR8G8B8G8(QDataStream &s, quint32 width, quint32 height)
 {
     QImage image(width, height, QImage::Format_RGB32);
     quint8 rgbg[4];
@@ -902,7 +902,7 @@ static QImage loadR8G8B8G8(QDataStream &s, quint32 width, quint32 height)
     return image;
 }
 
-static QImage loadYUY2(QDataStream &s, quint32 width, quint32 height)
+static QImage readYUY2(QDataStream &s, quint32 width, quint32 height)
 {
     QImage image(width, height, QImage::Format_RGB32);
 
@@ -922,7 +922,7 @@ static QImage loadYUY2(QDataStream &s, quint32 width, quint32 height)
     return image;
 }
 
-static QImage loadG8R8G8B8(QDataStream &s, quint32 width, quint32 height)
+static QImage readG8R8G8B8(QDataStream &s, quint32 width, quint32 height)
 {
     QImage image(width, height, QImage::Format_RGB32);
     quint8 grgb[4];
@@ -941,9 +941,9 @@ static QImage loadG8R8G8B8(QDataStream &s, quint32 width, quint32 height)
     return image;
 }
 
-static QImage loadA2R10G10B10(QDataStream &s, const DDSHeader &dds, quint32 width, quint32 height)
+static QImage readA2R10G10B10(QDataStream &s, const DDSHeader &dds, quint32 width, quint32 height)
 {
-    QImage result = readValueBased(s, dds, width, height, true);
+    QImage result = readUnsignedImage(s, dds, width, height, true);
     for (quint32 y = 0; y < height; y++) {
         for (quint32 x = 0; x < width; x++) {
             QRgb pixel = result.pixel(x, y);
@@ -969,7 +969,7 @@ static QImage readLayer(QDataStream & s, const DDSHeader & dds, const int format
     case FormatG16R16:
     case FormatL8:
     case FormatL16:
-        return readValueBased(s, dds, width, height, false);
+        return readUnsignedImage(s, dds, width, height, false);
     case FormatA8R8G8B8:
     case FormatA1R5G5B5:
     case FormatA4R4G4B4:
@@ -978,62 +978,62 @@ static QImage readLayer(QDataStream & s, const DDSHeader & dds, const int format
     case FormatA8B8G8R8:
     case FormatA8L8:
     case FormatA4L4:
-        return readValueBased(s, dds, width, height, true);
+        return readUnsignedImage(s, dds, width, height, true);
     case FormatA2R10G10B10:
     case FormatA2B10G10R10:
-        return loadA2R10G10B10(s, dds, width, height);
+        return readA2R10G10B10(s, dds, width, height);
     case FormatP8:
-        return readPaletteBased(s, width, height);
+        return readPaletteImage(s, width, height);
     case FormatA8P8:
         break;
     case FormatA16B16G16R16:
-        return loadARGB16(s, width, height);
+        return readARGB16(s, width, height);
     case FormatV8U8:
-        return loadV8U8(s, width, height);
+        return readV8U8(s, width, height);
     case FormatL6V5U5:
-        return loadL6V5U5(s, width, height);
+        return readL6V5U5(s, width, height);
     case FormatX8L8V8U8:
-        return loadX8L8V8U8(s, width, height);
+        return readX8L8V8U8(s, width, height);
     case FormatQ8W8V8U8:
-        return loadQ8W8V8U8(s, width, height);
+        return readQ8W8V8U8(s, width, height);
     case FormatV16U16:
-        return loadV16U16(s, width, height);
+        return readV16U16(s, width, height);
     case FormatA2W10V10U10:
-        return loadA2W10V10U10(s, width, height);
+        return readA2W10V10U10(s, width, height);
     case FormatUYVY:
-        return loadUYVY(s, width, height);
+        return readUYVY(s, width, height);
     case FormatR8G8B8G8:
-        return loadR8G8B8G8(s, width, height);
+        return readR8G8B8G8(s, width, height);
     case FormatYUY2:
-        return loadYUY2(s, width, height);
+        return readYUY2(s, width, height);
     case FormatG8R8G8B8:
-        return loadG8R8G8B8(s, width, height);
+        return readG8R8G8B8(s, width, height);
     case FormatDXT1:
-        return loadDXT1(s, width, height);
+        return readDXT1(s, width, height);
     case FormatDXT2:
-        return loadDXT2(s, width, height);
+        return readDXT2(s, width, height);
     case FormatDXT3:
-        return loadDXT3(s, width, height);
+        return readDXT3(s, width, height);
     case FormatDXT4:
-        return loadDXT4(s, width, height);
+        return readDXT4(s, width, height);
     case FormatDXT5:
-        return loadDXT5(s, width, height);
+        return readDXT5(s, width, height);
     case FormatRXGB:
-        return loadRXGB(s, width, height);
+        return readRXGB(s, width, height);
     case FormatATI2:
-        return loadATI2(s, width, height);
+        return readATI2(s, width, height);
     case FormatR16F:
-        return loadR16F(s, width, height);
+        return readR16F(s, width, height);
     case FormatG16R16F:
-        return loadRG16F(s, width, height);
+        return readRG16F(s, width, height);
     case FormatA16B16G16R16F:
-        return loadARGB16F(s, width, height);
+        return readARGB16F(s, width, height);
     case FormatR32F:
-        return loadR32F(s, width, height);
+        return readR32F(s, width, height);
     case FormatG32R32F:
-        return loadRG32F(s, width, height);
+        return readRG32F(s, width, height);
     case FormatA32B32G32R32F:
-        return loadARGB32F(s, width, height);
+        return readARGB32F(s, width, height);
     case FormatD16Lockable:
     case FormatD32:
     case FormatD15S1:
@@ -1050,11 +1050,11 @@ static QImage readLayer(QDataStream & s, const DDSHeader & dds, const int format
     case FormatIndex32:
         break;
     case FormatQ16W16V16U16:
-        return loadQ16W16V16U16(s, width, height);
+        return readQ16W16V16U16(s, width, height);
     case FormatMulti2ARGB8:
         break;
     case FormatCxV8U8:
-        return loadCxV8U8(s, width, height);
+        return readCxV8U8(s, width, height);
     case FormatA1:
     case FormatA2B10G10R10_XR_BIAS:
     case FormatBinaryBuffer:

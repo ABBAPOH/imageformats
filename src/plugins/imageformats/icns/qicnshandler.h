@@ -23,9 +23,8 @@ struct IcnsBlockHeader {
     quint32 length;
 };
 
-class IcnsIconEntry
+struct IcnsEntry
 {
-public:
     enum IconGroup {
         IconGroupUnk        = 0,
         IconGroupMini       = 0x6D, // "m" for "mini" (16x12)
@@ -55,32 +54,16 @@ public:
         IconIsMask      // The whole icon entry is alpha mask
     };
 
-    IcnsIconEntry();
-    IcnsIconEntry(IcnsBlockHeader &header, quint32 imgDataOffset);
-    quint32             getOSType()     const { return m_header.OSType; }
-    IconGroup           group()         const { return m_group; }
-    Depth               depth()         const { return m_depth; }
-    IconMaskType        mask()          const { return m_mask; }
-    quint32             width()         const { return m_width; }
-    quint32             height()        const { return m_height; }
-    quint32             dataLength()    const { return m_dataLength; }
-    quint32             dataOffset()    const { return m_dataOffset; }
-    bool                isValid()       const { return m_isValid; }
-    bool                isRLE24()       const { return m_dataIsRLE; }
-    bool                isAlphaMask()   const { return (mask() == IconIsMask || mask() == IconPlusMask); }
-
-private:
-    IcnsBlockHeader     m_header;       // Original block header
-    IconGroup           m_group;        // ASCII character number pointing to a format
-    Depth               m_depth;        // Color depth for uncompr. icons or icon format num for compressed
-    IconMaskType        m_mask;         // For Uncompressed icons only
-    quint32             m_width;        // For Uncompressed icons only
-    quint32             m_height;       // For Uncompressed icons only
-    bool                m_isValid;      // True if correctly parsed
-    quint32             m_dataLength;   // header.length - sizeof(header)
-    quint32             m_dataOffset;   // Offset from the initial position of the file/device
-    bool                m_dataIsRLE;    // 32bit raw icons may be in rle24 compressed state
-    bool                parse();
+    IcnsBlockHeader     header;       // Original block header
+    IconGroup           group;        // ASCII character number pointing to a format
+    Depth               depth;        // Color depth for uncompr. icons or icon format num for compressed
+    IconMaskType        mask;         // For Uncompressed icons only
+    quint32             width;        // For Uncompressed icons only
+    quint32             height;       // For Uncompressed icons only
+    bool                isValid;      // True if correctly parsed
+    quint32             dataLength;   // header.length - sizeof(header)
+    quint32             dataOffset;   // Offset from the initial position of the file/device
+    bool                dataIsRLE;    // 32bit raw icons may be in rle24 compressed state
 };
 
 class QIcnsHandler : public QImageIOHandler
@@ -114,15 +97,15 @@ public:
 private:
     int m_currentIconIndex;
     QDataStream m_stream;
-    QVector<IcnsIconEntry> m_icons;
-    QVector<IcnsIconEntry> m_masks;
+    QVector<IcnsEntry> m_icons;
+    QVector<IcnsEntry> m_masks;
     IcnsHandlerState m_scanstate;
 
     bool isScanned() const;
     bool isParsed() const;
     void scanDevice();
-    bool addIcon(IcnsIconEntry &icon);
-    IcnsIconEntry getIconMask(const IcnsIconEntry &icon) const;
+    bool addEntry(const IcnsBlockHeader &header, quint32 imgDataOffset);
+    IcnsEntry getIconMask(const IcnsEntry &icon) const;
 };
 
 QT_END_NAMESPACE

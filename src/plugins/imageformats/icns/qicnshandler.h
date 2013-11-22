@@ -95,17 +95,18 @@ public:
     static bool canWrite(QIODevice *device);
 
 private:
-    int m_currentIconIndex;
-    QDataStream m_stream;
-    QVector<IcnsEntry> m_icons;
-    QVector<IcnsEntry> m_masks;
-    IcnsHandlerState m_scanstate;
-
     bool isScanned() const;
     bool isParsed() const;
     void scanDevice();
     bool addEntry(const IcnsBlockHeader &header, quint32 imgDataOffset);
     IcnsEntry getIconMask(const IcnsEntry &icon) const;
+
+private:
+    int m_currentIconIndex;
+    QDataStream m_stream;
+    QVector<IcnsEntry> m_icons;
+    QVector<IcnsEntry> m_masks;
+    IcnsHandlerState m_scanstate;
 };
 
 QT_END_NAMESPACE

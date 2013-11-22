@@ -70,12 +70,6 @@ struct IcnsEntry
 
 class QIcnsHandler : public QImageIOHandler
 {
-    /*enum IcnsHandlerState {
-        IcnsFileIsParsed,
-        IcnsFileIsNotParsed,
-        IcnsFileParsingError
-    };*/
-
 public:
     QIcnsHandler();
     QIcnsHandler(QIODevice *d, const QByteArray &format);

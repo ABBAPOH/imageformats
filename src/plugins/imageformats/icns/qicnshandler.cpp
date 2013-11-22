@@ -378,16 +378,8 @@ static bool parseIconEntry(IcnsEntry &icon)
                            << OSType.constData();
             }
         }
-    } else {
-        // Just for experimental/research purposes.
-        // Effectively does nothing at all, just tests Apple's naming policy for OSTypes.
-        if (icon.depth <= 10) {
-            icon.width = qPow(2,icon.depth);
-            icon.height = qPow(2,icon.depth);
-        } else {
-            qDebug() << "IcnsIconEntry::parse(): Compressed format id > 10 (retina?). OSType:" << OSType.constData();
-        }
     }
+    //TODO: Add parse png/jp2 headers to enable feature reporting?
     if (!hasMatch) {
         qWarning() << "IcnsIconEntry::parse(): Parsing failed, ignored. Reg exp: no match for OSType:" << OSType.constData();
     }

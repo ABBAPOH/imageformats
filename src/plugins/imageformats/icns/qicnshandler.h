@@ -14,9 +14,11 @@ QT_BEGIN_NAMESPACE
 
 struct IcnsBlockHeader {
     enum SpecificOSTypes {
-        OSType_icns     = 0x69636E73,
-        OSType_TOC_     = 0x544F4320,
-        OSType_icnV     = 0x69636E56
+        OSType_icns     = 0x69636E73,   // Icns container magic
+        OSType_TOC_     = 0x544F4320,   // Table of contents
+        OSType_icnV     = 0x69636E56,   // Version of the creating tool
+        // Legacy:
+        OSType_clut     = 0x636c7574    // [NYI] Color look-up table
     };
 
     quint32 OSType;
@@ -26,29 +28,29 @@ struct IcnsBlockHeader {
 struct IcnsEntry
 {
     enum IconGroup {
-        IconGroupUnk        = 0,
+        IconGroupUnknown    = 0,
         IconGroupMini       = 0x6D, // "m" for "mini" (16x12)
         IconGroupSmall      = 0x73, // "s" for "small" (16x16)
         IconGroupLarge      = 0x6C, // "l" for "large" (32x32)
         IconGroupHuge       = 0x68, // "h" for "huge" (48x48)
         IconGroupThumbnail  = 0x74, // "t" for "thumbnail" (128x128)
         IconGroupCompressed = 0x63, // "c" for "compressed"? (various sizes)
-        // Legacy icons spotted:
-        IconGroupICON       = 0x4E, // [FULL SUPPORT] "N" from OSType "ICON" (32x32)
-        IconGroupOpen       = 0x6E, // [NYI, UNKNOWN] "n" from OSType "open" (ostype: 0x6f70656e)
+        // Legacy icons:
+        IconGroupICON       = 0x4E, // [SUPPORTED] "N" from OSType "ICON" (32x32) and [NYI] "SICN" (0x5349434e)
+        IconGroupOpen       = 0x6E, // [NYI, UNKNOWN] "n" from OSType "open" (0x6f70656e), "cicn" (0x6369636e), "Icon" (0x49636f6e)
         IconGroupTile       = 0x65, // [NYI, UNKNOWN] "e" from OSType "tile" (ostype: 0x74696c65)
         IconGroupDrop       = 0x70, // [NYI, UNKNOWN] "p" from OSTypes "drop" and "odrp" (0x64726f70, 0x6f647270)
         IconGroupOver       = 0x72  // [NYI, UNKNOWN] "r" from OSType "over" (ostype: 0x6f766572)
     };
     enum Depth {
-        IconDepthUnk    = 0,
-        IconMono        = 1,
-        Icon4bit        = 4,
-        Icon8bit        = 8,
-        Icon32bit       = 32
+        IconDepthUnknown    = 0,
+        IconMono            = 1,
+        Icon4bit            = 4,
+        Icon8bit            = 8,
+        Icon32bit           = 32
     };
     enum IconMaskType {
-        IconMaskUnk,
+        IconMaskUnknown,
         IconNoMask,     // Plain icon without alpha
         IconPlusMask,   // Plain icon and alpha mask (double size)
         IconIsMask      // The whole icon entry is alpha mask
@@ -68,11 +70,11 @@ struct IcnsEntry
 
 class QIcnsHandler : public QImageIOHandler
 {
-    enum IcnsHandlerState {
+    /*enum IcnsHandlerState {
         IcnsFileIsParsed,
         IcnsFileIsNotParsed,
         IcnsFileParsingError
-    };
+    };*/
 
 public:
     QIcnsHandler();
@@ -95,9 +97,8 @@ public:
     static bool canWrite(QIODevice *device);
 
 private:
-    bool isScanned() const;
-    bool isParsed() const;
-    void scanDevice();
+    bool ensureScanned() const;
+    bool scanDevice();
     bool addEntry(const IcnsBlockHeader &header, quint32 imgDataOffset);
     IcnsEntry getIconMask(const IcnsEntry &icon) const;
 
@@ -106,7 +107,7 @@ private:
     QDataStream m_stream;
     QVector<IcnsEntry> m_icons;
     QVector<IcnsEntry> m_masks;
-    IcnsHandlerState m_scanstate;
+    bool m_parsed;
 };
 
 QT_END_NAMESPACE

@@ -413,16 +413,16 @@ static QImage readDXT(QDataStream &s, quint32 width, quint32 height)
             DXTFillColors(arr, c0, c1, table, version == One && c0 <= c1);
             setAlphaDXT<version>(arr, alpha);
 
-            for (int k = 0; k < 4; k++) {
-                for (int l = 0; l < 4; l++) {
-                    const quint32 x = j + l, y = i + k;
-                    if (x < width && y < height) {
-                        QRgb *line = reinterpret_cast<QRgb *>(image.scanLine(y));
-                        QRgb pixel = arr[k * 4 + l];
-                        if (version == RXGB)
-                            pixel = invertRXGBColors(pixel);
-                        line[x] = pixel;
-                    }
+            const quint32 kMax = qMin<quint32>(4, height - i);
+            const quint32 lMax = qMin<quint32>(4, width - j);
+            for (quint32 k = 0; k < kMax; k++) {
+                QRgb *line = reinterpret_cast<QRgb *>(image.scanLine(i + k));
+                for (quint32 l = 0; l < lMax; l++) {
+                    QRgb pixel = arr[k * 4 + l];
+                    if (version == RXGB)
+                        pixel = invertRXGBColors(pixel);
+
+                    line[j + l] = pixel;
                 }
             }
         }
@@ -480,24 +480,23 @@ static QImage readATI2(QDataStream &s, quint32 width, quint32 height)
             }
             setAlphaDXT<Five>(arr, alpha2);
 
-            for (int k = 0; k < 4; k++) {
-                for (int l = 0; l < 4; l++) {
-                    quint32 x = j + l, y = i + k;
-                    if (x < width && y < height) {
-                        QRgb *line = reinterpret_cast<QRgb *>(image.scanLine(y));
-                        QRgb pixel = arr[k * 4 + l];
-                        const quint8 nx = qAlpha(pixel);
-                        const quint8 ny = qBlue(pixel);
+            const quint32 kMax = qMin<quint32>(4, height - i);
+            const quint32 lMax = qMin<quint32>(4, width - j);
+            for (quint32 k = 0; k < kMax; k++) {
+                QRgb *line = reinterpret_cast<QRgb *>(image.scanLine(i + k));
+                for (quint32 l = 0; l < lMax; l++) {
+                    QRgb pixel = arr[k * 4 + l];
+                    const quint8 nx = qAlpha(pixel);
+                    const quint8 ny = qBlue(pixel);
 
-                        // TODO: formulas can be incorrect
-                        const double fx = nx / 127.5 - 1.0;
-                        const double fy = ny / 127.5 - 1.0;
-                        const double fxfy = 1.0 - fx * fx - fy * fy;
-                        const double fz = fxfy > 0 ? sqrt(fxfy) : -1.0;
-                        const quint8 nz = quint8((fz + 1.0) * 127.5);
+                    // TODO: formulas can be incorrect
+                    const double fx = nx / 127.5 - 1.0;
+                    const double fy = ny / 127.5 - 1.0;
+                    const double fxfy = 1.0 - fx * fx - fy * fy;
+                    const double fz = fxfy > 0 ? sqrt(fxfy) : -1.0;
+                    const quint8 nz = quint8((fz + 1.0) * 127.5);
 
-                        line[x] = qRgb(nx, ny, nz);
-                    }
+                    line[j + l] = qRgb(nx, ny, nz);
                 }
             }
         }

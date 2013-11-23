@@ -12,13 +12,14 @@
 
 QT_BEGIN_NAMESPACE
 
-struct IcnsBlockHeader {
+struct IcnsBlockHeader
+{
     enum SpecificOSTypes {
-        OSType_icns     = 0x69636E73,   // Icns container magic
-        OSType_TOC_     = 0x544F4320,   // Table of contents
-        OSType_icnV     = 0x69636E56,   // Version of the creating tool
+        OSType_icns = 0x69636E73, // Icns container magic
+        OSType_TOC_ = 0x544F4320, // Table of contents
+        OSType_icnV = 0x69636E56, // Version of the creating tool
         // Legacy:
-        OSType_clut     = 0x636c7574    // [NYI] Color look-up table
+        OSType_clut = 0x636c7574  // [NYI] Color look-up table
     };
 
     quint32 OSType;
@@ -56,23 +57,22 @@ struct IcnsEntry
         IconIsMask      // The whole icon entry is alpha mask
     };
 
-    IcnsBlockHeader     header;       // Original block header
-    IconGroup           group;        // ASCII character number pointing to a format
-    Depth               depth;        // Color depth for uncompr. icons or icon format num for compressed
-    IconMaskType        mask;         // For Uncompressed icons only
-    quint32             width;        // For Uncompressed icons only
-    quint32             height;       // For Uncompressed icons only
-    bool                isValid;      // True if correctly parsed
-    quint32             dataLength;   // header.length - sizeof(header)
-    quint32             dataOffset;   // Offset from the initial position of the file/device
-    bool                dataIsRLE;    // 32bit raw icons may be in rle24 compressed state
+    IcnsBlockHeader header; // Original block header
+    IconGroup group;        // ASCII character number pointing to a format
+    Depth depth;            // Color depth for uncompr. icons or icon format num for compressed
+    IconMaskType mask;      // For Uncompressed icons only
+    quint32 width;          // For Uncompressed icons only
+    quint32 height;         // For Uncompressed icons only
+    bool isValid;           // True if correctly parsed
+    quint32 dataLength;     // header.length - sizeof(header)
+    quint32 dataOffset;     // Offset from the initial position of the file/device
+    bool dataIsRLE;         // 32bit raw icons may be in rle24 compressed state
 };
 
 class QIcnsHandler : public QImageIOHandler
 {
 public:
     QIcnsHandler();
-    QIcnsHandler(QIODevice *d, const QByteArray &format);
 
     bool canRead() const;
     bool read(QImage *image);
@@ -98,7 +98,6 @@ private:
 
 private:
     int m_currentIconIndex;
-    QDataStream m_stream;
     QVector<IcnsEntry> m_icons;
     QVector<IcnsEntry> m_masks;
     bool m_parsed;

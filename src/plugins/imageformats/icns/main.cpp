@@ -22,7 +22,9 @@ QImageIOPlugin::Capabilities QIcnsPlugin::capabilities(QIODevice *device, const 
 
 QImageIOHandler *QIcnsPlugin::create(QIODevice *device, const QByteArray &format) const
 {
-    QImageIOHandler *handler = new QIcnsHandler(device, format);
+    QImageIOHandler *handler = new QIcnsHandler();
+    handler->setDevice(device);
+    handler->setFormat(format);
     return handler;
 }
 

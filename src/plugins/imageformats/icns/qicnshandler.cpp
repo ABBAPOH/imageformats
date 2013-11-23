@@ -573,6 +573,7 @@ bool QIcnsHandler::read(QImage *outImage)
 
     const IcnsEntry &icon = m_icons.at(m_currentIconIndex);
     QDataStream stream(device());
+    stream.setByteOrder(QDataStream::BigEndian);
     if (!device()->seek(icon.dataOffset))
         return false;
 
@@ -759,6 +760,7 @@ bool QIcnsHandler::scanDevice()
         return false;
 
     QDataStream stream(device());
+    stream.setByteOrder(QDataStream::BigEndian);
     qint64 filelength = device()->size();
     IcnsBlockHeader blockHeader;
     while (!stream.atEnd() || (device()->pos() < filelength)) {

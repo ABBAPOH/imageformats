@@ -461,26 +461,30 @@ static QImage read32bitIconFromStream(const IcnsEntry &icon, QDataStream &stream
 {
     QImage img = QImage(icon.width, icon.height, QImage::Format_RGB32);
     if (!icon.dataIsRLE) {
+        QRgb *line;
         for (quint32 pixel = 0; pixel < (icon.width * icon.height); pixel++) {
             const quint32 y = pixel / icon.height;
             const quint32 x = pixel - (icon.width * y);
+            if (pixel % icon.height == 0)
+                line = reinterpret_cast<QRgb *>(img.scanLine(y));
             quint8 r, g, b;
             stream >> r >> g >> b;
             if (stream.status() != QDataStream::Ok)
                 return img;
-            QRgb *line = reinterpret_cast<QRgb *>(img.scanLine(y));
             line[x] = qRgb(r,g,b);
         }
     }
     else {
         const quint32 estPxsNum = icon.width * icon.height;
-        const QByteArray bytes = stream.device()->peek(4);
+        const QByteArray &bytes = stream.device()->peek(4);
         if (bytes.isEmpty())
             return QImage();
-        if (*((quint32*)bytes.constData()) == 0)
+
+        if (qFromBigEndian<quint32>(*bytes.constData()) == 0)
             stream.skipRawData(4); // Zero-padding may be present
         for (quint8 colorNRun = 0; colorNRun < 3; colorNRun++) {
             quint32	pixel = 0;
+            QRgb *line;
             while ((pixel < estPxsNum) && !stream.atEnd()) {
                 quint8 byte, value;
                 stream >> byte;
@@ -502,7 +506,8 @@ static QImage read32bitIconFromStream(const IcnsEntry &icon, QDataStream &stream
                     }
                     const quint32 y = pixel / icon.height;
                     const quint32 x = pixel - (icon.width * y);
-                    QRgb *line = reinterpret_cast<QRgb *>(img.scanLine(y));
+                    if (pixel % icon.height == 0)
+                        line = reinterpret_cast<QRgb *>(img.scanLine(y));
                     QRgb rgb = line[x];
                     const int r = (colorNRun == 0) ? value : qRed(rgb);
                     const int g = (colorNRun == 1) ? value : qGreen(rgb);
@@ -681,7 +686,7 @@ bool QIcnsHandler::supportsOption(QImageIOHandler::ImageOption option) const
 QVariant QIcnsHandler::option(QImageIOHandler::ImageOption option) const
 {
     if (supportsOption(option) && ensureScanned()) {
-        if (m_currentIconIndex >= 0 && m_currentIconIndex <= m_icons.size())
+        if (imageCount() > 0 && m_currentIconIndex <= imageCount())
             return QByteArray::fromHex(QByteArray::number(m_icons.at(m_currentIconIndex).header.OSType, 16));
     }
     return QVariant();

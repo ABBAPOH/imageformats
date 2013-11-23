@@ -8,6 +8,7 @@
 #include <QtCore/QBuffer>
 #include <QtCore/QtMath>
 #include <QtCore/QRegularExpression>
+#include <QtCore/QtEndian>
 #include <QtCore/QDebug>
 
 QT_BEGIN_NAMESPACE

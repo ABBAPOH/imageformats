@@ -1,5 +1,8 @@
 <RCC>
     <qresource prefix="/">
-        <file>data/andromeda-nojp2.icns</file>
+        <file>data/test-32bit.icns</file>
+        <file>data/test-jp2.icns</file>
+        <file>data/test-legacy.icns</file>
+        <file>data/test-png.icns</file>
     </qresource>
 </RCC>

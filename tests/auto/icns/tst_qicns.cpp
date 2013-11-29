@@ -16,7 +16,10 @@ void tst_qicns::readIcons_data()
     QTest::addColumn<QSize>("size");
     QTest::addColumn<int>("imageCount");
 
-    QTest::newRow("1") << QStringLiteral("andromeda-nojp2") << QSize(1024, 1024) << 15;
+    QTest::newRow("1") << QStringLiteral("test-png") << QSize(128, 128) << 6;
+    QTest::newRow("2") << QStringLiteral("test-jp2") << QSize(128, 128) << 6;
+    QTest::newRow("3") << QStringLiteral("test-32bit") << QSize(128, 128) << 4;
+    QTest::newRow("4") << QStringLiteral("test-legacy") << QSize(48, 48) << 12;
 }
 
 void tst_qicns::readIcons()

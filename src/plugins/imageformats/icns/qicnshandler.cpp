@@ -332,7 +332,7 @@ static bool parseIconEntry(IcnsEntry &icon)
     icon.width = 0; // default for invalid ones
     icon.height = 0; // default for invalid ones
     icon.mask = IcnsEntry::IconMaskUnknown; // default for invalid ones
-    if (icon.group != IcnsEntry::IconGroupCompressed) {
+    if (icon.group != IcnsEntry::IconGroupCompressed && icon.group != IcnsEntry::IconGroupPortable) {
         const qreal bytespp = ((qreal)icon.depth / 8);
         const qreal r1 = qSqrt(icon.dataLength/bytespp);
         const qreal r2 = qSqrt((icon.dataLength/bytespp)/2);
@@ -584,7 +584,8 @@ bool QIcnsHandler::read(QImage *outImage)
     const QByteArray magicCheck = device()->peek(12).toHex();
     const bool isPNG = magicCheck.startsWith(QByteArrayLiteral("89504e470d0a1a0a"));
     const bool isJP2 = (magicCheck == QByteArrayLiteral("0000000c6a5020200d0a870a"));
-    if (isPNG || isJP2 || icon.group == IcnsEntry::IconGroupCompressed) {
+    const bool isCompressed = icon.group == IcnsEntry::IconGroupCompressed || icon.group == IcnsEntry::IconGroupPortable;
+    if (isPNG || isJP2 || isCompressed) {
         const QByteArray ba = device()->read(icon.dataLength);
         if (ba.isEmpty()) {
             qWarning("QIcnsHandler::read(): Compressed image data is empty or couldn't be read. OSType: %u", icon.header.OSType);

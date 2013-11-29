@@ -36,7 +36,8 @@ struct IcnsEntry
         IconGroupLarge      = 0x6C, // "l" for "large" (32x32)
         IconGroupHuge       = 0x68, // "h" for "huge" (48x48)
         IconGroupThumbnail  = 0x74, // "t" for "thumbnail" (128x128)
-        IconGroupCompressed = 0x63, // "c" for "compressed"? (various sizes)
+        IconGroupPortable   = 0x70, // "p" fpr "portable"? (various sizes, png/jp2)
+        IconGroupCompressed = 0x63, // "c" for "compressed"? (various sizes, png/jp2)
         // Legacy icons:
         IconGroupICON       = 0x4E, // [SUPPORTED] "N" from OSType "ICON" (32x32) and [NYI] "SICN" (0x5349434e)
         IconGroupOpen       = 0x6E, // [NYI, UNKNOWN] "n" from OSType "open" (0x6f70656e), "cicn" (0x6369636e), "Icon" (0x49636f6e)

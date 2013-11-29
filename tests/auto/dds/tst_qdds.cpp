@@ -141,6 +141,8 @@ void tst_qdds::readImage()
     QVERIFY(reader.canRead());
     QVERIFY(reader.supportsOption(QImageIOHandler::Size));
     QCOMPARE(reader.size(), size);
+    QVERIFY(reader.supportsOption(QImageIOHandler::SubType));
+    QCOMPARE(reader.subType(), fileName.toLatin1());
     QImage image = reader.read();
     QVERIFY2(!image.isNull(), qPrintable(reader.errorString()));
     QCOMPARE(image.size(), size);
@@ -199,9 +201,15 @@ void tst_qdds::testWriteImage()
 
     QImageWriter writer(path, QByteArrayLiteral("dds"));
     QVERIFY2(writer.canWrite(), qPrintable(writer.errorString()));
+    writer.setSubType(fileName.toLatin1());
     QVERIFY2(writer.write(image), qPrintable(writer.errorString()));
 
     QVERIFY(image == QImage(path));
+
+    QImageReader reader(path);
+    QVERIFY(reader.canRead());
+    QCOMPARE(reader.size(), size);
+    QCOMPARE(reader.subType(), fileName.toLatin1());
 }
 
 QTEST_MAIN(tst_qdds)

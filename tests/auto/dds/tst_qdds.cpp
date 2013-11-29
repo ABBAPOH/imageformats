@@ -134,6 +134,8 @@ void tst_qdds::readImage()
     const QString sourcePath = QStringLiteral(":/data/") + fileName + QStringLiteral(".png");
     QImageReader reader(path);
     QVERIFY(reader.canRead());
+    QVERIFY(reader.supportsOption(QImageIOHandler::Size));
+    QCOMPARE(reader.size(), size);
     QImage image = reader.read();
     QVERIFY2(!image.isNull(), qPrintable(reader.errorString()));
     QCOMPARE(image.size(), size);

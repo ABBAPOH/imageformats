@@ -1229,6 +1229,11 @@ QDDSHandler::QDDSHandler() :
 {
 }
 
+QByteArray QDDSHandler::name() const
+{
+    return "dds";
+}
+
 bool QDDSHandler::canRead() const
 {
     if (canRead(device())) {
@@ -1311,6 +1316,29 @@ bool QDDSHandler::write(const QImage &outImage)
     return true;
 }
 
+QVariant QDDSHandler::option(QImageIOHandler::ImageOption option) const
+{
+    if (!supportsOption(option))
+        return QVariant();
+
+    if (!ensureHeaderCached())
+        return QVariant();
+
+    switch (option) {
+    case QImageIOHandler::Size:
+        return QSize(m_header.width, m_header.height);
+    default:
+        break;
+    }
+
+    return QVariant();
+}
+
+bool QDDSHandler::supportsOption(QImageIOHandler::ImageOption option) const
+{
+    return option == QImageIOHandler::Size;
+}
+
 int QDDSHandler::imageCount() const
 {
     if (!ensureHeaderCached())
@@ -1326,11 +1354,6 @@ bool QDDSHandler::jumpToImage(int imageNumber)
 
     m_currentImage = imageNumber;
     return true;
-}
-
-QByteArray QDDSHandler::name() const
-{
-    return "dds";
 }
 
 bool QDDSHandler::canRead(QIODevice *device)

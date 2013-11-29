@@ -450,7 +450,7 @@ static QImage readLowDepthIconFromStream(const IcnsEntry &icon, QDataStream &str
                 cindex = (value < qPow(2,icon.depth)) ? value : 0;
                 break;
             }
-            default: //8bit
+            default: // 8bit
                 cindex = (byte < qPow(2,icon.depth)) ? byte : 0;
             }
             byte = byte << icon.depth;
@@ -471,8 +471,8 @@ static QImage read32bitIconFromStream(const IcnsEntry &icon, QDataStream &stream
             const quint32 x = pixel - (icon.width * y);
             if (pixel % icon.height == 0)
                 line = reinterpret_cast<QRgb *>(img.scanLine(y));
-            quint8 r, g, b;
-            stream >> r >> g >> b;
+            quint8 r, g, b, a;
+            stream >> r >> g >> b >> a;
             if (stream.status() != QDataStream::Ok)
                 return img;
             line[x] = qRgb(r,g,b);
@@ -776,16 +776,16 @@ bool QIcnsHandler::scanDevice()
             return false;
 
         switch (blockHeader.OSType) {
-        case IcnsBlockHeader::OSType_icns: {
+        case IcnsBlockHeader::OSType_icns:
             filelength = blockHeader.length;
             if (device()->size() < blockHeader.length)
                 return false;
             break;
-        }
-        case IcnsBlockHeader::OSType_icnV: {
-            stream.skipRawData(4);
+        case IcnsBlockHeader::OSType_icnV:
+        case IcnsBlockHeader::OSType_clut:
+            // We don't have a good use for these blocks... yet.
+            stream.skipRawData(blockHeader.length - IcnsBlockHeaderSize);
             break;
-        }
         case IcnsBlockHeader::OSType_TOC_: {
             QVector<IcnsBlockHeader> toc;
             const quint32 tocEntriesCount = (blockHeader.length - IcnsBlockHeaderSize) / IcnsBlockHeaderSize;

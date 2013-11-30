@@ -52,6 +52,8 @@ private slots:
     void readImage();
     void testMipmaps_data();
     void testMipmaps();
+    void testWriteImage_data();
+    void testWriteImage();
 };
 
 static bool compareImages(const QImage &first, const QImage &second)
@@ -170,6 +172,33 @@ void tst_qdds::testMipmaps()
         QString sourcePath = QString(":/data/%1 %2.png").arg(fileName).arg(i);
         QVERIFY(compareImages(image, QImage(sourcePath)) == true);
     }
+}
+
+void tst_qdds::testWriteImage_data()
+{
+    QTest::addColumn<QString>("fileName");
+    QTest::addColumn<QSize>("size");
+
+    QTest::newRow("1") << QString("A8R8G8B8") << QSize(64, 64);
+}
+
+void tst_qdds::testWriteImage()
+{
+    QFETCH(QString, fileName);
+    QFETCH(QSize, size);
+
+    const QString path = fileName + QStringLiteral(".dds");
+    const QString sourcePath = QStringLiteral(":/data/") + fileName + QStringLiteral(".png");
+
+    QImage image(sourcePath);
+    QVERIFY(!image.isNull());
+    QVERIFY(image.size() == size);
+
+    QImageWriter writer(path, QByteArrayLiteral("dds"));
+    QVERIFY2(writer.canWrite(), qPrintable(writer.errorString()));
+    QVERIFY2(writer.write(image), qPrintable(writer.errorString()));
+
+    QVERIFY(image == QImage(path));
 }
 
 QTEST_MAIN(tst_qdds)

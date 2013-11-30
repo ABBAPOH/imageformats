@@ -48,7 +48,7 @@
 
 QT_BEGIN_NAMESPACE
 
-QImageIOPlugin::Capabilities QIcnsPlugin::capabilities(QIODevice *device, const QByteArray &format) const
+QImageIOPlugin::Capabilities QICNSPlugin::capabilities(QIODevice *device, const QByteArray &format) const
 {
     if (format == QByteArrayLiteral("icns"))
         return Capabilities(CanRead | CanWrite);
@@ -65,7 +65,7 @@ QImageIOPlugin::Capabilities QIcnsPlugin::capabilities(QIODevice *device, const 
     return cap;
 }
 
-QImageIOHandler *QIcnsPlugin::create(QIODevice *device, const QByteArray &format) const
+QImageIOHandler *QICNSPlugin::create(QIODevice *device, const QByteArray &format) const
 {
     QImageIOHandler *handler = new QICNSHandler();
     handler->setDevice(device);

@@ -386,8 +386,8 @@ static bool parseIconEntry(ICNSEntry &icon)
     icon.depth = depth.toUInt() > 0 ? ICNSEntry::Depth(depth.toUInt()) : ICNSEntry::DepthMono;
     // Width/height/mask:
     icon.width = 0;
-    icon.height = 0; // default for invalid ones
-    icon.mask = ICNSEntry::MaskUnknown; // default for invalid ones
+    icon.height = 0;
+    icon.mask = ICNSEntry::MaskUnknown;
     if (icon.group != ICNSEntry::GroupCompressed && icon.group != ICNSEntry::GroupPortable) {
         const qreal bytespp = ((qreal)icon.depth / 8);
         const qreal r1 = qSqrt(icon.dataLength/bytespp);
@@ -447,7 +447,7 @@ static bool parseIconEntry(ICNSEntry &icon)
 static QImage readMaskFromStream(const ICNSEntry &mask, QDataStream &stream)
 {
     QImage img;
-    if (mask.mask != ICNSEntry::IsMask && mask.mask != ICNSEntry::IconPlusMask)
+    if ((mask.mask & ICNSEntry::IsMask) == 0)
         return img;
     if (mask.depth != ICNSEntry::DepthMono && mask.depth != ICNSEntry::Depth8bit) {
         qWarning("readMaskFromStream(): Failed, unusual bit depth: %u OSType: %u", mask.depth, mask.header.ostype);
@@ -492,16 +492,17 @@ static QImage readLowDepthIconFromStream(const ICNSEntry &icon, QDataStream &str
                 stream >> byte;
             quint8 cindex = 0;
             switch(icon.depth) {
-            case ICNSEntry::DepthMono: {
+            case ICNSEntry::DepthMono : {
                 cindex = (byte & 0x80) ? 1 : 0; // left 1 bit
                 break;
             }
-            case ICNSEntry::Depth4bit: {
+            case ICNSEntry::Depth4bit : {
                 quint8 value = ((byte & 0xF0) >> 4); // left 4 bits
                 cindex = (value < qPow(2,icon.depth)) ? value : 0;
                 break;
             }
-            default: // 8bit
+            default :
+                // 8bit
                 cindex = (byte < qPow(2,icon.depth)) ? byte : 0;
             }
             byte = byte << icon.depth;
@@ -639,15 +640,15 @@ bool QICNSHandler::read(QImage *outImage)
         qWarning("QIcnsHandler::read(): Size of a raw icon is unknown, OSType: %u", icon.header.ostype);
     } else {
         switch(icon.depth) {
-        case ICNSEntry::DepthMono:
-        case ICNSEntry::Depth4bit:
-        case ICNSEntry::Depth8bit:
+        case ICNSEntry::DepthMono :
+        case ICNSEntry::Depth4bit :
+        case ICNSEntry::Depth8bit :
             img = readLowDepthIconFromStream(icon, stream);
             break;
-        case ICNSEntry::Depth32bit:
+        case ICNSEntry::Depth32bit :
             img = read32bitIconFromStream(icon, stream);
             break;
-        default:
+        default :
             qWarning() << "QIcnsHandler::read(): Icon #:" << m_currentIconIndex
                        << "Unsupported icon bit depth:" << icon.depth;
         }
@@ -803,13 +804,13 @@ bool QICNSHandler::scanDevice()
             return false;
 
         switch (blockHeader.ostype) {
-        case ICNSBlockHeader::icns:
+        case ICNSBlockHeader::icns :
             filelength = blockHeader.length;
             if (device()->size() < blockHeader.length)
                 return false;
             break;
-        case ICNSBlockHeader::icnV:
-        case ICNSBlockHeader::clut:
+        case ICNSBlockHeader::icnV :
+        case ICNSBlockHeader::clut :
             // We don't have a good use for these blocks... yet.
             stream.skipRawData(blockHeader.length - ICNSBlockHeaderSize);
             break;
@@ -829,7 +830,7 @@ bool QICNSHandler::scanDevice()
             // TOC scan gives enough data to discard scan of other blocks
             return true;
         }
-        default:
+        default :
             addEntry(blockHeader, stream.device()->pos());
             stream.skipRawData((blockHeader.length - ICNSBlockHeaderSize));
         }
@@ -839,15 +840,17 @@ bool QICNSHandler::scanDevice()
 
 ICNSEntry QICNSHandler::getIconMask(const ICNSEntry &icon) const
 {
-    if (icon.isValid && (icon.mask != ICNSEntry::IsMask && icon.mask != ICNSEntry::IconPlusMask)) {
-        ICNSEntry::Depth targetDepth = (icon.depth == ICNSEntry::Depth32bit) ? ICNSEntry::Depth8bit : ICNSEntry::DepthMono;
-        for (int i = 0; i < m_masks.size(); i++) {
-            const bool suitable = m_masks.at(i).group == icon.group
-                    || (m_masks.at(i).height == icon.height
-                        && m_masks.at(i).width == icon.width);
-            if (suitable && m_masks.at(i).depth == targetDepth)
-                return m_masks.at(i);
-        }
+    if (((icon.mask & ICNSEntry::IsMask) != 0) || !icon.isValid)
+        return icon;
+
+    ICNSEntry::Depth targetDepth = (icon.depth == ICNSEntry::Depth32bit) ? ICNSEntry::Depth8bit : ICNSEntry::DepthMono;
+    for (int i = 0; i < m_masks.size(); i++) {
+        const ICNSEntry &entry = m_masks.at(i);
+        const bool suitableDepth = (entry.depth == targetDepth);
+        const bool suitableSize = (entry.height == icon.height && entry.width == icon.width);
+        const bool sameGroup = (entry.group == icon.group);
+        if (suitableDepth && (suitableSize || sameGroup))
+            return entry;
     }
     return icon;
 }

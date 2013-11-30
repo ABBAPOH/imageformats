@@ -53,7 +53,7 @@
 
 QT_BEGIN_NAMESPACE
 
-class QIcnsPlugin : public QImageIOPlugin
+class QICNSPlugin : public QImageIOPlugin
 {
     Q_OBJECT
     Q_PLUGIN_METADATA(IID "org.qt-project.Qt.QImageIOHandlerFactoryInterface" FILE "icns.json")

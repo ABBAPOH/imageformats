@@ -436,7 +436,7 @@ static bool parseIconEntry(ICNSEntry &icon)
             }
         }
     } else {
-        // TODO: Add parsing of png/jp2 headers to enable feature reporting by IOPlugin?
+        // TODO: Add parsing of png/jp2 headers to enable feature reporting by plugin?
         icon.mask = ICNSEntry::IsIcon;
     }
     if (!hasMatch)
@@ -532,7 +532,7 @@ static QImage read32bitIconFromStream(const ICNSEntry &icon, QDataStream &stream
         const QByteArray &bytes = stream.device()->peek(4);
         if (bytes.isEmpty())
             return QImage();
-        // Zero-padding may be present
+        // Zero-padding may be present:
         if (qFromBigEndian<quint32>(*bytes.constData()) == 0)
             stream.skipRawData(4);
         for (quint8 colorNRun = 0; colorNRun < 3; colorNRun++) {
@@ -576,26 +576,26 @@ QICNSHandler::QICNSHandler() :
 
 QByteArray QICNSHandler::name() const
 {
-    return "icns";
+    return QByteArrayLiteral("icns");
 }
 
 bool QICNSHandler::canRead(QIODevice *device)
 {
     if (!device || !device->isReadable()) {
-        qWarning("QIcnsHandler::canRead() called without a readable device");
+        qWarning("QICNSHandler::canRead() called without a readable device");
         return false;
     }
     if (device->isSequential()) {
-        qWarning("QIcnsHandler::canRead() called on sequential device (NYI)");
+        qWarning("QICNSHandler::canRead() called on a sequential device (NYI)");
         return false;
     }
-    return device->peek(4) == "icns";
+    return (device->peek(4) == QByteArrayLiteral("icns"));
 }
 
 bool QICNSHandler::canRead() const
 {
     if (canRead(device())) {
-        setFormat("icns");
+        setFormat(QByteArrayLiteral("icns"));
         return true;
     }
     return false;
@@ -605,7 +605,7 @@ bool QICNSHandler::read(QImage *outImage)
 {
     QImage img;
     if (!ensureScanned()) {
-        qWarning("QIcnsHandler::read(): The device was not parced properly!");
+        qWarning("QICNSHandler::read(): The device was not parced properly!");
         return false;
     }
 
@@ -622,22 +622,22 @@ bool QICNSHandler::read(QImage *outImage)
     if (isPNG || isJP2 || isCompressed) {
         const QByteArray ba = device()->read(icon.dataLength);
         if (ba.isEmpty()) {
-            qWarning("QIcnsHandler::read(): Compressed image data is empty or couldn't be read. OSType: %u", icon.header.ostype);
+            qWarning("QICNSHandler::read(): Failed, compressed image data is empty. OSType: %u", icon.header.ostype);
             return false;
         }
         if (isPNG || isJP2) {
             const char *format = isPNG ? "png" : "jp2";
             img = QImage::fromData(ba, format);
             if (img.isNull())
-                qWarning("QIcnsHandler::read(): Failed, format \"%s\" is not supported by your Qt distribution. OSType: %u", format, icon.header.ostype);
+                qWarning("QICNSHandler::read(): Failed, format \"%s\" is not supported by your Qt lib. OSType: %u", format, icon.header.ostype);
         } else {
             // Try anyway
             img = QImage::fromData(ba);
             if (img.isNull())
-                qWarning("QIcnsHandler::read(): Unsupported compressed icon format, OSType: %u", icon.header.ostype);
+                qWarning("QICNSHandler::read(): Failed, unsupported compressed icon format, OSType: %u", icon.header.ostype);
         }
     } else if (icon.height == 0 || icon.width == 0) {
-        qWarning("QIcnsHandler::read(): Size of a raw icon is unknown, OSType: %u", icon.header.ostype);
+        qWarning("QICNSHandler::read(): Failed, size of a raw icon is unknown, OSType: %u", icon.header.ostype);
     } else {
         switch(icon.depth) {
         case ICNSEntry::DepthMono :
@@ -649,8 +649,7 @@ bool QICNSHandler::read(QImage *outImage)
             img = read32bitIconFromStream(icon, stream);
             break;
         default :
-            qWarning() << "QIcnsHandler::read(): Icon #:" << m_currentIconIndex
-                       << "Unsupported icon bit depth:" << icon.depth;
+            qWarning("QICNSHandler::read(): Failed, unsupported icon bit depth: %u, OSType: %u", icon.depth, icon.header.ostype);
         }
     }
     if (!img.isNull()) {
@@ -659,7 +658,7 @@ bool QICNSHandler::read(QImage *outImage)
             img.setAlphaChannel(alpha);
     }
     *outImage = img;
-    return !img.isNull();
+    return (!img.isNull());
 }
 
 bool QICNSHandler::write(const QImage &image)
@@ -728,10 +727,10 @@ bool QICNSHandler::supportsOption(QImageIOHandler::ImageOption option) const
 
 QVariant QICNSHandler::option(QImageIOHandler::ImageOption option) const
 {
-    if (supportsOption(option) && ensureScanned()) {
-        if (imageCount() > 0 && m_currentIconIndex <= imageCount())
-            return QByteArray::fromHex(QByteArray::number(m_icons.at(m_currentIconIndex).header.ostype, 16));
-    }
+    if (!supportsOption(option) || !ensureScanned())
+        return QVariant();
+    if (imageCount() > 0 && m_currentIconIndex <= imageCount())
+        return QByteArray::fromHex(QByteArray::number(m_icons.at(m_currentIconIndex).header.ostype, 16));
     return QVariant();
 }
 
@@ -781,7 +780,7 @@ bool QICNSHandler::addEntry(const ICNSBlockHeader &header, quint32 imgDataOffset
         if ((entry.mask & ICNSEntry::IsIcon) != 0)
             m_icons << entry;
     } else {
-        qWarning("QIcnsHandler::addIcon(): Unable to parse icon, OSType: %u", entry.header.ostype);
+        qWarning("QICNSHandler::addIcon(): Failed, unable to parse icon. OSType: %u", entry.header.ostype);
     }
     return entry.isValid;
 }

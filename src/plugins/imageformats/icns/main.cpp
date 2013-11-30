@@ -50,20 +50,24 @@ QT_BEGIN_NAMESPACE
 
 QImageIOPlugin::Capabilities QIcnsPlugin::capabilities(QIODevice *device, const QByteArray &format) const
 {
-    if (!device || !device->isOpen() || format != "icns")
+    if (format == QByteArrayLiteral("icns"))
+        return Capabilities(CanRead | CanWrite);
+    if (!format.isEmpty())
+        return 0;
+    if (!device || !device->isOpen())
         return 0;
 
     Capabilities cap;
-    if (device->isReadable() && QIcnsHandler::canRead(device))
+    if (device->isReadable() && QICNSHandler::canRead(device))
         cap |= CanRead;
-    if (device->isWritable() && QIcnsHandler::canWrite(device))
+    if (device->isWritable())
         cap |= CanWrite;
     return cap;
 }
 
 QImageIOHandler *QIcnsPlugin::create(QIODevice *device, const QByteArray &format) const
 {
-    QImageIOHandler *handler = new QIcnsHandler();
+    QImageIOHandler *handler = new QICNSHandler();
     handler->setDevice(device);
     handler->setFormat(format);
     return handler;

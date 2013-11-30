@@ -1271,7 +1271,6 @@ bool QDDSHandler::write(const QImage &outImage)
     QDataStream s(device());
     s.setByteOrder(QDataStream::LittleEndian);
 
-    // Filling header
     DDSHeader dds;
     // Filling header
     dds.magic = ddsMagic;

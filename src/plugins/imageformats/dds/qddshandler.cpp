@@ -1231,7 +1231,7 @@ QDDSHandler::QDDSHandler() :
 
 QByteArray QDDSHandler::name() const
 {
-    return "dds";
+    return QByteArrayLiteral("dds");
 }
 
 bool QDDSHandler::canRead() const
@@ -1367,7 +1367,7 @@ bool QDDSHandler::canRead(QIODevice *device)
     if (device->isSequential())
         return false;
 
-    return device->peek(4) == "DDS ";
+    return device->peek(4) == QByteArrayLiteral("DDS ");
 }
 
 bool QDDSHandler::ensureHeaderCached() const

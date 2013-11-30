@@ -52,7 +52,7 @@ QImageIOPlugin::Capabilities QDDSPlugin::capabilities(QIODevice *device, const Q
 {
     if (!device || !device->isOpen())
         return 0;
-    if (format.toLower() != "dds")
+    if (format.toLower() != QByteArrayLiteral("dds"))
         return 0;
 
     Capabilities cap;

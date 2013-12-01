@@ -390,8 +390,8 @@ static bool parseIconEntry(ICNSEntry &icon)
     icon.mask = ICNSEntry::MaskUnknown;
     if (icon.group != ICNSEntry::GroupCompressed && icon.group != ICNSEntry::GroupPortable) {
         const qreal bytespp = ((qreal)icon.depth / 8);
-        const qreal r1 = qSqrt(icon.dataLength/bytespp);
-        const qreal r2 = qSqrt((icon.dataLength/bytespp)/2);
+        const qreal r1 = qSqrt(icon.dataLength / bytespp);
+        const qreal r2 = qSqrt((icon.dataLength / bytespp) / 2);
         const quint32 r1u = (quint32)r1;
         const quint32 r2u = (quint32)r2;
         const bool r1IsPowerOfTwoOrDevidesBy16 = (r1u == r1 && r1u % 16 == 0) || (r1u == r1 && r1 >= 16 && ((r1u & (r1u - 1)) == 0));
@@ -407,7 +407,7 @@ static bool parseIconEntry(ICNSEntry &icon)
             icon.height = r2;
         } else if (icon.group == ICNSEntry::GroupMini) {
             // Legacy 16x12 icons are an exception from the generic square formula
-            icon.mask = (icon.dataLength == 192*bytespp*2) ? ICNSEntry::IconPlusMask : ICNSEntry::IsIcon;
+            icon.mask = (icon.dataLength == 192 * bytespp * 2) ? ICNSEntry::IconPlusMask : ICNSEntry::IsIcon;
             icon.width = 16;
             icon.height = 12;
         } else if (icon.depth == ICNSEntry::Depth32bit) {
@@ -502,7 +502,6 @@ static QImage readLowDepthIconFromStream(const ICNSEntry &icon, QDataStream &str
                 break;
             }
             default :
-                // 8bit
                 cindex = (byte < qPow(2,icon.depth)) ? byte : 0;
             }
             byte = byte << icon.depth;
@@ -763,6 +762,11 @@ bool QICNSHandler::ensureScanned() const
 
 bool QICNSHandler::addEntry(const ICNSBlockHeader &header, quint32 imgDataOffset)
 {
+    if (header.ostype == 0 || header.length == 0) {
+        qWarning("QICNSHandler::addEntry(): Failed, invalid header. OSType %u, length %u", header.ostype, header.length);
+        return false;
+    }
+    //
     ICNSEntry entry;
     // Header:
     entry.header.ostype = header.ostype;
@@ -824,13 +828,15 @@ bool QICNSHandler::scanDevice()
                 for (uint n = 0; n < i; n++)
                     imgDataOffset += toc.at(n).length;
                 imgDataOffset += ICNSBlockHeaderSize;
-                addEntry(tocEntry, imgDataOffset);
+                if (!addEntry(tocEntry, imgDataOffset))
+                    return false;
             }
-            // TOC scan gives enough data to discard scan of other blocks
+            // TOC scan provides enough data to discard scan of other blocks
             return true;
         }
         default :
-            addEntry(blockHeader, stream.device()->pos());
+            if (!addEntry(blockHeader, device()->pos()))
+                return false;
             stream.skipRawData((blockHeader.length - ICNSBlockHeaderSize));
         }
     }
@@ -842,10 +848,10 @@ ICNSEntry QICNSHandler::getIconMask(const ICNSEntry &icon) const
     if (((icon.mask & ICNSEntry::IsMask) != 0) || !icon.isValid)
         return icon;
 
-    ICNSEntry::Depth targetDepth = (icon.depth == ICNSEntry::Depth32bit) ? ICNSEntry::Depth8bit : ICNSEntry::DepthMono;
+    ICNSEntry::Depth target = (icon.depth == ICNSEntry::Depth32bit) ? ICNSEntry::Depth8bit : ICNSEntry::DepthMono;
     for (int i = 0; i < m_masks.size(); i++) {
         const ICNSEntry &entry = m_masks.at(i);
-        const bool suitableDepth = (entry.depth == targetDepth);
+        const bool suitableDepth = (entry.depth == target);
         const bool suitableSize = (entry.height == icon.height && entry.width == icon.width);
         const bool sameGroup = (entry.group == icon.group);
         if (suitableDepth && (suitableSize || sameGroup))

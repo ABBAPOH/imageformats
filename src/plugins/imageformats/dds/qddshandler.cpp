@@ -1319,10 +1319,7 @@ bool QDDSHandler::write(const QImage &outImage)
 
 QVariant QDDSHandler::option(QImageIOHandler::ImageOption option) const
 {
-    if (!supportsOption(option))
-        return QVariant();
-
-    if (!ensureHeaderCached())
+    if (!supportsOption(option) || !ensureHeaderCached())
         return QVariant();
 
     switch (option) {

@@ -141,7 +141,7 @@ private:
     int m_currentIconIndex;
     QVector<ICNSEntry> m_icons;
     QVector<ICNSEntry> m_masks;
-    bool m_parsed;
+    bool m_scanned;
 };
 
 QT_END_NAMESPACE

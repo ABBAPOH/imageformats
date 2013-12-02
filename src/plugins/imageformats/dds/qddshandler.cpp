@@ -1266,7 +1266,7 @@ bool QDDSHandler::read(QImage *outImage)
 
 bool QDDSHandler::write(const QImage &outImage)
 {
-    QImage image = outImage.convertToFormat(QImage::Format_ARGB32);
+    const QImage image = outImage.convertToFormat(QImage::Format_ARGB32);
 
     QDataStream s(device());
     s.setByteOrder(QDataStream::LittleEndian);

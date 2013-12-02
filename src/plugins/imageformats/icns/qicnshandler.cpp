@@ -347,7 +347,7 @@ static QVector<QRgb> getColorTable(const ICNSEntry::Depth &depth)
 {
     QVector<QRgb> table;
     for (uint i = 0; i < qPow(2, depth); i++) {
-        switch(depth) {
+        switch (depth) {
         case ICNSEntry::DepthMono :
             table << ICNSColorTableMono[i];
             break;
@@ -414,7 +414,7 @@ static bool parseIconEntry(ICNSEntry &icon)
             // 32bit icon may be encoded
             icon.dataIsRLE = true;
             icon.mask = mask.isEmpty() ? ICNSEntry::IsIcon : ICNSEntry::IsMask;
-            switch(icon.group) {
+            switch (icon.group) {
             case ICNSEntry::GroupSmall :
                 icon.width = 16;
                 icon.height = 16;
@@ -491,7 +491,7 @@ static QImage readLowDepthIconFromStream(const ICNSEntry &icon, QDataStream &str
             if (pixel % (8 / icon.depth) == 0)
                 stream >> byte;
             quint8 cindex = 0;
-            switch(icon.depth) {
+            switch (icon.depth) {
             case ICNSEntry::DepthMono : {
                 cindex = (byte & 0x80) ? 1 : 0; // left 1 bit
                 break;
@@ -535,7 +535,7 @@ static QImage read32bitIconFromStream(const ICNSEntry &icon, QDataStream &stream
         if (qFromBigEndian<quint32>(*bytes.constData()) == 0)
             stream.skipRawData(4);
         for (quint8 colorNRun = 0; colorNRun < 3; colorNRun++) {
-            quint32	pixel = 0;
+            quint32 pixel = 0;
             QRgb *line;
             while ((pixel < estPxsNum) && !stream.atEnd()) {
                 quint8 byte, value;
@@ -638,7 +638,7 @@ bool QICNSHandler::read(QImage *outImage)
     } else if (icon.height == 0 || icon.width == 0) {
         qWarning("QICNSHandler::read(): Failed, size of a raw icon is unknown, OSType: %u", icon.header.ostype);
     } else {
-        switch(icon.depth) {
+        switch (icon.depth) {
         case ICNSEntry::DepthMono :
         case ICNSEntry::Depth4bit :
         case ICNSEntry::Depth8bit :
@@ -791,7 +791,7 @@ bool QICNSHandler::addEntry(const ICNSBlockHeader &header, quint32 imgDataOffset
 
 bool QICNSHandler::scanDevice()
 {
-    if(m_parsed)
+    if (m_parsed)
         return true;
 
     if (!device()->seek(0))

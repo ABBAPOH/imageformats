@@ -346,22 +346,27 @@ static QDataStream &operator<<(QDataStream &out, const ICNSBlockHeader &p)
 static QVector<QRgb> getColorTable(const ICNSEntry::Depth &depth)
 {
     QVector<QRgb> table;
-    for (uint i = 0; i < qPow(2, depth); i++) {
-        switch (depth) {
-        case ICNSEntry::DepthMono :
-            table << ICNSColorTableMono[i];
-            break;
-        case ICNSEntry::Depth4bit :
-            table << ICNSColorTable4bit[i];
-            break;
-        case ICNSEntry::Depth8bit :
-            table << ICNSColorTable8bit[i];
-            break;
-        default :
-            qWarning("getColorTable(): No color table for bit depth: %u", depth);
-            return table;
-        }
+    if (depth > ICNSEntry::Depth8bit)
+        return table;
+    int n = qRound(qPow(2, depth));
+    int size = sizeof(QRgb) * n;
+    QRgb *data;
+    switch (depth) {
+    case ICNSEntry::DepthMono :
+        data = const_cast<QRgb *>(ICNSColorTableMono);
+        break;
+    case ICNSEntry::Depth4bit :
+        data = const_cast<QRgb *>(ICNSColorTable4bit);
+        break;
+    case ICNSEntry::Depth8bit :
+        data = const_cast<QRgb *>(ICNSColorTable8bit);
+        break;
+    default :
+        qWarning("getColorTable(): No color table for bit depth: %u", depth);
+        return table;
     }
+    table.resize(n);
+    memcpy(table.data(), data, size);
     return table;
 }
 
@@ -392,8 +397,8 @@ static bool parseIconEntry(ICNSEntry &icon)
         const qreal bytespp = ((qreal)icon.depth / 8);
         const qreal r1 = qSqrt(icon.dataLength / bytespp);
         const qreal r2 = qSqrt((icon.dataLength / bytespp) / 2);
-        const quint32 r1u = (quint32)r1;
-        const quint32 r2u = (quint32)r2;
+        const quint32 r1u = qRound(r1);
+        const quint32 r2u = qRound(r2);
         const bool r1IsPowerOfTwoOrDevidesBy16 = (r1u == r1 && r1u % 16 == 0) || (r1u == r1 && r1 >= 16 && ((r1u & (r1u - 1)) == 0));
         const bool r2IsPowerOfTwoOrDevidesBy16 = (r2u == r2 && r2u % 16 == 0) || (r2u == r2 && r2 >= 16 && ((r2u & (r2u - 1)) == 0));
 
@@ -453,8 +458,7 @@ static QImage readMaskFromStream(const ICNSEntry &mask, QDataStream &stream)
         return QImage();
     }
     const bool doubleSize = (mask.mask == ICNSEntry::IconPlusMask);
-    const qreal bytespp = ((qreal)mask.depth / 8);
-    const quint32 imageDataSize = (mask.width * mask.height) * bytespp;
+    const quint32 imageDataSize = (((mask.width * mask.height) * mask.depth) / 8);
     const qint64 pos = doubleSize ? (mask.dataOffset + imageDataSize) : mask.dataOffset;
     const qint64 oldPos = stream.device()->pos();
     if (!stream.device()->seek(pos))
@@ -570,7 +574,6 @@ static QImage read32bitIconFromStream(const ICNSEntry &icon, QDataStream &stream
 QICNSHandler::QICNSHandler() :
     m_currentIconIndex(0), m_scanned(false)
 {
-
 }
 
 QByteArray QICNSHandler::name() const
@@ -658,7 +661,7 @@ bool QICNSHandler::read(QImage *outImage)
             img.setAlphaChannel(alpha);
     }
     *outImage = img;
-    return (!img.isNull());
+    return !img.isNull();
 }
 
 bool QICNSHandler::write(const QImage &image)

@@ -329,44 +329,43 @@ static const QRgb ICNSColorTable8bit[] = {
     qRgb(0x00, 0x00, 0x00)
 };
 
-static QDataStream &operator>>(QDataStream &in, ICNSBlockHeader &p)
+static inline QDataStream &operator>>(QDataStream &in, ICNSBlockHeader &p)
 {
     in >> p.ostype;
     in >> p.length;
     return in;
 }
 
-static QDataStream &operator<<(QDataStream &out, const ICNSBlockHeader &p)
+static inline QDataStream &operator<<(QDataStream &out, const ICNSBlockHeader &p)
 {
     out << p.ostype;
     out << p.length;
     return out;
 }
 
-static QVector<QRgb> getColorTable(const ICNSEntry::Depth &depth)
+static inline QVector<QRgb> getColorTable(const ICNSEntry::Depth &depth)
 {
     QVector<QRgb> table;
     if (depth > ICNSEntry::Depth8bit)
         return table;
     uint n = (1 << depth);
-    uint size = (sizeof(QRgb) * n);
     const QRgb *data;
     switch (depth) {
-    case ICNSEntry::DepthMono :
+    case ICNSEntry::DepthMono:
         data = ICNSColorTableMono;
         break;
-    case ICNSEntry::Depth4bit :
+    case ICNSEntry::Depth4bit:
         data = ICNSColorTable4bit;
         break;
-    case ICNSEntry::Depth8bit :
+    case ICNSEntry::Depth8bit:
         data = ICNSColorTable8bit;
         break;
-    default :
+    default:
         qWarning("getColorTable(): No color table for bit depth: %u", depth);
         return table;
     }
     table.resize(n);
-    memcpy(table.data(), data, size);
+    memcpy(table.data(), data, (sizeof(QRgb) * n));
     return table;
 }
 
@@ -426,23 +425,23 @@ static bool parseIconEntry(ICNSEntry &icon)
             icon.dataIsRLE = true;
             icon.mask = mask.isEmpty() ? ICNSEntry::IsIcon : ICNSEntry::IsMask;
             switch (icon.group) {
-            case ICNSEntry::GroupSmall :
+            case ICNSEntry::GroupSmall:
                 icon.width = 16;
                 icon.height = 16;
                 break;
-            case ICNSEntry::GroupLarge :
+            case ICNSEntry::GroupLarge:
                 icon.width = 32;
                 icon.height = 32;
                 break;
-            case ICNSEntry::GroupHuge :
+            case ICNSEntry::GroupHuge:
                 icon.width = 48;
                 icon.height = 48;
                 break;
-            case ICNSEntry::GroupThumbnail :
+            case ICNSEntry::GroupThumbnail:
                 icon.width = 128;
                 icon.height = 128;
                 break;
-            default :
+            default:
                 qWarning("parseIconEntry(): Failed, 32bit icon from an unknown group. OSType: \"%s\"",
                          ostype.constData());
             }
@@ -507,18 +506,18 @@ static QImage readLowDepthIconFromStream(const ICNSEntry &icon, QDataStream &str
                 stream >> byte;
             quint8 cindex = 0;
             switch (icon.depth) {
-            case ICNSEntry::DepthMono : {
+            case ICNSEntry::DepthMono: {
                 cindex = (byte & 0x80) ? 1 : 0; // left 1 bit
                 break;
             }
 
-            case ICNSEntry::Depth4bit : {
+            case ICNSEntry::Depth4bit: {
                 quint8 value = ((byte & 0xF0) >> 4); // left 4 bits
                 cindex = (value < (1 << icon.depth)) ? value : 0;
                 break;
             }
 
-            default :
+            default:
                 cindex = (byte < (1 << icon.depth)) ? byte : 0;
             }
             byte = byte << icon.depth;
@@ -658,15 +657,15 @@ bool QICNSHandler::read(QImage *outImage)
                  icon.header.ostype);
     } else {
         switch (icon.depth) {
-        case ICNSEntry::DepthMono :
-        case ICNSEntry::Depth4bit :
-        case ICNSEntry::Depth8bit :
+        case ICNSEntry::DepthMono:
+        case ICNSEntry::Depth4bit:
+        case ICNSEntry::Depth8bit:
             img = readLowDepthIconFromStream(icon, stream);
             break;
-        case ICNSEntry::Depth32bit :
+        case ICNSEntry::Depth32bit:
             img = read32bitIconFromStream(icon, stream);
             break;
-        default :
+        default:
             qWarning("QICNSHandler::read(): Failed, unsupported icon bit depth: %u, OSType: %u",
                      icon.depth, icon.header.ostype);
         }
@@ -833,18 +832,19 @@ bool QICNSHandler::scanDevice()
             return false;
         const quint32 blockDataLength = (blockHeader.length - ICNSBlockHeaderSize);
 
+        bool tocScan = false;
         switch (blockHeader.ostype) {
-        case ICNSBlockHeader::icns :
+        case ICNSBlockHeader::icns:
             filelength = blockHeader.length;
             if (device()->size() < blockHeader.length)
                 return false;
             break;
-        case ICNSBlockHeader::icnV :
-        case ICNSBlockHeader::clut :
+        case ICNSBlockHeader::icnV:
+        case ICNSBlockHeader::clut:
             // We don't have a good use for these blocks... yet.
             stream.skipRawData(blockDataLength);
             break;
-        case ICNSBlockHeader::TOC_ : {
+        case ICNSBlockHeader::TOC_: {
             QVector<ICNSBlockHeader> toc;
             const quint32 tocEntriesCount = (blockDataLength / ICNSBlockHeaderSize);
             for (uint i = 0; i < tocEntriesCount; i++) {
@@ -858,15 +858,17 @@ bool QICNSHandler::scanDevice()
                 if (!addEntry(tocEntry, imgDataOffset))
                     return false;
             }
-            // TOC scan provides enough data to discard scan of other blocks
-            return true;
+            tocScan = true;
+            break;
         }
-        default :
+        default:
             if (!addEntry(blockHeader, device()->pos()))
                 return false;
             stream.skipRawData(blockDataLength);
             break;
         }
+        if (tocScan)
+            break;
     }
     return true;
 }

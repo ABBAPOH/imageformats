@@ -350,16 +350,16 @@ static QVector<QRgb> getColorTable(const ICNSEntry::Depth &depth)
         return table;
     int n = qRound(qPow(2, depth));
     int size = sizeof(QRgb) * n;
-    QRgb *data;
+    const QRgb *data;
     switch (depth) {
     case ICNSEntry::DepthMono :
-        data = const_cast<QRgb *>(ICNSColorTableMono);
+        data = ICNSColorTableMono;
         break;
     case ICNSEntry::Depth4bit :
-        data = const_cast<QRgb *>(ICNSColorTable4bit);
+        data = ICNSColorTable4bit;
         break;
     case ICNSEntry::Depth8bit :
-        data = const_cast<QRgb *>(ICNSColorTable8bit);
+        data = ICNSColorTable8bit;
         break;
     default :
         qWarning("getColorTable(): No color table for bit depth: %u", depth);
@@ -375,7 +375,8 @@ static bool parseIconEntry(ICNSEntry &icon)
     // Skip if already parsed
     if (icon.isValid)
         return true;
-    const QByteArray ostype = QByteArray::fromHex(QByteArray::number(icon.header.ostype, 16));
+    const quint32 ostypebo = qToBigEndian<quint32>(icon.header.ostype);
+    const QByteArray ostype = QByteArray::fromRawData((const char*)&ostypebo, 4);
     // Typical OSType naming: <junk><group><depth><mask>;
     const QString pattern = QStringLiteral("^(?<junk>[\\D]{0,4})(?<group>[a-z|A-Z]{1})(?<depth>\\d{0,2})(?<mask>[#mk]{0,2})$");
     QRegularExpression regexp(pattern);
@@ -483,13 +484,12 @@ static QImage readMaskFromStream(const ICNSEntry &mask, QDataStream &stream)
 
 static QImage readLowDepthIconFromStream(const ICNSEntry &icon, QDataStream &stream)
 {
-    QImage img;
     quint8 byte = 0;
     const QImage::Format format = (icon.depth == ICNSEntry::DepthMono) ? QImage::Format_Mono : QImage::Format_Indexed8;
     const QVector<QRgb> colortable = getColorTable(icon.depth);
     if (colortable.size() < 2)
-        return img;
-    img = QImage(icon.width, icon.height, format);
+        return QImage();
+    QImage img(icon.width, icon.height, format);
     img.setColorTable(colortable);
     quint32 pixel = 0;
     for (quint32 y = 0; y < icon.height; y++) {
@@ -688,9 +688,9 @@ bool QICNSHandler::write(const QImage &image)
         img = img.scaled(1024, 1024);
     }
     // Small / big icons naming policy
-    const QByteArray ostypebase = (p < 7) ? QByteArrayLiteral("icp") : QByteArrayLiteral("ic");
-    const QByteArray ostypenum = (ostypebase.size() > 2 || p >= 10) ? QByteArray::number(p) : QByteArray::number(p).prepend("0");
-    const quint32 ostype = QByteArray(ostypebase).append(ostypenum).toHex().toUInt(NULL, 16);
+    const QByteArray ostypeb = (p < 7) ? QByteArrayLiteral("icp") : QByteArrayLiteral("ic");
+    const QByteArray ostypen = (ostypeb.size() > 2 || p >= 10) ? QByteArray::number(p) : "0" + QByteArray::number(p);
+    const quint32 ostype = qFromBigEndian<quint32>(*(quint32*)((ostypeb + ostypen).constData()));
     // Construct ICNS Header
     ICNSBlockHeader fileHeader;
     fileHeader.ostype = ICNSBlockHeader::icns;
@@ -706,7 +706,7 @@ bool QICNSHandler::write(const QImage &image)
     // Construct image data
     QByteArray imageData;
     QBuffer buffer(&imageData);
-    if (!buffer.open(QIODevice::WriteOnly) && !img.save(&buffer, "png"))
+    if (!buffer.open(QIODevice::WriteOnly) || !img.save(&buffer, "png"))
         return false;
     buffer.close();
     iconEntry.length = ICNSBlockHeaderSize + imageData.size();
@@ -732,8 +732,10 @@ QVariant QICNSHandler::option(QImageIOHandler::ImageOption option) const
 {
     if (!supportsOption(option) || !ensureScanned())
         return QVariant();
-    if (imageCount() > 0 && m_currentIconIndex <= imageCount())
-        return QByteArray::fromHex(QByteArray::number(m_icons.at(m_currentIconIndex).header.ostype, 16));
+    if (imageCount() > 0 && m_currentIconIndex <= imageCount()) {
+        const ICNSEntry &entry = m_icons.at(m_currentIconIndex);
+        return QByteArray::fromRawData((const char*)qToBigEndian<quint32>(entry.header.ostype), 4);
+    }
     return QVariant();
 }
 

@@ -50,6 +50,8 @@ class tst_qicns: public QObject
 private slots:
     void readIcons_data();
     void readIcons();
+    void writeIcons_data();
+    void writeIcons();
 };
 
 void tst_qicns::readIcons_data()
@@ -82,6 +84,37 @@ void tst_qicns::readIcons()
             QCOMPARE(image.size(), size);
         QVERIFY2(!image.isNull(), qPrintable(reader.errorString()));
     }
+}
+
+void tst_qicns::writeIcons_data()
+{
+    QTest::addColumn<QString>("fileName");
+    QTest::addColumn<QSize>("size");
+
+    QTest::newRow("1") << QStringLiteral("test-write-16") << QSize(16, 16);
+    QTest::newRow("2") << QStringLiteral("test-write-32") << QSize(32, 32);
+    QTest::newRow("3") << QStringLiteral("test-write-128") << QSize(128, 128);
+    QTest::newRow("4") << QStringLiteral("test-write-512") << QSize(512, 512);
+    QTest::newRow("5") << QStringLiteral("test-write-1024") << QSize(1024, 1024);
+}
+
+void tst_qicns::writeIcons()
+{
+    QFETCH(QString, fileName);
+    QFETCH(QSize, size);
+
+    const QString distPath = fileName + QStringLiteral(".icns");
+    const QString sourcePath = QStringLiteral(":/data/") + fileName + QStringLiteral(".png");
+
+    QImage image(sourcePath);
+    QVERIFY(!image.isNull());
+    QVERIFY(image.size() == size);
+
+    QImageWriter writer(distPath, QByteArrayLiteral("icns"));
+    QVERIFY2(writer.canWrite(), qPrintable(writer.errorString()));
+    QVERIFY2(writer.write(image), qPrintable(writer.errorString()));
+
+    QVERIFY(image == QImage(distPath));
 }
 
 QTEST_MAIN(tst_qicns)

@@ -4,5 +4,11 @@
         <file>data/test-jp2.icns</file>
         <file>data/test-legacy.icns</file>
         <file>data/test-png.icns</file>
+        <file>data/test-write-16.png</file>
+        <file>data/test-write-32.png</file>
+        <file>data/test-write-128.png</file>
+        <file>data/test-write-256.png</file>
+        <file>data/test-write-512.png</file>
+        <file>data/test-write-1024.png</file>
     </qresource>
 </RCC>

@@ -668,11 +668,11 @@ bool QICNSHandler::read(QImage *outImage)
             qWarning("QICNSHandler::read(): Failed, unsupported icon bit depth: %u, OSType: %u",
                      icon.depth, icon.header.ostype);
         }
-    }
-    if (!img.isNull()) {
-        QImage alpha = readMaskFromStream(getIconMask(icon), stream);
-        if (!alpha.isNull())
-            img.setAlphaChannel(alpha);
+        if (!img.isNull()) {
+            QImage alpha = readMaskFromStream(getIconMask(icon), stream);
+            if (!alpha.isNull())
+                img.setAlphaChannel(alpha);
+        }
     }
     *outImage = img;
     return !img.isNull();
@@ -878,8 +878,7 @@ const ICNSEntry &QICNSHandler::getIconMask(const ICNSEntry &icon) const
     for (int i = 0; i < m_masks.size(); i++) {
         const ICNSEntry &entry = m_masks.at(i);
         const bool suitableDepth = (entry.depth == targetDepth);
-        if (suitableDepth && ( (entry.group == icon.group)
-                              || ((entry.height == icon.height) && (entry.width == icon.width)) ))
+        if (suitableDepth && (entry.height == icon.height) && (entry.width == icon.width))
             return entry;
     }
     return icon;

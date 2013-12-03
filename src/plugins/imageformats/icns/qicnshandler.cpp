@@ -50,6 +50,7 @@ static const QRgb ICNSColorTableMono[] = {
     qRgb(0xFF, 0xFF, 0xFF),
     qRgb(0x00, 0x00, 0x00)
 };
+Q_STATIC_ASSERT(sizeof(ICNSColorTableMono) == (sizeof(QRgb) * 2));
 
 static const QRgb ICNSColorTable4bit[] = {
     qRgb(0xFF, 0xFF, 0xFF),
@@ -69,6 +70,7 @@ static const QRgb ICNSColorTable4bit[] = {
     qRgb(0x40, 0x40, 0x40),
     qRgb(0x00, 0x00, 0x00)
 };
+Q_STATIC_ASSERT(sizeof(ICNSColorTable4bit) == (sizeof(QRgb) * 16));
 
 static const QRgb ICNSColorTable8bit[] = {
     qRgb(0xFF, 0xFF, 0xFF),
@@ -328,6 +330,7 @@ static const QRgb ICNSColorTable8bit[] = {
     qRgb(0x11, 0x11, 0x11),
     qRgb(0x00, 0x00, 0x00)
 };
+Q_STATIC_ASSERT(sizeof(ICNSColorTable8bit) == (sizeof(QRgb) * 256));
 
 static inline QDataStream &operator>>(QDataStream &in, ICNSBlockHeader &p)
 {
@@ -343,11 +346,9 @@ static inline QDataStream &operator<<(QDataStream &out, const ICNSBlockHeader &p
     return out;
 }
 
-static inline QVector<QRgb> getColorTable(const ICNSEntry::Depth &depth)
+static inline QVector<QRgb> getColorTable(ICNSEntry::Depth depth)
 {
     QVector<QRgb> table;
-    if (depth > ICNSEntry::Depth8bit)
-        return table;
     uint n = (1 << depth);
     const QRgb *data;
     switch (depth) {
@@ -371,17 +372,13 @@ static inline QVector<QRgb> getColorTable(const ICNSEntry::Depth &depth)
 
 static bool parseIconEntry(ICNSEntry &icon)
 {
-    // Skip if already parsed
-    if (icon.isValid)
-        return true;
     const quint32 ostypebo = qToBigEndian<quint32>(icon.header.ostype);
     const QByteArray ostype = QByteArray::fromRawData((const char*)&ostypebo, 4);
     // Typical OSType naming: <junk><group><depth><mask>;
-    const QString pattern = QStringLiteral("^(?<junk>[\\D]{0,4})(?<group>[a-z|A-Z]{1})(?<depth>\\d{0,2})(?<mask>[#mk]{0,2})$");
-    QRegularExpression regexp(pattern);
+    const QString ptrn = QStringLiteral("^(?<junk>[\\D]{0,4})(?<group>[a-z|A-Z]{1})(?<depth>\\d{0,2})(?<mask>[#mk]{0,2})$");
+    QRegularExpression regexp(ptrn);
     QRegularExpressionMatch match = regexp.match(ostype);
     const bool hasMatch = match.hasMatch();
-    const QString junk = match.captured("junk");
     const QString group = match.captured("group");
     const QString depth = match.captured("depth");
     const QString mask = match.captured("mask");
@@ -458,7 +455,7 @@ static bool parseIconEntry(ICNSEntry &icon)
 
 static QImage readMaskFromStream(const ICNSEntry &mask, QDataStream &stream)
 {
-    if ((mask.mask & ICNSEntry::IsMask) == 0)
+    if ((mask.mask & ICNSEntry::IsMask) == 0 || !mask.isValid)
         return QImage();
     if (mask.depth != ICNSEntry::DepthMono && mask.depth != ICNSEntry::Depth8bit) {
         qWarning("readMaskFromStream(): Failed, unusual bit depth: %u OSType: %u",
@@ -642,15 +639,17 @@ bool QICNSHandler::read(QImage *outImage)
         if (isPNG || isJP2) {
             const char *format = isPNG ? "png" : "jp2";
             img = QImage::fromData(ba, format);
-            if (img.isNull())
+            if (img.isNull()) {
                 qWarning("QICNSHandler::read(): Failed, format \"%s\" is not supported by your Qt lib. OSType: %u",
                          format, icon.header.ostype);
+            }
         } else {
             // Try anyway
             img = QImage::fromData(ba);
-            if (img.isNull())
+            if (img.isNull()) {
                 qWarning("QICNSHandler::read(): Failed, unsupported compressed icon format, OSType: %u",
                          icon.header.ostype);
+            }
         }
     } else if (icon.height == 0 || icon.width == 0) {
         qWarning("QICNSHandler::read(): Failed, size of a raw icon is unknown, OSType: %u",
@@ -790,7 +789,6 @@ bool QICNSHandler::addEntry(const ICNSBlockHeader &header, quint32 imgDataOffset
                  header.ostype, header.length);
         return false;
     }
-    //
     ICNSEntry entry;
     // Header:
     entry.header.ostype = header.ostype;
@@ -875,16 +873,13 @@ bool QICNSHandler::scanDevice()
 
 const ICNSEntry &QICNSHandler::getIconMask(const ICNSEntry &icon) const
 {
-    if (((icon.mask & ICNSEntry::IsMask) != 0) || !icon.isValid)
-        return icon;
     const bool is32bit = (icon.depth == ICNSEntry::Depth32bit);
-    ICNSEntry::Depth target = is32bit ? ICNSEntry::Depth8bit : ICNSEntry::DepthMono;
+    ICNSEntry::Depth targetDepth = is32bit ? ICNSEntry::Depth8bit : ICNSEntry::DepthMono;
     for (int i = 0; i < m_masks.size(); i++) {
         const ICNSEntry &entry = m_masks.at(i);
-        const bool suitableDepth = (entry.depth == target);
-        const bool suitableSize = (entry.height == icon.height && entry.width == icon.width);
-        const bool sameGroup = (entry.group == icon.group);
-        if (suitableDepth && (suitableSize || sameGroup))
+        const bool suitableDepth = (entry.depth == targetDepth);
+        if (suitableDepth && ( (entry.group == icon.group)
+                              || ((entry.height == icon.height) && (entry.width == icon.width)) ))
             return entry;
     }
     return icon;

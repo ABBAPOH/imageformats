@@ -619,6 +619,8 @@ bool QICNSHandler::read(QImage *outImage)
     }
 
     const ICNSEntry &icon = m_icons.at(m_currentIconIndex);
+    const quint32 ostypebo = qToBigEndian<quint32>(icon.header.ostype);
+    const QByteArray ostype = (QByteArray::fromRawData((const char*)&ostypebo, 4) + "");
     QDataStream stream(device());
     stream.setByteOrder(QDataStream::BigEndian);
     if (!device()->seek(icon.dataOffset))
@@ -632,28 +634,28 @@ bool QICNSHandler::read(QImage *outImage)
     if (isPNG || isJP2 || isCompressed) {
         const QByteArray ba = device()->read(icon.dataLength);
         if (ba.isEmpty()) {
-            qWarning("QICNSHandler::read(): Failed, compressed image data is empty. OSType: %u",
-                     icon.header.ostype);
+            qWarning("QICNSHandler::read(): Failed, compressed image data is empty. OSType: \"%s\"",
+                     ostype.constData());
             return false;
         }
         if (isPNG || isJP2) {
             const char *format = isPNG ? "png" : "jp2";
             img = QImage::fromData(ba, format);
             if (img.isNull()) {
-                qWarning("QICNSHandler::read(): Failed, format \"%s\" is not supported by your Qt lib. OSType: %u",
-                         format, icon.header.ostype);
+                qWarning("QICNSHandler::read(): Failed, format \"%s\" is not supported by your Qt lib. OSType: \"%s\"",
+                         format, ostype.constData());
             }
         } else {
             // Try anyway
             img = QImage::fromData(ba);
             if (img.isNull()) {
-                qWarning("QICNSHandler::read(): Failed, unsupported compressed icon format, OSType: %u",
-                         icon.header.ostype);
+                qWarning("QICNSHandler::read(): Failed, unsupported compressed icon format, OSType: \"%s\"",
+                         ostype.constData());
             }
         }
     } else if (icon.height == 0 || icon.width == 0) {
-        qWarning("QICNSHandler::read(): Failed, size of a raw icon is unknown, OSType: %u",
-                 icon.header.ostype);
+        qWarning("QICNSHandler::read(): Failed, size of a raw icon is unknown, OSType: \"%s\"",
+                 ostype.constData());
     } else {
         switch (icon.depth) {
         case ICNSEntry::DepthMono:
@@ -665,8 +667,8 @@ bool QICNSHandler::read(QImage *outImage)
             img = read32bitIconFromStream(icon, stream);
             break;
         default:
-            qWarning("QICNSHandler::read(): Failed, unsupported icon bit depth: %u, OSType: %u",
-                     icon.depth, icon.header.ostype);
+            qWarning("QICNSHandler::read(): Failed, unsupported icon bit depth: %u, OSType: \"%s\"",
+                     icon.depth, ostype.constData());
         }
         if (!img.isNull()) {
             QImage alpha = readMaskFromStream(getIconMask(icon), stream);
@@ -748,7 +750,9 @@ QVariant QICNSHandler::option(QImageIOHandler::ImageOption option) const
         return QVariant();
     if (imageCount() > 0 && m_currentIconIndex <= imageCount()) {
         const ICNSEntry &entry = m_icons.at(m_currentIconIndex);
-        return QByteArray::fromRawData((const char*)qToBigEndian<quint32>(entry.header.ostype), 4);
+        const quint32 ostypebo = qToBigEndian<quint32>(entry.header.ostype);
+        // Enforce returning a deep copy just in case
+        return (QByteArray::fromRawData((const char*)&ostypebo, 4) + "");
     }
     return QVariant();
 }
@@ -805,9 +809,6 @@ bool QICNSHandler::addEntry(const ICNSBlockHeader &header, quint32 imgDataOffset
             m_masks << entry;
         if ((entry.mask & ICNSEntry::IsIcon) != 0)
             m_icons << entry;
-    } else {
-        qWarning("QICNSHandler::addEntry(): Failed, unable to parse icon. OSType: %u",
-                 entry.header.ostype);
     }
     return entry.isValid;
 }

@@ -51,12 +51,12 @@ QT_BEGIN_NAMESPACE
 
 struct ICNSBlockHeader
 {
-    enum SpecificOSTypes {
-        icns = 0x69636E73, // Icns container magic
-        TOC_ = 0x544F4320, // Table of contents
-        icnV = 0x69636E56, // Version of the icns tool
+    enum OSType {
+        Icns = 0x69636E73, // "icns": Icns container magic
+        Toc  = 0x544F4320, // "TOC_": Table of contents
+        Icnv = 0x69636E56, // "icnV": Version of the icns tool
         // Legacy:
-        clut = 0x636c7574  // Color look-up table. Shouldn't be present in icns file, but who knows?
+        Clut = 0x636c7574  // "clut": Color look-up table, was used in pre-OSX resources
     };
 
     quint32 ostype;
@@ -104,12 +104,6 @@ struct ICNSEntry
 
 class QICNSHandler : public QImageIOHandler
 {
-    enum ScanState {
-        ScanError       = -1,
-        ScanNotScanned  = 0,
-        ScanSuccess     = 1,
-    };
-
 public:
     QICNSHandler();
 
@@ -135,6 +129,12 @@ private:
     const ICNSEntry &getIconMask(const ICNSEntry &icon) const;
 
 private:
+    enum ScanState {
+        ScanError       = -1,
+        ScanNotScanned  = 0,
+        ScanSuccess     = 1,
+    };
+
     int m_currentIconIndex;
     QVector<ICNSEntry> m_icons;
     QVector<ICNSEntry> m_masks;

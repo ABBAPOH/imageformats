@@ -513,28 +513,24 @@ static QImage readLowDepthIconFromStream(const ICNSEntry &icon, QDataStream &str
         for (quint32 x = 0; x < icon.width; x++) {
             if (pixel % (8 / icon.depth) == 0)
                 stream >> byte;
-            quint8 cindex = 0;
+            quint8 cindex;
             switch (icon.depth) {
-            case ICNSEntry::DepthMono: {
+            case ICNSEntry::DepthMono:
                 cindex = ((byte >> 7) & 0x01); // left 1 bit
                 byte <<= 1;
                 break;
-            }
 
-            case ICNSEntry::Depth4bit: {
-                quint8 value = ((byte >> 4) & 0x0F); // left 4 bits
+            case ICNSEntry::Depth4bit:
+                cindex = ((byte >> 4) & 0x0F); // left 4 bits
                 byte <<= 4;
-                cindex = value;
                 break;
-            }
 
-            case ICNSEntry::Depth32bit:{
-                Q_UNREACHABLE();
+            case ICNSEntry::Depth8bit:
+                cindex = byte; // 8bit
                 break;
-            }
 
             default:
-                cindex = byte; // 8bit
+                Q_UNREACHABLE();
                 break;
             }
             img.setPixel(x, y, cindex);
@@ -672,7 +668,7 @@ bool QICNSHandler::read(QImage *outImage)
                          ostype.constData());
             }
         }
-    } else if(qMin(icon.width, icon.height) > 0) {
+    } else if (qMin(icon.width, icon.height) > 0) {
         switch (icon.depth) {
         case ICNSEntry::DepthMono:
         case ICNSEntry::Depth4bit:
@@ -725,10 +721,10 @@ bool QICNSHandler::write(const QImage &image)
     const quint32 ostype = qFromBigEndian<quint32>(*(quint32*)((ostypeb + ostypen).constData()));
     // Construct ICNS Header
     ICNSBlockHeader fileHeader;
-    fileHeader.ostype = ICNSBlockHeader::icns;
+    fileHeader.ostype = ICNSBlockHeader::Icns;
     // Construct TOC Header
     ICNSBlockHeader tocHeader;
-    tocHeader.ostype = ICNSBlockHeader::TOC_;
+    tocHeader.ostype = ICNSBlockHeader::Toc;
     // Construct TOC Entry
     ICNSBlockHeader tocEntry;
     tocEntry.ostype = ostype;
@@ -845,17 +841,17 @@ bool QICNSHandler::scanDevice()
         const quint32 blockDataLength = (blockHeader.length - ICNSBlockHeaderSize);
 
         switch (blockHeader.ostype) {
-        case ICNSBlockHeader::icns:
+        case ICNSBlockHeader::Icns:
             filelength = blockHeader.length;
             if (device()->size() < blockHeader.length)
                 return false;
             break;
-        case ICNSBlockHeader::icnV:
-        case ICNSBlockHeader::clut:
+        case ICNSBlockHeader::Icnv:
+        case ICNSBlockHeader::Clut:
             // We don't have a good use for these blocks... yet.
             stream.skipRawData(blockDataLength);
             break;
-        case ICNSBlockHeader::TOC_: {
+        case ICNSBlockHeader::Toc: {
             QVector<ICNSBlockHeader> toc;
             const quint32 tocEntriesCount = (blockDataLength / ICNSBlockHeaderSize);
             for (uint i = 0; i < tocEntriesCount; i++) {
@@ -870,7 +866,6 @@ bool QICNSHandler::scanDevice()
                     return false;
             }
             return true;
-            break;
         }
         default:
             if (!addEntry(blockHeader, device()->pos()))

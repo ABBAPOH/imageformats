@@ -42,6 +42,14 @@
 
 #include "qicnshandler.h"
 
+#include <QtCore/QBuffer>
+#include <QtCore/QtMath>
+#include <QtCore/QRegularExpression>
+#include <QtCore/QtEndian>
+#include <QtCore/QDebug>
+
+QT_BEGIN_NAMESPACE
+
 static const quint8 ICNSBlockHeaderSize = 8;
 static const char ICNSMagicPNGHex[] = "89504e470d0a1a0a";
 static const char ICNSMagicJP2Hex[] = "0000000c6a5020200d0a870a";
@@ -50,7 +58,7 @@ static const QRgb ICNSColorTableMono[] = {
     qRgb(0xFF, 0xFF, 0xFF),
     qRgb(0x00, 0x00, 0x00)
 };
-Q_STATIC_ASSERT(sizeof(ICNSColorTableMono) == (sizeof(QRgb) * 2));
+Q_STATIC_ASSERT(sizeof(ICNSColorTableMono)/sizeof(ICNSColorTableMono[0]) == (1<<ICNSEntry::DepthMono));
 
 static const QRgb ICNSColorTable4bit[] = {
     qRgb(0xFF, 0xFF, 0xFF),
@@ -70,7 +78,7 @@ static const QRgb ICNSColorTable4bit[] = {
     qRgb(0x40, 0x40, 0x40),
     qRgb(0x00, 0x00, 0x00)
 };
-Q_STATIC_ASSERT(sizeof(ICNSColorTable4bit) == (sizeof(QRgb) * 16));
+Q_STATIC_ASSERT(sizeof(ICNSColorTable4bit)/sizeof(ICNSColorTable4bit[0]) == (1<<ICNSEntry::Depth4bit));
 
 static const QRgb ICNSColorTable8bit[] = {
     qRgb(0xFF, 0xFF, 0xFF),
@@ -330,7 +338,7 @@ static const QRgb ICNSColorTable8bit[] = {
     qRgb(0x11, 0x11, 0x11),
     qRgb(0x00, 0x00, 0x00)
 };
-Q_STATIC_ASSERT(sizeof(ICNSColorTable8bit) == (sizeof(QRgb) * 256));
+Q_STATIC_ASSERT(sizeof(ICNSColorTable8bit)/sizeof(ICNSColorTable8bit[0]) == (1<<ICNSEntry::Depth8bit));
 
 static inline QDataStream &operator>>(QDataStream &in, ICNSBlockHeader &p)
 {
@@ -344,6 +352,11 @@ static inline QDataStream &operator<<(QDataStream &out, const ICNSBlockHeader &p
     out << p.ostype;
     out << p.length;
     return out;
+}
+
+static inline bool isPowOf2OrDevidesBy16(quint32 u, qreal r)
+{
+    return ((u == r && u % 16 == 0) || (u == r && r >= 16 && ((u & (u - 1)) == 0)));
 }
 
 static inline QVector<QRgb> getColorTable(ICNSEntry::Depth depth)
@@ -362,8 +375,8 @@ static inline QVector<QRgb> getColorTable(ICNSEntry::Depth depth)
         data = ICNSColorTable8bit;
         break;
     default:
-        qWarning("getColorTable(): No color table for bit depth: %u", depth);
-        return table;
+        Q_UNREACHABLE();
+        break;
     }
     table.resize(n);
     memcpy(table.data(), data, (sizeof(QRgb) * n));
@@ -373,24 +386,30 @@ static inline QVector<QRgb> getColorTable(ICNSEntry::Depth depth)
 static bool parseIconEntry(ICNSEntry &icon)
 {
     const quint32 ostypebo = qToBigEndian<quint32>(icon.header.ostype);
-    const QByteArray ostype = QByteArray::fromRawData((const char*)&ostypebo, 4);
+    const QByteArray ostype = QByteArray((const char*)&ostypebo, 4);
     // Typical OSType naming: <junk><group><depth><mask>;
     const QString ptrn = QStringLiteral("^(?<junk>[\\D]{0,4})(?<group>[a-z|A-Z]{1})(?<depth>\\d{0,2})(?<mask>[#mk]{0,2})$");
     QRegularExpression regexp(ptrn);
     QRegularExpressionMatch match = regexp.match(ostype);
-    const bool hasMatch = match.hasMatch();
+    if (!match.hasMatch()) {
+        qWarning("parseIconEntry(): Failed, OSType doesn't match: \"%s\"",
+                 ostype.constData());
+        return false;
+    }
     const QString group = match.captured("group");
     const QString depth = match.captured("depth");
     const QString mask = match.captured("mask");
     // Icon group:
     icon.group = group.isEmpty() ? ICNSEntry::GroupUnknown : ICNSEntry::Group(group.at(0).toLatin1());
+    const bool compressed = ((icon.group == ICNSEntry::GroupCompressed)
+                             || (icon.group == ICNSEntry::GroupPortable));
     // Icon depth:
     icon.depth = depth.isEmpty() ? ICNSEntry::DepthUnknown : ICNSEntry::Depth(depth.toUInt());
     // Width/height/mask:
     icon.width = 0;
     icon.height = 0;
     icon.mask = ICNSEntry::MaskUnknown;
-    if (icon.group != ICNSEntry::GroupCompressed && icon.group != ICNSEntry::GroupPortable) {
+    if (!compressed) {
         if (icon.depth == ICNSEntry::DepthUnknown)
             icon.depth = ICNSEntry::DepthMono;
         const qreal bytespp = ((qreal)icon.depth / 8);
@@ -398,19 +417,16 @@ static bool parseIconEntry(ICNSEntry &icon)
         const qreal r2 = qSqrt((icon.dataLength / bytespp) / 2);
         const quint32 r1u = qRound(r1);
         const quint32 r2u = qRound(r2);
-        const bool r1IsPowOfTwoOrDevidesBy16 = (r1u == r1 && r1u % 16 == 0)
-                || (r1u == r1 && r1 >= 16 && ((r1u & (r1u - 1)) == 0));
-        const bool r2IsPowOfTwoOrDevidesBy16 = (r2u == r2 && r2u % 16 == 0)
-                || (r2u == r2 && r2 >= 16 && ((r2u & (r2u - 1)) == 0));
-
-        if (r1IsPowOfTwoOrDevidesBy16) {
+        const bool singleEntry = isPowOf2OrDevidesBy16(r1u, r1);
+        const bool doubleSize = isPowOf2OrDevidesBy16(r2u, r2);
+        if (singleEntry) {
             icon.mask = mask.isEmpty() ? ICNSEntry::IsIcon : ICNSEntry::IsMask;
-            icon.width = r1;
-            icon.height = r1;
-        } else if (r2IsPowOfTwoOrDevidesBy16) {
+            icon.width = r1u;
+            icon.height = r1u;
+        } else if (doubleSize) {
             icon.mask = ICNSEntry::IconPlusMask;
-            icon.width = r2;
-            icon.height = r2;
+            icon.width = r2u;
+            icon.height = r2u;
         } else if (icon.group == ICNSEntry::GroupMini) {
             // Legacy 16x12 icons are an exception from the generic square formula
             const bool doubleSize = (icon.dataLength == (192 * bytespp * 2));
@@ -424,44 +440,39 @@ static bool parseIconEntry(ICNSEntry &icon)
             switch (icon.group) {
             case ICNSEntry::GroupSmall:
                 icon.width = 16;
-                icon.height = 16;
                 break;
             case ICNSEntry::GroupLarge:
                 icon.width = 32;
-                icon.height = 32;
                 break;
             case ICNSEntry::GroupHuge:
                 icon.width = 48;
-                icon.height = 48;
                 break;
             case ICNSEntry::GroupThumbnail:
                 icon.width = 128;
-                icon.height = 128;
                 break;
             default:
                 qWarning("parseIconEntry(): Failed, 32bit icon from an unknown group. OSType: \"%s\"",
                          ostype.constData());
             }
+            icon.height = icon.width;
         }
     } else {
         // TODO: Add parsing of png/jp2 headers to enable feature reporting by plugin?
         icon.mask = ICNSEntry::IsIcon;
     }
-    if (!hasMatch)
-        qWarning("parseIconEntry(): Failed, OSType doesn't match: \"%s\"",
-                 ostype.constData());
-    return hasMatch;
+    return (compressed || (qMin(icon.width, icon.height) > 0));
 }
 
 static QImage readMaskFromStream(const ICNSEntry &mask, QDataStream &stream)
 {
-    if ((mask.mask & ICNSEntry::IsMask) == 0 || !mask.isValid)
+    if ((mask.mask & ICNSEntry::IsMask) == 0)
         return QImage();
     if (mask.depth != ICNSEntry::DepthMono && mask.depth != ICNSEntry::Depth8bit) {
         qWarning("readMaskFromStream(): Failed, unusual bit depth: %u OSType: %u",
                  mask.depth, qToBigEndian<quint32>(mask.header.ostype));
         return QImage();
     }
+    const bool isMono = (mask.depth == ICNSEntry::DepthMono);
     const bool doubleSize = (mask.mask == ICNSEntry::IconPlusMask);
     const quint32 imageDataSize = ((mask.width * mask.height * mask.depth) / 8);
     const qint64 pos = doubleSize ? (mask.dataOffset + imageDataSize) : mask.dataOffset;
@@ -476,8 +487,9 @@ static QImage readMaskFromStream(const ICNSEntry &mask, QDataStream &stream)
         for (quint32 x = 0; x < mask.width; x++) {
             if (pixel % (8 / mask.depth) == 0)
                 stream >> byte;
-            quint8 alpha = (mask.depth == ICNSEntry::DepthMono) ? (byte >> 7) * 0xFF : byte;
-            byte = (byte << 1);
+            else
+                byte <<= 1;
+            quint8 alpha = isMono ? (((byte >> 7) & 0x01) * 255) : byte;
             line[x] = qRgb(alpha, alpha, alpha);
             pixel++;
         }
@@ -504,20 +516,27 @@ static QImage readLowDepthIconFromStream(const ICNSEntry &icon, QDataStream &str
             quint8 cindex = 0;
             switch (icon.depth) {
             case ICNSEntry::DepthMono: {
-                cindex = (byte & 0x80) ? 1 : 0; // left 1 bit
+                cindex = ((byte >> 7) & 0x01); // left 1 bit
+                byte <<= 1;
                 break;
             }
 
             case ICNSEntry::Depth4bit: {
-                quint8 value = ((byte & 0xF0) >> 4); // left 4 bits
-                cindex = (value < (1 << icon.depth)) ? value : 0;
+                quint8 value = ((byte >> 4) & 0x0F); // left 4 bits
+                byte <<= 4;
+                cindex = value;
+                break;
+            }
+
+            case ICNSEntry::Depth32bit:{
+                Q_UNREACHABLE();
                 break;
             }
 
             default:
-                cindex = (byte < (1 << icon.depth)) ? byte : 0;
+                cindex = byte; // 8bit
+                break;
             }
-            byte = byte << icon.depth;
             img.setPixel(x, y, cindex);
             pixel++;
         }
@@ -579,7 +598,7 @@ static QImage read32bitIconFromStream(const ICNSEntry &icon, QDataStream &stream
 }
 
 QICNSHandler::QICNSHandler() :
-    m_currentIconIndex(0), m_scanned(false)
+    m_currentIconIndex(0), m_state(ScanNotScanned)
 {
 }
 
@@ -598,7 +617,7 @@ bool QICNSHandler::canRead(QIODevice *device)
         qWarning("QICNSHandler::canRead() called on a sequential device (NYI)");
         return false;
     }
-    return (device->peek(4) == QByteArrayLiteral("icns"));
+    return device->peek(4) == QByteArrayLiteral("icns");
 }
 
 bool QICNSHandler::canRead() const
@@ -620,7 +639,7 @@ bool QICNSHandler::read(QImage *outImage)
 
     const ICNSEntry &icon = m_icons.at(m_currentIconIndex);
     const quint32 ostypebo = qToBigEndian<quint32>(icon.header.ostype);
-    const QByteArray ostype = (QByteArray::fromRawData((const char*)&ostypebo, 4) + "");
+    const QByteArray ostype = QByteArray((const char*)&ostypebo, 4);
     QDataStream stream(device());
     stream.setByteOrder(QDataStream::BigEndian);
     if (!device()->seek(icon.dataOffset))
@@ -653,10 +672,7 @@ bool QICNSHandler::read(QImage *outImage)
                          ostype.constData());
             }
         }
-    } else if (qMin(icon.height, icon.width) == 0) {
-        qWarning("QICNSHandler::read(): Failed, size of a raw icon is unknown, OSType: \"%s\"",
-                 ostype.constData());
-    } else {
+    } else if(qMin(icon.width, icon.height) > 0) {
         switch (icon.depth) {
         case ICNSEntry::DepthMono:
         case ICNSEntry::Depth4bit:
@@ -731,7 +747,6 @@ bool QICNSHandler::write(const QImage &image)
     fileHeader.length = (ICNSBlockHeaderSize + tocHeader.length + iconEntry.length);
     // Write everything
     QDataStream stream(device);
-    stream.setByteOrder(QDataStream::BigEndian);
     stream << fileHeader << tocHeader << tocEntry << iconEntry;
     stream.writeRawData(imageData.constData(), imageData.size());
     if (stream.status() != QDataStream::Ok)
@@ -741,7 +756,7 @@ bool QICNSHandler::write(const QImage &image)
 
 bool QICNSHandler::supportsOption(QImageIOHandler::ImageOption option) const
 {
-    return (option == QImageIOHandler::Name || option == QImageIOHandler::SubType);
+    return (option == QImageIOHandler::SubType);
 }
 
 QVariant QICNSHandler::option(QImageIOHandler::ImageOption option) const
@@ -751,8 +766,7 @@ QVariant QICNSHandler::option(QImageIOHandler::ImageOption option) const
     if (imageCount() > 0 && m_currentIconIndex <= imageCount()) {
         const ICNSEntry &entry = m_icons.at(m_currentIconIndex);
         const quint32 ostypebo = qToBigEndian<quint32>(entry.header.ostype);
-        // Enforce returning a deep copy just in case
-        return (QByteArray::fromRawData((const char*)&ostypebo, 4) + "");
+        return QByteArray((const char*)&ostypebo, 4);
     }
     return QVariant();
 }
@@ -779,18 +793,18 @@ bool QICNSHandler::jumpToNextImage()
 
 bool QICNSHandler::ensureScanned() const
 {
-    if (!m_scanned) {
+    if (m_state == ScanNotScanned) {
         QICNSHandler *that = const_cast<QICNSHandler *>(this);
-        that->m_scanned = that->scanDevice();
+        that->m_state = that->scanDevice() ? ScanSuccess : ScanError;
     }
-    return m_scanned;
+    return (m_state == ScanSuccess);
 }
 
 bool QICNSHandler::addEntry(const ICNSBlockHeader &header, quint32 imgDataOffset)
 {
-    if (header.ostype == 0 || header.length == 0) {
+    if ((header.ostype == 0) || (header.length < ICNSBlockHeaderSize)) {
         qWarning("QICNSHandler::addEntry(): Failed, invalid header. OSType %u, length %u",
-                 header.ostype, header.length);
+                 qToBigEndian<quint32>(header.ostype), header.length);
         return false;
     }
     ICNSEntry entry;
@@ -801,21 +815,20 @@ bool QICNSHandler::addEntry(const ICNSBlockHeader &header, quint32 imgDataOffset
     entry.dataOffset = imgDataOffset;
     entry.dataLength = (header.length - ICNSBlockHeaderSize);
     entry.dataIsRLE = false;
-    entry.isValid = false;
     // Parse everything else:
-    entry.isValid = parseIconEntry(entry);
-    if (entry.isValid) {
+    const bool success = parseIconEntry(entry);
+    if (success) {
         if ((entry.mask & ICNSEntry::IsMask) != 0)
             m_masks << entry;
         if ((entry.mask & ICNSEntry::IsIcon) != 0)
             m_icons << entry;
     }
-    return entry.isValid;
+    return success;
 }
 
 bool QICNSHandler::scanDevice()
 {
-    if (m_scanned)
+    if (m_state == ScanSuccess)
         return true;
 
     if (!device()->seek(0))
@@ -831,7 +844,6 @@ bool QICNSHandler::scanDevice()
             return false;
         const quint32 blockDataLength = (blockHeader.length - ICNSBlockHeaderSize);
 
-        bool tocScan = false;
         switch (blockHeader.ostype) {
         case ICNSBlockHeader::icns:
             filelength = blockHeader.length;
@@ -857,7 +869,7 @@ bool QICNSHandler::scanDevice()
                 if (!addEntry(tocEntry, imgDataOffset))
                     return false;
             }
-            tocScan = true;
+            return true;
             break;
         }
         default:
@@ -866,8 +878,6 @@ bool QICNSHandler::scanDevice()
             stream.skipRawData(blockDataLength);
             break;
         }
-        if (tocScan)
-            break;
     }
     return true;
 }
@@ -884,3 +894,5 @@ const ICNSEntry &QICNSHandler::getIconMask(const ICNSEntry &icon) const
     }
     return icon;
 }
+
+QT_END_NAMESPACE

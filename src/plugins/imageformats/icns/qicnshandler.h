@@ -46,11 +46,6 @@
 #include <QtGui/QImageIOHandler>
 #include <QtGui/QImage>
 #include <QtCore/QVector>
-#include <QtCore/QBuffer>
-#include <QtCore/QtMath>
-#include <QtCore/QRegularExpression>
-#include <QtCore/QtEndian>
-#include <QtCore/QDebug>
 
 QT_BEGIN_NAMESPACE
 
@@ -61,7 +56,7 @@ struct ICNSBlockHeader
         TOC_ = 0x544F4320, // Table of contents
         icnV = 0x69636E56, // Version of the icns tool
         // Legacy:
-        clut = 0x636c7574  // [NYI] Color look-up table. Shouldn't be present in icns file, but who knows?
+        clut = 0x636c7574  // Color look-up table. Shouldn't be present in icns file, but who knows?
     };
 
     quint32 ostype;
@@ -72,15 +67,15 @@ struct ICNSEntry
 {
     enum Group {
         GroupUnknown    = 0,
-        GroupMini       = 0x6D, // "m" for "mini" (16x12)
-        GroupSmall      = 0x73, // "s" for "small" (16x16)
-        GroupLarge      = 0x6C, // "l" for "large" (32x32)
-        GroupHuge       = 0x68, // "h" for "huge" (48x48)
-        GroupThumbnail  = 0x74, // "t" for "thumbnail" (128x128)
-        GroupPortable   = 0x70, // "p" for "portable"? (various sizes, png/jp2)
-        GroupCompressed = 0x63, // "c" for "compressed"? (various sizes, png/jp2)
+        GroupMini       = 'm', // 0x6D for "mini" (16x12)
+        GroupSmall      = 's', // 0x73 for "small" (16x16)
+        GroupLarge      = 'l', // 0x6C for "large" (32x32)
+        GroupHuge       = 'h', // 0x68 for "huge" (48x48)
+        GroupThumbnail  = 't', // 0x74 for "thumbnail" (128x128)
+        GroupPortable   = 'p', // 0x70 for "portable"? (various sizes, png/jp2)
+        GroupCompressed = 'c', // 0x63 for "compressed"? (various sizes, png/jp2)
         // Legacy icons:
-        GroupICON       = 0x4E, // [SUPPORTED] "N" from OSType "ICON" (32x32)
+        GroupICON       = 'N', // 0x4E from OSType "ICON" (32x32)
     };
     enum Depth {
         DepthUnknown    = 0,    // Default for invalid ones
@@ -99,10 +94,9 @@ struct ICNSEntry
     ICNSBlockHeader header; // Original block header
     Group group;            // ASCII character number pointing to a format
     Depth depth;            // Color depth or icon format number for compressed icons
-    Mask mask;              // For uncompressed icons only, zero for invalid ones
-    quint32 width;          // For uncompressed icons only, zero for invalid ones
-    quint32 height;         // For uncompressed icons only, zero for invalid ones
-    bool isValid;           // True if correctly parsed
+    Mask mask;              // Flags for uncompressed, should be always IsIcon (0x1) for compressed
+    quint32 width;          // For uncompressed icons only, zero for compressed ones for now
+    quint32 height;         // For uncompressed icons only, zero for compressed ones fow now
     quint32 dataLength;     // header.length - sizeof(header)
     quint32 dataOffset;     // Offset from the initial position of the file/device
     bool dataIsRLE;         // 32bit raw icons may be in rle24 compressed state
@@ -110,6 +104,12 @@ struct ICNSEntry
 
 class QICNSHandler : public QImageIOHandler
 {
+    enum ScanState {
+        ScanError       = -1,
+        ScanNotScanned  = 0,
+        ScanSuccess     = 1,
+    };
+
 public:
     QICNSHandler();
 
@@ -138,7 +138,7 @@ private:
     int m_currentIconIndex;
     QVector<ICNSEntry> m_icons;
     QVector<ICNSEntry> m_masks;
-    bool m_scanned;
+    ScanState m_state;
 };
 
 QT_END_NAMESPACE

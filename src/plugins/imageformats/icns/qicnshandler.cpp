@@ -459,7 +459,7 @@ static QImage readMaskFromStream(const ICNSEntry &mask, QDataStream &stream)
         return QImage();
     if (mask.depth != ICNSEntry::DepthMono && mask.depth != ICNSEntry::Depth8bit) {
         qWarning("readMaskFromStream(): Failed, unusual bit depth: %u OSType: %u",
-                 mask.depth, mask.header.ostype);
+                 mask.depth, qToBigEndian<quint32>(mask.header.ostype));
         return QImage();
     }
     const bool doubleSize = (mask.mask == ICNSEntry::IconPlusMask);
@@ -653,7 +653,7 @@ bool QICNSHandler::read(QImage *outImage)
                          ostype.constData());
             }
         }
-    } else if (icon.height == 0 || icon.width == 0) {
+    } else if (qMin(icon.height, icon.width) == 0) {
         qWarning("QICNSHandler::read(): Failed, size of a raw icon is unknown, OSType: \"%s\"",
                  ostype.constData());
     } else {

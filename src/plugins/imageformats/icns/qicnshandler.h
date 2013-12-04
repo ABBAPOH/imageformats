@@ -60,7 +60,8 @@ struct ICNSBlockHeader
         icns = 0x69636E73, // Icns container magic
         TOC_ = 0x544F4320, // Table of contents
         icnV = 0x69636E56, // Version of the icns tool
-        clut = 0x636c7574  // [LEGACY, NYI] Color look-up table
+        // Legacy:
+        clut = 0x636c7574  // [NYI] Color look-up table. Shouldn't be present in icns file, but who knows?
     };
 
     quint32 ostype;
@@ -79,11 +80,7 @@ struct ICNSEntry
         GroupPortable   = 0x70, // "p" for "portable"? (various sizes, png/jp2)
         GroupCompressed = 0x63, // "c" for "compressed"? (various sizes, png/jp2)
         // Legacy icons:
-        GroupICON       = 0x4E, // [SUPPORTED] "N" from OSType "ICON" (32x32) and [NYI] "SICN" (0x5349434e)
-        GroupOpen       = 0x6E, // [NYI, UNKNOWN] "n" from OSType "open" (0x6f70656e), "cicn" (0x6369636e), "Icon" (0x49636f6e)
-        GroupTile       = 0x65, // [NYI, UNKNOWN] "e" from OSType "tile" (ostype: 0x74696c65)
-        GroupDrop       = 0x70, // [NYI, UNKNOWN] "p" from OSTypes "drop" and "odrp" (0x64726f70, 0x6f647270)
-        GroupOver       = 0x72  // [NYI, UNKNOWN] "r" from OSType "over" (ostype: 0x6f766572)
+        GroupICON       = 0x4E, // [SUPPORTED] "N" from OSType "ICON" (32x32)
     };
     enum Depth {
         DepthUnknown    = 0,    // Default for invalid ones

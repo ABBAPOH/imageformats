@@ -801,13 +801,8 @@ bool QICNSHandler::ensureScanned() const
     return (m_state == ScanSuccess);
 }
 
-bool QICNSHandler::addEntry(const ICNSBlockHeader &header, quint32 imgDataOffset)
+void QICNSHandler::addEntry(const ICNSBlockHeader &header, quint32 imgDataOffset)
 {
-    if ((header.ostype == 0) || (header.length < ICNSBlockHeaderSize)) {
-        qWarning("QICNSHandler::addEntry(): Failed, invalid header. OSType %u, length %u",
-                 qToBigEndian<quint32>(header.ostype), header.length);
-        return false;
-    }
     ICNSEntry entry;
     // Header:
     entry.header.ostype = header.ostype;
@@ -816,15 +811,13 @@ bool QICNSHandler::addEntry(const ICNSBlockHeader &header, quint32 imgDataOffset
     entry.dataOffset = imgDataOffset;
     entry.dataLength = (header.length - ICNSBlockHeaderSize);
     entry.dataIsRLE = false;
-    // Parse everything else:
-    const bool success = parseIconEntry(entry);
-    if (success) {
+    // Parse everything else and index this entry:
+    if (parseIconEntry(entry)) {
         if ((entry.mask & ICNSEntry::IsMask) != 0)
             m_masks << entry;
         if ((entry.mask & ICNSEntry::IsIcon) != 0)
             m_icons << entry;
     }
-    return success;
 }
 
 bool QICNSHandler::scanDevice()
@@ -839,10 +832,20 @@ bool QICNSHandler::scanDevice()
     stream.setByteOrder(QDataStream::BigEndian);
     qint64 filelength = device()->size();
     ICNSBlockHeader blockHeader;
+    bool scanIsIncomplete = false;
     while (!stream.atEnd() || (device()->pos() < filelength)) {
         stream >> blockHeader;
         if (stream.status() != QDataStream::Ok)
             return false;
+
+        const bool blockLengthIsValid = (blockHeader.length >= ICNSBlockHeaderSize);
+        const bool headerIsCorrect = ((blockHeader.ostype != 0) && blockLengthIsValid);
+        if (!headerIsCorrect) {
+            qWarning("QICNSHandler::scanDevice(): Failed, bad header at pos %s. OSType %u, length %u",
+                     QByteArray::number(device()->pos()).constData(),
+                     qToBigEndian<quint32>(blockHeader.ostype), blockHeader.length);
+            return false;
+        }
         const quint32 blockDataLength = (blockHeader.length - ICNSBlockHeaderSize);
 
         switch (blockHeader.ostype) {
@@ -857,6 +860,13 @@ bool QICNSHandler::scanDevice()
             stream.skipRawData(blockDataLength);
             break;
         case ICNSBlockHeader::TypeToc: {
+            // Quick scan, table of contents
+            if (device()->pos() != (ICNSBlockHeaderSize * 2)) {
+                // TOC should be the first block in the file, ignore and go on with deep scan.
+                stream.skipRawData(blockDataLength);
+                break;
+            }
+            bool tocIsComplete = false;
             QVector<ICNSBlockHeader> toc;
             const quint32 tocEntriesCount = (blockDataLength / ICNSBlockHeaderSize);
             for (uint i = 0; i < tocEntriesCount; i++) {
@@ -867,14 +877,32 @@ bool QICNSHandler::scanDevice()
                 for (quint32 n = 0; n < i; n++)
                     imgDataOffset += toc.at(n).length;
                 imgDataOffset += ICNSBlockHeaderSize;
-                if (!addEntry(tocEntry, imgDataOffset))
-                    return false;
+                addEntry(tocEntry, imgDataOffset);
+                quint32 imgDataLength = (tocEntry.length - ICNSBlockHeaderSize);
+                if ((imgDataOffset + imgDataLength) == filelength)
+                    tocIsComplete = true;
             }
-            return true;
+            // If TOC covers all the blocks in the file, then quick scan is complete
+            if (tocIsComplete)
+                return true;
+            // Else just start a deep scan to salvage anything that is left behind
+            scanIsIncomplete = true;
+            break;
         }
         default:
-            if (!addEntry(blockHeader, device()->pos()))
-                return false;
+            // Deep scan, block by block
+            const quint32 offset = device()->pos();
+            // Check if entry with this offset is added somewhere
+            bool exists = false;
+            // But only if we have incomplete TOC, otherwise just try to add
+            if (scanIsIncomplete) {
+                for (int i = 0; ((i < m_icons.size()) && !exists); i++)
+                    exists = (m_icons.at(i).dataOffset == offset);
+                for (int i = 0; ((i < m_masks.size()) && !exists); i++)
+                    exists = (m_masks.at(i).dataOffset == offset);
+            }
+            if (!exists)
+                addEntry(blockHeader, offset);
             stream.skipRawData(blockDataLength);
             break;
         }

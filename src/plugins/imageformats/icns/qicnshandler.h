@@ -129,7 +129,7 @@ public:
 private:
     bool ensureScanned() const;
     bool scanDevice();
-    bool addEntry(const ICNSBlockHeader &header, quint32 imgDataOffset);
+    void addEntry(const ICNSBlockHeader &header, quint32 imgDataOffset);
     const ICNSEntry &getIconMask(const ICNSEntry &icon) const;
 
 private:

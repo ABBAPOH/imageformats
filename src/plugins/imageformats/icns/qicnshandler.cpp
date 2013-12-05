@@ -359,6 +359,11 @@ static inline bool isPowOf2OrDevidesBy16(quint32 u, qreal r)
     return ((u == r && u % 16 == 0) || (u == r && r >= 16 && ((u & (u - 1)) == 0)));
 }
 
+static inline bool isBlockHeaderValid(const ICNSBlockHeader &header)
+{
+    return ((header.ostype != 0) && (header.length >= ICNSBlockHeaderSize));
+}
+
 static inline QVector<QRgb> getColorTable(ICNSEntry::Depth depth)
 {
     QVector<QRgb> table;
@@ -839,18 +844,23 @@ bool QICNSHandler::scanDevice()
         if (stream.status() != QDataStream::Ok)
             return false;
 
-        const bool blockLengthIsValid = (blockHeader.length >= ICNSBlockHeaderSize);
-        const bool headerIsCorrect = ((blockHeader.ostype != 0) && blockLengthIsValid);
-        if (!headerIsCorrect) {
+        const quint64 blockDataOffset = device()->pos();
+        if (!isBlockHeaderValid(blockHeader)) {
             qWarning("QICNSHandler::scanDevice(): Failed, bad header at pos %s. OSType %u, length %u",
-                     QByteArray::number(device()->pos()).constData(),
+                     QByteArray::number(blockDataOffset).constData(),
                      qToBigEndian<quint32>(blockHeader.ostype), blockHeader.length);
             return false;
         }
-        const quint32 blockDataLength = (blockHeader.length - ICNSBlockHeaderSize);
+        const quint64 blockDataLength = (blockHeader.length - ICNSBlockHeaderSize);
 
         switch (blockHeader.ostype) {
         case ICNSBlockHeader::TypeIcns:
+            if (blockDataOffset != ICNSBlockHeaderSize) {
+                // Icns container definition should be in the beginning of the device.
+                // If we meet this block somewhere else, then just ignore it.
+                stream.skipRawData(blockDataLength);
+                break;
+            }
             filelength = blockHeader.length;
             if (device()->size() < blockHeader.length)
                 return false;
@@ -862,8 +872,9 @@ bool QICNSHandler::scanDevice()
             break;
         case ICNSBlockHeader::TypeToc: {
             // Quick scan, table of contents
-            if (device()->pos() != (ICNSBlockHeaderSize * 2)) {
-                // TOC should be the first block in the file, ignore and go on with a deep scan.
+            if (blockDataOffset != (ICNSBlockHeaderSize * 2)) {
+                // TOC should be the first block in the file after container definition.
+                // Ignore and go on with a deep scan.
                 stream.skipRawData(blockDataLength);
                 break;
             }
@@ -874,6 +885,12 @@ bool QICNSHandler::scanDevice()
                 ICNSBlockHeader tocEntry;
                 stream >> tocEntry;
                 toc << tocEntry;
+                if (!isBlockHeaderValid(tocEntry)) {
+                    // TOC contains incorrect header, we should skip TOC since we can't trust it
+                    if (!device()->seek((blockDataOffset + blockDataLength)))
+                        return false;
+                    break;
+                }
                 quint32 imgDataOffset = (blockHeader.length + ICNSBlockHeaderSize);
                 for (quint32 n = 0; n < i; n++)
                     imgDataOffset += toc.at(n).length;
@@ -892,18 +909,17 @@ bool QICNSHandler::scanDevice()
         }
         default:
             // Deep scan, block by block
-            const quint32 offset = device()->pos();
             // Check if entry with this offset is added somewhere
             bool exists = false;
             // But only if we have incomplete TOC, otherwise just try to add
             if (scanIsIncomplete) {
                 for (int i = 0; ((i < m_icons.size()) && !exists); i++)
-                    exists = (m_icons.at(i).dataOffset == offset);
+                    exists = (m_icons.at(i).dataOffset == blockDataOffset);
                 for (int i = 0; ((i < m_masks.size()) && !exists); i++)
-                    exists = (m_masks.at(i).dataOffset == offset);
+                    exists = (m_masks.at(i).dataOffset == blockDataOffset);
             }
             if (!exists)
-                addEntry(blockHeader, offset);
+                addEntry(blockHeader, blockDataOffset);
             stream.skipRawData(blockDataLength);
             break;
         }

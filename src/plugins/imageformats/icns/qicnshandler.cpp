@@ -388,7 +388,7 @@ static bool parseIconEntry(ICNSEntry &icon)
     const quint32 ostypebo = qToBigEndian<quint32>(icon.header.ostype);
     const QByteArray ostype = QByteArray((const char*)&ostypebo, 4);
     // Typical OSType naming: <junk><group><depth><mask>;
-    const QString ptrn = QStringLiteral("^(?<junk>[\\D]{0,4})(?<group>[a-z|A-Z]{1})(?<depth>\\d{0,2})(?<mask>[#mk]{0,2})$");
+    const QString ptrn = QStringLiteral("^(?<junk>[a-z|A-Z]{0,4})(?<group>[a-z|A-Z]{1})(?<depth>[\\d]{0,2})(?<mask>[#mk]{0,2})$");
     QRegularExpression regexp(ptrn);
     QRegularExpressionMatch match = regexp.match(ostype);
     if (!match.hasMatch()) {
@@ -709,10 +709,13 @@ bool QICNSHandler::write(const QImage &image)
     uint p = 0;
     while (i >>= 1)
         p++;
-    if (p > 10) {
-        // Force resizing to 1024x1024. Values over 10 are reserved for retina icons
-        p = 10;
-        img = img.scaled(1024, 1024, Qt::IgnoreAspectRatio, Qt::SmoothTransformation);
+    if ((p > 10) || (p == 6)) {
+        // Gotcha #1: icp6/ic06 is reserved by Apple, but none of 64x64 icons were ever spotted in use.
+        // If existence of 64x64 icons will be confirmed, we can enable saving in this format.
+        // Gotcha #2: Values over 10 are reserved for retina icons.
+        // Lets enforce resizing, so we won't produce a poor bootleg:
+        p = (p > 10) ? 10 : 5;
+        img = img.scaled((1 << p), (1 << p), Qt::IgnoreAspectRatio, Qt::SmoothTransformation);
     }
     // Small / big icons naming policy
     const QByteArray ostypeb = (p < 7) ? QByteArrayLiteral("icp") : QByteArrayLiteral("ic");
@@ -721,10 +724,10 @@ bool QICNSHandler::write(const QImage &image)
     const quint32 ostype = qFromBigEndian<quint32>(*(quint32*)((ostypeb + ostypen).constData()));
     // Construct ICNS Header
     ICNSBlockHeader fileHeader;
-    fileHeader.ostype = ICNSBlockHeader::Icns;
+    fileHeader.ostype = ICNSBlockHeader::TypeIcns;
     // Construct TOC Header
     ICNSBlockHeader tocHeader;
-    tocHeader.ostype = ICNSBlockHeader::Toc;
+    tocHeader.ostype = ICNSBlockHeader::TypeToc;
     // Construct TOC Entry
     ICNSBlockHeader tocEntry;
     tocEntry.ostype = ostype;
@@ -759,10 +762,12 @@ QVariant QICNSHandler::option(QImageIOHandler::ImageOption option) const
 {
     if (!supportsOption(option) || !ensureScanned())
         return QVariant();
-    if (imageCount() > 0 && m_currentIconIndex <= imageCount()) {
-        const ICNSEntry &entry = m_icons.at(m_currentIconIndex);
-        const quint32 ostypebo = qToBigEndian<quint32>(entry.header.ostype);
-        return QByteArray((const char*)&ostypebo, 4);
+    if (option == QImageIOHandler::SubType) {
+        if (imageCount() > 0 && m_currentIconIndex <= imageCount()) {
+            const ICNSEntry &entry = m_icons.at(m_currentIconIndex);
+            const quint32 ostypebo = qToBigEndian<quint32>(entry.header.ostype);
+            return QByteArray((const char*)&ostypebo, 4);
+        }
     }
     return QVariant();
 }
@@ -841,17 +846,17 @@ bool QICNSHandler::scanDevice()
         const quint32 blockDataLength = (blockHeader.length - ICNSBlockHeaderSize);
 
         switch (blockHeader.ostype) {
-        case ICNSBlockHeader::Icns:
+        case ICNSBlockHeader::TypeIcns:
             filelength = blockHeader.length;
             if (device()->size() < blockHeader.length)
                 return false;
             break;
-        case ICNSBlockHeader::Icnv:
-        case ICNSBlockHeader::Clut:
+        case ICNSBlockHeader::TypeIcnv:
+        case ICNSBlockHeader::TypeClut:
             // We don't have a good use for these blocks... yet.
             stream.skipRawData(blockDataLength);
             break;
-        case ICNSBlockHeader::Toc: {
+        case ICNSBlockHeader::TypeToc: {
             QVector<ICNSBlockHeader> toc;
             const quint32 tocEntriesCount = (blockDataLength / ICNSBlockHeaderSize);
             for (uint i = 0; i < tocEntriesCount; i++) {
@@ -891,3 +896,4 @@ const ICNSEntry &QICNSHandler::getIconMask(const ICNSEntry &icon) const
 }
 
 QT_END_NAMESPACE
+

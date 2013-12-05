@@ -47,16 +47,20 @@
 #include <QtGui/QImage>
 #include <QtCore/QVector>
 
+#ifndef MAKEOSTYPE
+#define MAKEOSTYPE(c0,c1,c2,c3) (((quint8)c0<<24) | ((quint8)c1<<16) | ((quint8)c2<<8) | (quint8)c3)
+#endif
+
 QT_BEGIN_NAMESPACE
 
 struct ICNSBlockHeader
 {
-    enum OSType {
-        Icns = 0x69636E73, // "icns": Icns container magic
-        Toc  = 0x544F4320, // "TOC_": Table of contents
-        Icnv = 0x69636E56, // "icnV": Version of the icns tool
+    enum OS {
+        TypeIcns = MAKEOSTYPE('i', 'c', 'n', 's'), // Icns container magic
+        TypeToc  = MAKEOSTYPE('T', 'O', 'C', ' '), // Table of contents
+        TypeIcnv = MAKEOSTYPE('i', 'c', 'n', 'V'), // Version of the icns tool
         // Legacy:
-        Clut = 0x636c7574  // "clut": Color look-up table, was used in pre-OSX resources
+        TypeClut = MAKEOSTYPE('c', 'l', 'u', 't')  // Color look-up table (pre-OSX resources)
     };
 
     quint32 ostype;
@@ -67,15 +71,15 @@ struct ICNSEntry
 {
     enum Group {
         GroupUnknown    = 0,
-        GroupMini       = 'm', // 0x6D for "mini" (16x12)
-        GroupSmall      = 's', // 0x73 for "small" (16x16)
-        GroupLarge      = 'l', // 0x6C for "large" (32x32)
-        GroupHuge       = 'h', // 0x68 for "huge" (48x48)
-        GroupThumbnail  = 't', // 0x74 for "thumbnail" (128x128)
-        GroupPortable   = 'p', // 0x70 for "portable"? (various sizes, png/jp2)
-        GroupCompressed = 'c', // 0x63 for "compressed"? (various sizes, png/jp2)
+        GroupMini       = 'm', // "mini" (16x12)
+        GroupSmall      = 's', // "small" (16x16)
+        GroupLarge      = 'l', // "large" (32x32)
+        GroupHuge       = 'h', // "huge" (48x48)
+        GroupThumbnail  = 't', // "thumbnail" (128x128)
+        GroupPortable   = 'p', // "portable"? (various sizes, png/jp2)
+        GroupCompressed = 'c', // "compressed"? (various sizes, png/jp2)
         // Legacy icons:
-        GroupICON       = 'N', // 0x4E from OSType "ICON" (32x32)
+        GroupICON       = 'N', // "ICON" (32x32)
     };
     enum Depth {
         DepthUnknown    = 0,    // Default for invalid ones

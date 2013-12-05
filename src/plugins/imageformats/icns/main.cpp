@@ -40,13 +40,23 @@
 **
 ****************************************************************************/
 
-#include "main.h"
+#include <QtGui/QImageIOPlugin>
 
 #ifndef QT_NO_IMAGEFORMATPLUGIN
 
-#include "qicnshandler.h"
+#include "qicnshandler_p.h"
 
 QT_BEGIN_NAMESPACE
+
+class QICNSPlugin : public QImageIOPlugin
+{
+    Q_OBJECT
+    Q_PLUGIN_METADATA(IID "org.qt-project.Qt.QImageIOHandlerFactoryInterface" FILE "icns.json")
+
+public:
+    Capabilities capabilities(QIODevice *device, const QByteArray &format) const;
+    QImageIOHandler *create(QIODevice *device, const QByteArray &format = QByteArray()) const;
+};
 
 QImageIOPlugin::Capabilities QICNSPlugin::capabilities(QIODevice *device, const QByteArray &format) const
 {
@@ -74,5 +84,7 @@ QImageIOHandler *QICNSPlugin::create(QIODevice *device, const QByteArray &format
 }
 
 QT_END_NAMESPACE
+
+#include "main.moc"
 
 #endif // QT_NO_IMAGEFORMATPLUGIN

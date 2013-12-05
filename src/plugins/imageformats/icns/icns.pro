@@ -6,8 +6,7 @@ DESTDIR = ../../../../imageformats
 win32:RC_FILE += icns.rc
 
 HEADERS += \
-    main.h \
-    qicnshandler.h
+    qicnshandler_p.h
 
 SOURCES += \
     main.cpp \

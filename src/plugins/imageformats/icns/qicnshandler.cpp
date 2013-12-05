@@ -40,7 +40,7 @@
 **
 ****************************************************************************/
 
-#include "qicnshandler.h"
+#include "qicnshandler_p.h"
 
 #include <QtCore/QBuffer>
 #include <QtCore/QtMath>
@@ -830,9 +830,10 @@ bool QICNSHandler::scanDevice()
 
     QDataStream stream(device());
     stream.setByteOrder(QDataStream::BigEndian);
+
+    bool scanIsIncomplete = false;
     qint64 filelength = device()->size();
     ICNSBlockHeader blockHeader;
-    bool scanIsIncomplete = false;
     while (!stream.atEnd() || (device()->pos() < filelength)) {
         stream >> blockHeader;
         if (stream.status() != QDataStream::Ok)
@@ -862,7 +863,7 @@ bool QICNSHandler::scanDevice()
         case ICNSBlockHeader::TypeToc: {
             // Quick scan, table of contents
             if (device()->pos() != (ICNSBlockHeaderSize * 2)) {
-                // TOC should be the first block in the file, ignore and go on with deep scan.
+                // TOC should be the first block in the file, ignore and go on with a deep scan.
                 stream.skipRawData(blockDataLength);
                 break;
             }

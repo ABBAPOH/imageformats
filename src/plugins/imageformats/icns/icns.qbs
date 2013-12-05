@@ -8,9 +8,8 @@ DynamicLibrary {
     Depends { name: "Qt"; submodules: ["core", "gui"] }
 
     files : [
-        "main.h",
         "main.cpp",
-        "qicnshandler.h",
+        "qicnshandler_p.h",
         "qicnshandler.cpp"
     ]
 

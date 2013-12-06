@@ -40,15 +40,15 @@
 **
 ****************************************************************************/
 
-#ifndef QICNSHANDLER_H
-#define QICNSHANDLER_H
+#ifndef QICNSHANDLER_P_H
+#define QICNSHANDLER_P_H
 
 #include <QtGui/QImageIOHandler>
 #include <QtGui/QImage>
 #include <QtCore/QVector>
 
 #ifndef MAKEOSTYPE
-#define MAKEOSTYPE(c0,c1,c2,c3) (((quint8)c0<<24) | ((quint8)c1<<16) | ((quint8)c2<<8) | (quint8)c3)
+#define MAKEOSTYPE(c0,c1,c2,c3) (((quint8)c0 << 24) | ((quint8)c1 << 16) | ((quint8)c2 << 8) | (quint8)c3)
 #endif
 
 QT_BEGIN_NAMESPACE
@@ -147,4 +147,4 @@ private:
 
 QT_END_NAMESPACE
 
-#endif /* QICNSHANDLER_H */
+#endif /* QICNSHANDLER_P_H */

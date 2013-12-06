@@ -58,7 +58,7 @@ static const QRgb ICNSColorTableMono[] = {
     qRgb(0xFF, 0xFF, 0xFF),
     qRgb(0x00, 0x00, 0x00)
 };
-Q_STATIC_ASSERT(sizeof(ICNSColorTableMono)/sizeof(ICNSColorTableMono[0]) == (1<<ICNSEntry::DepthMono));
+Q_STATIC_ASSERT(sizeof(ICNSColorTableMono) / sizeof(ICNSColorTableMono[0]) == (1 << ICNSEntry::DepthMono));
 
 static const QRgb ICNSColorTable4bit[] = {
     qRgb(0xFF, 0xFF, 0xFF),
@@ -78,7 +78,7 @@ static const QRgb ICNSColorTable4bit[] = {
     qRgb(0x40, 0x40, 0x40),
     qRgb(0x00, 0x00, 0x00)
 };
-Q_STATIC_ASSERT(sizeof(ICNSColorTable4bit)/sizeof(ICNSColorTable4bit[0]) == (1<<ICNSEntry::Depth4bit));
+Q_STATIC_ASSERT(sizeof(ICNSColorTable4bit) / sizeof(ICNSColorTable4bit[0]) == (1 << ICNSEntry::Depth4bit));
 
 static const QRgb ICNSColorTable8bit[] = {
     qRgb(0xFF, 0xFF, 0xFF),
@@ -338,7 +338,7 @@ static const QRgb ICNSColorTable8bit[] = {
     qRgb(0x11, 0x11, 0x11),
     qRgb(0x00, 0x00, 0x00)
 };
-Q_STATIC_ASSERT(sizeof(ICNSColorTable8bit)/sizeof(ICNSColorTable8bit[0]) == (1<<ICNSEntry::Depth8bit));
+Q_STATIC_ASSERT(sizeof(ICNSColorTable8bit) / sizeof(ICNSColorTable8bit[0]) == (1 << ICNSEntry::Depth8bit));
 
 static inline QDataStream &operator>>(QDataStream &in, ICNSBlockHeader &p)
 {
@@ -384,7 +384,7 @@ static inline QVector<QRgb> getColorTable(ICNSEntry::Depth depth)
         break;
     }
     table.resize(n);
-    memcpy(table.data(), data, (sizeof(QRgb) * n));
+    memcpy(table.data(), data, sizeof(QRgb) * n);
     return table;
 }
 
@@ -465,21 +465,21 @@ static bool parseIconEntry(ICNSEntry &icon)
         // TODO: Add parsing of png/jp2 headers to enable feature reporting by plugin?
         icon.mask = ICNSEntry::IsIcon;
     }
-    return (compressed || (qMin(icon.width, icon.height) > 0));
+    return compressed || (qMin(icon.width, icon.height) > 0);
 }
 
-static QImage readMaskFromStream(const ICNSEntry &mask, QDataStream &stream)
+static QImage readMask(const ICNSEntry &mask, QDataStream &stream)
 {
     if ((mask.mask & ICNSEntry::IsMask) == 0)
         return QImage();
-    if (mask.depth != ICNSEntry::DepthMono && mask.depth != ICNSEntry::Depth8bit) {
-        qWarning("readMaskFromStream(): Failed, unusual bit depth: %u OSType: %u",
+    if ((mask.depth != ICNSEntry::DepthMono) && (mask.depth != ICNSEntry::Depth8bit)) {
+        qWarning("readMask(): Failed, unusual bit depth: %u OSType: %u",
                  mask.depth, qToBigEndian<quint32>(mask.header.ostype));
         return QImage();
     }
     const bool isMono = (mask.depth == ICNSEntry::DepthMono);
     const bool doubleSize = (mask.mask == ICNSEntry::IconPlusMask);
-    const quint32 imageDataSize = ((mask.width * mask.height * mask.depth) / 8);
+    const quint32 imageDataSize = (mask.width * mask.height * mask.depth) / 8;
     const qint64 pos = doubleSize ? (mask.dataOffset + imageDataSize) : mask.dataOffset;
     const qint64 oldPos = stream.device()->pos();
     if (!stream.device()->seek(pos))
@@ -492,9 +492,9 @@ static QImage readMaskFromStream(const ICNSEntry &mask, QDataStream &stream)
         for (quint32 x = 0; x < mask.width; x++) {
             if (pixel % (8 / mask.depth) == 0)
                 stream >> byte;
-            else
+            else if (isMono)
                 byte <<= 1;
-            quint8 alpha = isMono ? (((byte >> 7) & 0x01) * 255) : byte;
+            const quint8 alpha = isMono ? (((byte >> 7) & 0x01) * 255) : byte;
             line[x] = qRgb(alpha, alpha, alpha);
             pixel++;
         }
@@ -503,40 +503,33 @@ static QImage readMaskFromStream(const ICNSEntry &mask, QDataStream &stream)
     return img;
 }
 
-static QImage readLowDepthIconFromStream(const ICNSEntry &icon, QDataStream &stream)
+template <ICNSEntry::Depth depth>
+static QImage readLowDepthIcon(const ICNSEntry &icon, QDataStream &stream)
 {
-    quint8 byte = 0;
-    const bool isMono = (icon.depth == ICNSEntry::DepthMono);
+    Q_STATIC_ASSERT(depth == ICNSEntry::DepthMono || depth == ICNSEntry::Depth4bit
+                    || depth == ICNSEntry::Depth8bit);
+    const bool isMono = (depth == ICNSEntry::DepthMono);
     const QImage::Format format = isMono ? QImage::Format_Mono : QImage::Format_Indexed8;
-    const QVector<QRgb> colortable = getColorTable(icon.depth);
+    const QVector<QRgb> colortable = getColorTable(depth);
     if (colortable.isEmpty())
         return QImage();
     QImage img(icon.width, icon.height, format);
     img.setColorTable(colortable);
     quint32 pixel = 0;
+    quint8 byte = 0;
     for (quint32 y = 0; y < icon.height; y++) {
         for (quint32 x = 0; x < icon.width; x++) {
-            if (pixel % (8 / icon.depth) == 0)
+            if (pixel % (8 / depth) == 0)
                 stream >> byte;
             quint8 cindex;
-            switch (icon.depth) {
-            case ICNSEntry::DepthMono:
-                cindex = ((byte >> 7) & 0x01); // left 1 bit
-                byte <<= 1;
-                break;
-
-            case ICNSEntry::Depth4bit:
-                cindex = ((byte >> 4) & 0x0F); // left 4 bits
-                byte <<= 4;
-                break;
-
-            case ICNSEntry::Depth8bit:
-                cindex = byte; // 8bit
-                break;
-
-            default:
-                Q_UNREACHABLE();
-                break;
+            if (depth == ICNSEntry::Depth8bit)
+                cindex = byte;
+            else {
+                if (depth == ICNSEntry::DepthMono)
+                    cindex = (byte >> 7) & 0x01; // left 1 bit
+                else
+                    cindex = (byte >> 4) & 0x0F; // left 4 bits
+                byte <<= depth;
             }
             img.setPixel(x, y, cindex);
             pixel++;
@@ -545,7 +538,7 @@ static QImage readLowDepthIconFromStream(const ICNSEntry &icon, QDataStream &str
     return img;
 }
 
-static QImage read32bitIconFromStream(const ICNSEntry &icon, QDataStream &stream)
+static QImage read32bitIcon(const ICNSEntry &icon, QDataStream &stream)
 {
     QImage img = QImage(icon.width, icon.height, QImage::Format_RGB32);
     if (!icon.dataIsRLE) {
@@ -558,7 +551,7 @@ static QImage read32bitIconFromStream(const ICNSEntry &icon, QDataStream &stream
             }
         }
     } else {
-        const quint32 estPxsNum = (icon.width * icon.height);
+        const quint32 estPxsNum = icon.width * icon.height;
         const QByteArray &bytes = stream.device()->peek(4);
         if (bytes.isEmpty())
             return QImage();
@@ -581,8 +574,8 @@ static QImage read32bitIconFromStream(const ICNSEntry &icon, QDataStream &stream
                 for (quint8 i = 0; (i < runLength) && (pixel < estPxsNum); i++) {
                     if (bitIsClear)
                         stream >> value;
-                    const quint32 y = (pixel / icon.height);
-                    const quint32 x = (pixel - (icon.width * y));
+                    const quint32 y = pixel / icon.height;
+                    const quint32 x = pixel - (icon.width * y);
                     if (pixel % icon.height == 0)
                         line = reinterpret_cast<QRgb *>(img.scanLine(y));
                     QRgb rgb = line[x];
@@ -676,19 +669,23 @@ bool QICNSHandler::read(QImage *outImage)
     } else if (qMin(icon.width, icon.height) > 0) {
         switch (icon.depth) {
         case ICNSEntry::DepthMono:
+            img = readLowDepthIcon<ICNSEntry::DepthMono>(icon, stream);
+            break;
         case ICNSEntry::Depth4bit:
+            img = readLowDepthIcon<ICNSEntry::Depth4bit>(icon, stream);
+            break;
         case ICNSEntry::Depth8bit:
-            img = readLowDepthIconFromStream(icon, stream);
+            img = readLowDepthIcon<ICNSEntry::Depth8bit>(icon, stream);
             break;
         case ICNSEntry::Depth32bit:
-            img = read32bitIconFromStream(icon, stream);
+            img = read32bitIcon(icon, stream);
             break;
         default:
             qWarning("QICNSHandler::read(): Failed, unsupported icon bit depth: %u, OSType: \"%s\"",
                      icon.depth, ostype.constData());
         }
         if (!img.isNull()) {
-            QImage alpha = readMaskFromStream(getIconMask(icon), stream);
+            QImage alpha = readMask(getIconMask(icon), stream);
             if (!alpha.isNull())
                 img.setAlphaChannel(alpha);
         }
@@ -760,7 +757,7 @@ bool QICNSHandler::write(const QImage &image)
 
 bool QICNSHandler::supportsOption(QImageIOHandler::ImageOption option) const
 {
-    return (option == QImageIOHandler::SubType);
+    return option == QImageIOHandler::SubType;
 }
 
 QVariant QICNSHandler::option(QImageIOHandler::ImageOption option) const
@@ -803,7 +800,7 @@ bool QICNSHandler::ensureScanned() const
         QICNSHandler *that = const_cast<QICNSHandler *>(this);
         that->m_state = that->scanDevice() ? ScanSuccess : ScanError;
     }
-    return (m_state == ScanSuccess);
+    return m_state == ScanSuccess;
 }
 
 void QICNSHandler::addEntry(const ICNSBlockHeader &header, quint32 imgDataOffset)
@@ -913,9 +910,9 @@ bool QICNSHandler::scanDevice()
             bool exists = false;
             // But only if we have incomplete TOC, otherwise just try to add
             if (scanIsIncomplete) {
-                for (int i = 0; ((i < m_icons.size()) && !exists); i++)
+                for (int i = 0; (i < m_icons.size()) && !exists; i++)
                     exists = (m_icons.at(i).dataOffset == blockDataOffset);
-                for (int i = 0; ((i < m_masks.size()) && !exists); i++)
+                for (int i = 0; (i < m_masks.size()) && !exists; i++)
                     exists = (m_masks.at(i).dataOffset == blockDataOffset);
             }
             if (!exists)

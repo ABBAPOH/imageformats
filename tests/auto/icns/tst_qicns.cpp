@@ -100,14 +100,14 @@ void tst_qicns::writeIcons_data()
 
 void tst_qicns::writeIcons()
 {
-    QTemporaryDir temp(QDir::tempPath() + QStringLiteral("tst_qincs"));
+    QTemporaryDir temp(QDir::tempPath() + QStringLiteral("/tst_qincs"));
     QVERIFY2(temp.isValid(), "Unable to create temp dir.");
 
     QFETCH(QString, fileName);
     QFETCH(QSize, size);
 
-    const QString distPath = temp.path() + fileName + QStringLiteral(".icns");
-    const QString sourcePath = QStringLiteral(":/data/") + fileName + QStringLiteral(".png");
+    const QString distPath = QStringLiteral("%1/%2.icns").arg(temp.path()).arg(fileName);
+    const QString sourcePath = QStringLiteral(":/data/%1.png").arg(fileName);
 
     QImage image(sourcePath);
     QVERIFY(!image.isNull());

@@ -946,4 +946,3 @@ const ICNSEntry &QICNSHandler::getIconMask(const ICNSEntry &icon) const
 }
 
 QT_END_NAMESPACE
-

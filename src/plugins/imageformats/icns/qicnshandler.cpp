@@ -535,14 +535,18 @@ static QImage readLowDepthIcon(const ICNSEntry &icon, QDataStream &stream)
             if (pixel % (8 / depth) == 0)
                 stream >> byte;
             quint8 cindex;
-            if (depth == ICNSEntry::Depth8bit) {
-                cindex = byte;
-            } else {
-                if (depth == ICNSEntry::DepthMono)
-                    cindex = (byte >> 7) & 0x01; // left 1 bit
-                else
-                    cindex = (byte >> 4) & 0x0F; // left 4 bits
-                byte <<= depth;
+            switch(depth) {
+            case ICNSEntry::DepthMono:
+                cindex = (byte >> 7) & 0x01; // left 1 bit
+                byte <<= 1;
+                break;
+            case ICNSEntry::Depth4bit:
+                cindex = (byte >> 4) & 0x0F; // left 4 bits
+                byte <<= 4;
+                break;
+            default:
+                cindex = byte; // 8 bits
+                break;
             }
             img.setPixel(x, y, cindex);
             pixel++;
@@ -640,7 +644,7 @@ bool QICNSHandler::read(QImage *outImage)
 {
     QImage img;
     if (!ensureScanned()) {
-        qWarning("QICNSHandler::read(): The device was not parced properly!");
+        qWarning("QICNSHandler::read(): The device was not parsed properly!");
         return false;
     }
 
@@ -719,21 +723,20 @@ bool QICNSHandler::write(const QImage &image)
         return false;
     // Construct icon OSType
     int i = width;
-    uint p = 0;
+    uint pow = 0;
     while (i >>= 1)
-        p++;
-    if ((p > 10) || (p == 6)) {
-        // Gotcha #1: icp6/ic06 is reserved by Apple, but none of 64x64 icons were ever spotted in use.
-        // If existence of 64x64 icons will be confirmed, we can enable saving in this format.
+        pow++;
+    if ((pow > 10) || (pow == 6)) {
+        // Gotcha #1: icp6/ic06 (64x64) is not officialy supported by Apple.
         // Gotcha #2: Values over 10 are reserved for retina icons.
         // Lets enforce resizing, so we won't produce a poor bootleg:
-        p = (p > 10) ? 10 : 5;
-        img = img.scaled((1 << p), (1 << p), Qt::IgnoreAspectRatio, Qt::SmoothTransformation);
+        pow = (pow > 10) ? 10 : 5;
+        img = img.scaled((1 << pow), (1 << pow), Qt::IgnoreAspectRatio, Qt::SmoothTransformation);
     }
     // Small / big icons naming policy
-    const QByteArray ostypeb = (p < 7) ? QByteArrayLiteral("icp") : QByteArrayLiteral("ic");
-    const bool noZero = (ostypeb.size() > 2 || p >= 10);
-    const QByteArray ostypen = noZero ? QByteArray::number(p) : "0" + QByteArray::number(p);
+    const QByteArray ostypeb = (pow < 7) ? QByteArrayLiteral("icp") : QByteArrayLiteral("ic");
+    const bool noZero = (ostypeb.size() > 2 || pow >= 10);
+    const QByteArray ostypen = noZero ? QByteArray::number(pow) : "0" + QByteArray::number(pow);
     const quint32 ostype = nameToOSType(ostypeb + ostypen);
     // Construct ICNS Header
     ICNSBlockHeader fileHeader;
@@ -761,9 +764,7 @@ bool QICNSHandler::write(const QImage &image)
     QDataStream stream(device);
     stream << fileHeader << tocHeader << tocEntry << iconEntry;
     stream.writeRawData(imageData.constData(), imageData.size());
-    if (stream.status() != QDataStream::Ok)
-        return false;
-    return true;
+    return stream.status() == QDataStream::Ok;
 }
 
 bool QICNSHandler::supportsOption(QImageIOHandler::ImageOption option) const
@@ -883,48 +884,42 @@ bool QICNSHandler::scanDevice()
                 stream.skipRawData(blockDataLength);
                 break;
             }
-            bool tocIsComplete = false;
-            QVector<ICNSBlockHeader> toc;
-            const quint32 tocEntriesCount = (blockDataLength / ICNSBlockHeaderSize);
-            for (uint i = 0; i < tocEntriesCount; i++) {
+            // First image offset:
+            quint32 imgDataOffset = (blockDataOffset + blockDataLength + ICNSBlockHeaderSize);
+            for (uint i = 0; i < (blockDataLength / ICNSBlockHeaderSize); i++) {
                 ICNSBlockHeader tocEntry;
                 stream >> tocEntry;
-                toc << tocEntry;
                 if (!isBlockHeaderValid(tocEntry)) {
                     // TOC contains incorrect header, we should skip TOC since we can't trust it
-                    if (!device()->seek((blockDataOffset + blockDataLength)))
+                    if (!device()->seek(blockDataOffset + blockDataLength))
                         return false;
                     break;
                 }
-                quint32 imgDataOffset = (blockHeader.length + ICNSBlockHeaderSize);
-                for (quint32 n = 0; n < i; n++)
-                    imgDataOffset += toc.at(n).length;
-                imgDataOffset += ICNSBlockHeaderSize;
                 addEntry(tocEntry, imgDataOffset);
-                quint32 imgDataLength = (tocEntry.length - ICNSBlockHeaderSize);
-                if ((imgDataOffset + imgDataLength) == filelength)
-                    tocIsComplete = true;
+                imgDataOffset += tocEntry.length;
+                // If TOC covers all the blocks in the file, then quick scan is complete
+                if (imgDataOffset == (quint64)filelength)
+                    return true;
             }
-            // If TOC covers all the blocks in the file, then quick scan is complete
-            if (tocIsComplete)
-                return true;
             // Else just start a deep scan to salvage anything that is left behind
             scanIsIncomplete = true;
             break;
         }
         default:
             // Deep scan, block by block
-            // Check if entry with this offset is added somewhere
-            bool exists = false;
-            // But only if we have incomplete TOC, otherwise just try to add
             if (scanIsIncomplete) {
+                // Check if entry with this offset is added somewhere
+                // But only if we have incomplete TOC, otherwise just try to add
+                bool exists = false;
                 for (int i = 0; (i < m_icons.size()) && !exists; i++)
                     exists = (m_icons.at(i).dataOffset == blockDataOffset);
                 for (int i = 0; (i < m_masks.size()) && !exists; i++)
                     exists = (m_masks.at(i).dataOffset == blockDataOffset);
-            }
-            if (!exists)
+                if (!exists)
+                    addEntry(blockHeader, blockDataOffset);
+            } else {
                 addEntry(blockHeader, blockDataOffset);
+            }
             stream.skipRawData(blockDataLength);
             break;
         }

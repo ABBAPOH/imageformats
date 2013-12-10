@@ -535,7 +535,7 @@ static QImage readLowDepthIcon(const ICNSEntry &icon, QDataStream &stream)
             if (pixel % (8 / depth) == 0)
                 stream >> byte;
             quint8 cindex;
-            switch(depth) {
+            switch (depth) {
             case ICNSEntry::DepthMono:
                 cindex = (byte >> 7) & 0x01; // left 1 bit
                 byte <<= 1;
@@ -726,11 +726,11 @@ bool QICNSHandler::write(const QImage &image)
     uint pow = 0;
     while (i >>= 1)
         pow++;
-    if ((pow > 10) || (pow == 6)) {
-        // Gotcha #1: icp6/ic06 (64x64) is not officialy supported by Apple.
-        // Gotcha #2: Values over 10 are reserved for retina icons.
+    if ((pow > 10)) {
+        // Note #1: icp6 (64x64) appears to be implemented since OSX Lion.
+        // Note #2: Values over 10 are reserved for retina icons.
         // Lets enforce resizing, so we won't produce a poor bootleg:
-        pow = (pow > 10) ? 10 : 5;
+        pow = 10;
         img = img.scaled((1 << pow), (1 << pow), Qt::IgnoreAspectRatio, Qt::SmoothTransformation);
     }
     // Small / big icons naming policy

@@ -6,6 +6,7 @@
         <file>data/test-png.icns</file>
         <file>data/test-write-16.png</file>
         <file>data/test-write-32.png</file>
+        <file>data/test-write-64.png</file>
         <file>data/test-write-128.png</file>
         <file>data/test-write-256.png</file>
         <file>data/test-write-512.png</file>

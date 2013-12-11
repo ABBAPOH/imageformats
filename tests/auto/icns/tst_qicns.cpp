@@ -60,8 +60,8 @@ void tst_qicns::readIcons_data()
     QTest::addColumn<QSize>("size");
     QTest::addColumn<int>("imageCount");
 
-    QTest::newRow("1") << QStringLiteral("test-png") << QSize(128, 128) << 6;
-    QTest::newRow("2") << QStringLiteral("test-jp2") << QSize(128, 128) << 6;
+    QTest::newRow("1") << QStringLiteral("test-png") << QSize(128, 128) << 7;
+    QTest::newRow("2") << QStringLiteral("test-jp2") << QSize(128, 128) << 7;
     QTest::newRow("3") << QStringLiteral("test-32bit") << QSize(128, 128) << 4;
     QTest::newRow("4") << QStringLiteral("test-legacy") << QSize(48, 48) << 12;
 }
@@ -93,9 +93,10 @@ void tst_qicns::writeIcons_data()
 
     QTest::newRow("1") << QStringLiteral("test-write-16") << QSize(16, 16);
     QTest::newRow("2") << QStringLiteral("test-write-32") << QSize(32, 32);
-    QTest::newRow("3") << QStringLiteral("test-write-128") << QSize(128, 128);
-    QTest::newRow("4") << QStringLiteral("test-write-512") << QSize(512, 512);
-    QTest::newRow("5") << QStringLiteral("test-write-1024") << QSize(1024, 1024);
+    QTest::newRow("3") << QStringLiteral("test-write-64") << QSize(64, 64);
+    QTest::newRow("4") << QStringLiteral("test-write-128") << QSize(128, 128);
+    QTest::newRow("5") << QStringLiteral("test-write-512") << QSize(512, 512);
+    QTest::newRow("6") << QStringLiteral("test-write-1024") << QSize(1024, 1024);
 }
 
 void tst_qicns::writeIcons()

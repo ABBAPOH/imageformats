@@ -711,28 +711,32 @@ bool QICNSHandler::read(QImage *outImage)
 
 bool QICNSHandler::write(const QImage &image)
 {
+    /*
+    Notes:
+    * Experimental implementation. Just for simple converting tasks / testing purposes.
+    * Min. size is 16x16, Max. size is 1024x1024.
+    * Performs downscale to a square image if width != height.
+    * Performs upscale to 16x16, if the image is smaller.
+    * Performs downscale to a nearest power of two if size is not a power of two.
+    * Currently uses non-hardcoded OSTypes.
+    */
     QIODevice *device = this->device();
-    // NOTE: Experimental implementation. Just for simple converting tasks / testing purposes.
-    // LIMITATIONS: Writes a complete icns file containing only one square icon in PNG format to a device.
-    // Currently uses non-hardcoded OSTypes.
-    QImage img = image;
-    const int width = img.size().width();
-    const int height = img.size().height();
-    const bool sizeIsCorrect = (width == height) && (width >= 16) && ((width & (width - 1)) == 0);
-    if (!device->isWritable() || !sizeIsCorrect)
+    if (!device->isWritable() || image.isNull() || qMin(image.width(), image.height()) == 0)
         return false;
-    // Construct icon OSType
-    int i = width;
+    const int minSize = qMin(image.width(), image.height());
+    const int oldSize = (minSize < 16) ? 16 : minSize;
+    // Calc power of two:
+    int i = oldSize;
     uint pow = 0;
-    while (i >>= 1)
+    // Note: Values over 10 are reserved for retina icons.
+    while ((pow < 10) && (i >>= 1))
         pow++;
-    if ((pow > 10)) {
-        // Note #1: icp6 (64x64) appears to be implemented since OSX Lion.
-        // Note #2: Values over 10 are reserved for retina icons.
-        // Lets enforce resizing, so we won't produce a poor bootleg:
-        pow = 10;
-        img = img.scaled((1 << pow), (1 << pow), Qt::IgnoreAspectRatio, Qt::SmoothTransformation);
-    }
+    const int newSize = (1 << pow);
+    QImage img = image;
+    // Let's enforce resizing if size differs:
+    if (newSize != oldSize)
+        img = img.scaled(newSize, newSize, Qt::IgnoreAspectRatio, Qt::SmoothTransformation);
+    // Construct icon OSType
     // Small / big icons naming policy
     const QByteArray ostypeb = (pow < 7) ? QByteArrayLiteral("icp") : QByteArrayLiteral("ic");
     const bool noZero = (ostypeb.size() > 2 || pow >= 10);

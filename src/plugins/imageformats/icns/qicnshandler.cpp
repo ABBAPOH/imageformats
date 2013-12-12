@@ -377,6 +377,15 @@ static inline quint32 nameToOSType(const QByteArray &ostype)
     return qFromBigEndian<quint32>(*(quint32*)(ostype.constData()));
 }
 
+static inline QByteArray nameForCompressedIcon(quint8 iconNumber)
+{
+    const bool portable = (iconNumber < 7);
+    const QByteArray base =  portable ? QByteArrayLiteral("icp") : QByteArrayLiteral("ic");
+    if (!portable && iconNumber < 10)
+        return base + "0" + QByteArray::number(iconNumber);
+    return base + QByteArray::number(iconNumber);
+}
+
 static inline QVector<QRgb> getColorTable(ICNSEntry::Depth depth)
 {
     QVector<QRgb> table;
@@ -726,47 +735,35 @@ bool QICNSHandler::write(const QImage &image)
     const int minSize = qMin(image.width(), image.height());
     const int oldSize = (minSize < 16) ? 16 : minSize;
     // Calc power of two:
-    int i = oldSize;
+    int size = oldSize;
     uint pow = 0;
     // Note: Values over 10 are reserved for retina icons.
-    while ((pow < 10) && (i >>= 1))
+    while ((pow < 10) && (size >>= 1))
         pow++;
     const int newSize = (1 << pow);
     QImage img = image;
     // Let's enforce resizing if size differs:
-    if (newSize != oldSize)
+    if (newSize != oldSize || qMax(image.width(), image.height()) != minSize)
         img = img.scaled(newSize, newSize, Qt::IgnoreAspectRatio, Qt::SmoothTransformation);
-    // Construct icon OSType
-    // Small / big icons naming policy
-    const QByteArray ostypeb = (pow < 7) ? QByteArrayLiteral("icp") : QByteArrayLiteral("ic");
-    const bool noZero = (ostypeb.size() > 2 || pow >= 10);
-    const QByteArray ostypen = noZero ? QByteArray::number(pow) : "0" + QByteArray::number(pow);
-    const quint32 ostype = nameToOSType(ostypeb + ostypen);
-    // Construct ICNS Header
+    // Construct OSType and headers:
+    const quint32 ostype = nameToOSType(nameForCompressedIcon(pow));
     ICNSBlockHeader fileHeader;
     fileHeader.ostype = ICNSBlockHeader::TypeIcns;
-    // Construct TOC Header
     ICNSBlockHeader tocHeader;
     tocHeader.ostype = ICNSBlockHeader::TypeToc;
-    // Construct TOC Entry
-    ICNSBlockHeader tocEntry;
-    tocEntry.ostype = ostype;
-    // Construct Icon block
     ICNSBlockHeader iconEntry;
     iconEntry.ostype = ostype;
-    // Construct image data
     QByteArray imageData;
     QBuffer buffer(&imageData);
     if (!buffer.open(QIODevice::WriteOnly) || !img.save(&buffer, "png"))
         return false;
     buffer.close();
     iconEntry.length = (ICNSBlockHeaderSize + imageData.size());
-    tocEntry.length = iconEntry.length;
     tocHeader.length = (ICNSBlockHeaderSize * 2);
     fileHeader.length = (ICNSBlockHeaderSize + tocHeader.length + iconEntry.length);
-    // Write everything
     QDataStream stream(device);
-    stream << fileHeader << tocHeader << tocEntry << iconEntry;
+    // iconEntry is also a TOC entry
+    stream << fileHeader << tocHeader << iconEntry << iconEntry;
     stream.writeRawData(imageData.constData(), imageData.size());
     return stream.status() == QDataStream::Ok;
 }

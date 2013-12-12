@@ -40,8 +40,6 @@
 **
 ****************************************************************************/
 
-#include <QtGui/QImageIOPlugin>
-
 #ifndef QT_NO_IMAGEFORMATPLUGIN
 
 #include "qicnshandler_p.h"

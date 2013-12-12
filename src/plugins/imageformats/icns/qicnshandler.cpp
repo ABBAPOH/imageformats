@@ -42,11 +42,12 @@
 
 #include "qicnshandler_p.h"
 
-#include <QtCore/QBuffer>
-#include <QtCore/QtMath>
-#include <QtCore/QRegularExpression>
-#include <QtCore/QtEndian>
-#include <QtCore/QDebug>
+#include <QtCore/qmath.h>
+#include <QtCore/qendian.h>
+#include <QtCore/qregularexpression.h>
+#include <QtCore/qbuffer.h>
+#include <QtCore/qdebug.h>
+#include <QtGui/qimage.h>
 
 QT_BEGIN_NAMESPACE
 
@@ -366,15 +367,15 @@ static inline bool isBlockHeaderValid(const ICNSBlockHeader &header)
 
 static inline QByteArray nameFromOSType(quint32 ostype)
 {
-    const quint32 ostypebo = qToBigEndian<quint32>(ostype);
-    return QByteArray((const char*)&ostypebo, 4);
+    const quint32 bytes = qToBigEndian(ostype);
+    return QByteArray((const char*)&bytes, 4);
 }
 
 static inline quint32 nameToOSType(const QByteArray &ostype)
 {
     if (ostype.size() != 4)
         return 0;
-    return qFromBigEndian<quint32>(*(quint32*)(ostype.constData()));
+    return qFromBigEndian(*reinterpret_cast<const quint32*>(ostype.constData()));
 }
 
 static inline QByteArray nameForCompressedIcon(quint8 iconNumber)
@@ -586,7 +587,7 @@ static QImage read32bitIcon(const ICNSEntry &icon, QDataStream &stream)
             stream.skipRawData(4);
         for (quint8 colorNRun = 0; colorNRun < 3; colorNRun++) {
             quint32 pixel = 0;
-            QRgb *line;
+            QRgb *line = 0;
             while ((pixel < estPxsNum) && !stream.atEnd()) {
                 quint8 byte, value;
                 stream >> byte;

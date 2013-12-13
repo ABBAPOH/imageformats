@@ -417,15 +417,14 @@ static inline QVector<QRgb> getColorTable(ICNSEntry::Depth depth)
 
 static bool parseIconEntry(ICNSEntry &icon)
 {
-    const QByteArray ostype = nameFromOSType(icon.header.ostype);
+    const QString ostype = QString::fromLatin1(nameFromOSType(icon.header.ostype));
     // Typical OSType naming: <junk><group><depth><mask>;
     // For icons OSType should be strictly alphanumeric.
     const QString ptrn = QStringLiteral("^(?<junk>[a-z|A-Z]{0,4})(?<group>[a-z|A-Z]{1})(?<depth>[\\d]{0,2})(?<mask>[#mk]{0,2})$");
     QRegularExpression regexp(ptrn);
     QRegularExpressionMatch match = regexp.match(ostype);
     if (!match.hasMatch()) {
-        qWarning("parseIconEntry(): Failed, OSType doesn't match: \"%s\"",
-                 ostype.constData());
+        qWarning("parseIconEntry(): Failed, OSType doesn't match: \"%s\"", qPrintable(ostype));
         return false;
     }
     const QString group = match.captured(QStringLiteral("group"));
@@ -483,7 +482,7 @@ static bool parseIconEntry(ICNSEntry &icon)
                 break;
             default:
                 qWarning("parseIconEntry(): Failed, 32bit icon from an unknown group. OSType: \"%s\"",
-                         ostype.constData());
+                         qPrintable(ostype));
             }
             icon.height = icon.width;
         }
@@ -770,6 +769,7 @@ bool QICNSHandler::write(const QImage &image)
     fileHeader.length = ICNSBlockHeaderSize + tocHeader.length + iconEntry.length;
     if (!isBlockHeaderValid(iconEntry))
         return false;
+
     QDataStream stream(device);
     // iconEntry is also a TOC entry
     stream << fileHeader << tocHeader << iconEntry << iconEntry;

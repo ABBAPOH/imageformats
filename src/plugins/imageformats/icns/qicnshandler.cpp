@@ -640,19 +640,25 @@ bool QICNSHandler::canRead(QIODevice *device)
         qWarning("QICNSHandler::canRead() called without a readable device");
         return false;
     }
+
     if (device->isSequential()) {
         qWarning("QICNSHandler::canRead() called on a sequential device (NYI)");
         return false;
     }
+
     return device->peek(4) == QByteArrayLiteral("icns");
 }
 
 bool QICNSHandler::canRead() const
 {
-    if (canRead(device()) && m_state != ScanError) {
+    if (m_state == ScanNotScanned && !canRead(device()))
+        return false;
+
+    if (m_state != ScanError) {
         setFormat(QByteArrayLiteral("icns"));
         return true;
     }
+
     return false;
 }
 
@@ -672,7 +678,7 @@ bool QICNSHandler::read(QImage *outImage)
 
     const QByteArray magic = device()->peek(12);
     const bool isPNG = magic.startsWith(ICNSMagicPNG);
-    const bool isJP2 = magic == QByteArray::fromRawData(ICNSMagicJP2, 12);
+    const bool isJP2 = magic == QByteArray::fromRawData(ICNSMagicJP2, sizeof(ICNSMagicJP2));
     if (isPNG || isJP2 || isIconCompressed(icon)) {
         const QByteArray ba = device()->read(icon.dataLength);
         if (ba.isEmpty()) {
@@ -782,10 +788,12 @@ QVariant QICNSHandler::option(QImageIOHandler::ImageOption option) const
 {
     if (!supportsOption(option) || !ensureScanned())
         return QVariant();
+
     if (option == QImageIOHandler::SubType) {
         if (imageCount() > 0 && m_currentIconIndex <= imageCount())
             return nameFromOSType(m_icons.at(m_currentIconIndex).header.ostype);
     }
+
     return QVariant();
 }
 
@@ -793,6 +801,7 @@ int QICNSHandler::imageCount() const
 {
     if (!ensureScanned())
         return 0;
+
     return m_icons.size();
 }
 
@@ -800,6 +809,7 @@ bool QICNSHandler::jumpToImage(int imageNumber)
 {
     if (imageNumber >= imageCount())
         return false;
+
     m_currentIconIndex = imageNumber;
     return true;
 }
@@ -815,6 +825,7 @@ bool QICNSHandler::ensureScanned() const
         QICNSHandler *that = const_cast<QICNSHandler *>(this);
         that->m_state = that->scanDevice() ? ScanSuccess : ScanError;
     }
+
     return m_state == ScanSuccess;
 }
 

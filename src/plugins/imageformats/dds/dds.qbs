@@ -11,7 +11,6 @@ DynamicLibrary {
         "ddsheader.cpp",
         "ddsheader.h",
         "main.cpp",
-        "main.h",
         "qddshandler.cpp",
         "qddshandler.h",
     ]

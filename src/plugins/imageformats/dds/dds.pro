@@ -7,7 +7,6 @@ win32:RC_FILE += dds.rc
 
 HEADERS += \
     ddsheader.h \
-    main.h \
     qddshandler.h
 
 SOURCES += \

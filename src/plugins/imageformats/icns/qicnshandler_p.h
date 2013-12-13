@@ -46,9 +46,9 @@
 #include <QtGui/qimageiohandler.h>
 #include <QtCore/qvector.h>
 
-#define MAKEOSTYPE(c0,c1,c2,c3) (((quint8)c0 << 24) | ((quint8)c1 << 16) | ((quint8)c2 << 8) | (quint8)c3)
-
 #ifndef QT_NO_DATASTREAM
+
+#define MAKEOSTYPE(c0,c1,c2,c3) (((quint8)c0 << 24) | ((quint8)c1 << 16) | ((quint8)c2 << 8) | (quint8)c3)
 
 QT_BEGIN_NAMESPACE
 

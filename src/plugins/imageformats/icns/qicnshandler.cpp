@@ -53,8 +53,6 @@
 QT_BEGIN_NAMESPACE
 
 static const quint8 ICNSBlockHeaderSize = 8;
-static const char ICNSMagicPNG[] = "\x89\x50\x4E\x47\x0D\x0A\x1A\x0A";
-static const char ICNSMagicJP2[] = "\x00\x00\x00\x0C\x6A\x50\x20\x20\x0D\x0A\x87\x0A";
 
 static const QRgb ICNSColorTableMono[] = {
     qRgb(0xFF, 0xFF, 0xFF),
@@ -677,8 +675,8 @@ bool QICNSHandler::read(QImage *outImage)
         return false;
 
     const QByteArray magic = device()->peek(12);
-    const bool isPNG = magic.startsWith(ICNSMagicPNG);
-    const bool isJP2 = magic == QByteArray::fromRawData(ICNSMagicJP2, sizeof(ICNSMagicJP2));
+    const bool isPNG = magic.startsWith(QByteArrayLiteral("\211PNG\r\n\032\n\000\000\000\r"));
+    const bool isJP2 = !isPNG && magic == QByteArrayLiteral("\000\000\000\014jP  \r\n\207\n");
     if (isPNG || isJP2 || isIconCompressed(icon)) {
         const QByteArray ba = device()->read(icon.dataLength);
         if (ba.isEmpty()) {

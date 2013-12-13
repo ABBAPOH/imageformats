@@ -46,14 +46,15 @@
 #include <QtCore/qendian.h>
 #include <QtCore/qregularexpression.h>
 #include <QtCore/qbuffer.h>
-#include <QtCore/qdebug.h>
 #include <QtGui/qimage.h>
+
+#ifndef QT_NO_DATASTREAM
 
 QT_BEGIN_NAMESPACE
 
 static const quint8 ICNSBlockHeaderSize = 8;
-static const char ICNSMagicPNGHex[] = "89504e470d0a1a0a";
-static const char ICNSMagicJP2Hex[] = "0000000c6a5020200d0a870a";
+static const char ICNSMagicPNG[] = "\x89\x50\x4E\x47\x0D\x0A\x1A\x0A";
+static const char ICNSMagicJP2[] = "\x00\x00\x00\x0C\x6A\x50\x20\x20\x0D\x0A\x87\x0A";
 
 static const QRgb ICNSColorTableMono[] = {
     qRgb(0xFF, 0xFF, 0xFF),
@@ -357,12 +358,17 @@ static inline QDataStream &operator<<(QDataStream &out, const ICNSBlockHeader &p
 
 static inline bool isPowOf2OrDevidesBy16(quint32 u, qreal r)
 {
-    return ((u == r && u % 16 == 0) || (u == r && r >= 16 && ((u & (u - 1)) == 0)));
+    return (u == r && u % 16 == 0) || (u == r && r >= 16 && (u & (u - 1)) == 0);
 }
 
 static inline bool isBlockHeaderValid(const ICNSBlockHeader &header)
 {
-    return ((header.ostype != 0) && (header.length >= ICNSBlockHeaderSize));
+    return header.ostype != 0 && header.length >= ICNSBlockHeaderSize;
+}
+
+static inline bool isIconCompressed(const ICNSEntry &icon)
+{
+    return icon.group == ICNSEntry::GroupCompressed || icon.group == ICNSEntry::GroupPortable;
 }
 
 static inline QByteArray nameFromOSType(quint32 ostype)
@@ -380,7 +386,7 @@ static inline quint32 nameToOSType(const QByteArray &ostype)
 
 static inline QByteArray nameForCompressedIcon(quint8 iconNumber)
 {
-    const bool portable = (iconNumber < 7);
+    const bool portable = iconNumber < 7;
     const QByteArray base =  portable ? QByteArrayLiteral("icp") : QByteArrayLiteral("ic");
     if (!portable && iconNumber < 10)
         return base + "0" + QByteArray::number(iconNumber);
@@ -390,7 +396,7 @@ static inline QByteArray nameForCompressedIcon(quint8 iconNumber)
 static inline QVector<QRgb> getColorTable(ICNSEntry::Depth depth)
 {
     QVector<QRgb> table;
-    uint n = (1 << depth);
+    uint n = 1 << depth;
     const QRgb *data;
     switch (depth) {
     case ICNSEntry::DepthMono:
@@ -424,13 +430,12 @@ static bool parseIconEntry(ICNSEntry &icon)
                  ostype.constData());
         return false;
     }
-    const QString group = match.captured("group");
-    const QString depth = match.captured("depth");
-    const QString mask = match.captured("mask");
+    const QString group = match.captured(QStringLiteral("group"));
+    const QString depth = match.captured(QStringLiteral("depth"));
+    const QString mask = match.captured(QStringLiteral("mask"));
     // Icon group:
     icon.group = group.isEmpty() ? ICNSEntry::GroupUnknown : ICNSEntry::Group(group.at(0).toLatin1());
-    const bool compressed = ((icon.group == ICNSEntry::GroupCompressed)
-                             || (icon.group == ICNSEntry::GroupPortable));
+    const bool compressed = isIconCompressed(icon);
     // Icon depth:
     icon.depth = depth.isEmpty() ? ICNSEntry::DepthUnknown : ICNSEntry::Depth(depth.toUInt());
     // Width/height/mask:
@@ -440,7 +445,7 @@ static bool parseIconEntry(ICNSEntry &icon)
     if (!compressed) {
         if (icon.depth == ICNSEntry::DepthUnknown)
             icon.depth = ICNSEntry::DepthMono;
-        const qreal bytespp = ((qreal)icon.depth / 8);
+        const qreal bytespp = (qreal)icon.depth / 8;
         const qreal r1 = qSqrt(icon.dataLength / bytespp);
         const qreal r2 = qSqrt((icon.dataLength / bytespp) / 2);
         const quint32 r1u = qRound(r1);
@@ -457,7 +462,7 @@ static bool parseIconEntry(ICNSEntry &icon)
             icon.height = r2u;
         } else if (icon.group == ICNSEntry::GroupMini) {
             // Legacy 16x12 icons are an exception from the generic square formula
-            const bool doubleSize = (icon.dataLength == (192 * bytespp * 2));
+            const bool doubleSize = icon.dataLength == 192 * bytespp * 2;
             icon.mask = doubleSize ? ICNSEntry::IconPlusMask : ICNSEntry::IsIcon;
             icon.width = 16;
             icon.height = 12;
@@ -488,20 +493,20 @@ static bool parseIconEntry(ICNSEntry &icon)
         // TODO: Add parsing of png/jp2 headers to enable feature reporting by plugin?
         icon.mask = ICNSEntry::IsIcon;
     }
-    return compressed || (qMin(icon.width, icon.height) > 0);
+    return compressed || qMin(icon.width, icon.height) > 0;
 }
 
 static QImage readMask(const ICNSEntry &mask, QDataStream &stream)
 {
     if ((mask.mask & ICNSEntry::IsMask) == 0)
         return QImage();
-    if ((mask.depth != ICNSEntry::DepthMono) && (mask.depth != ICNSEntry::Depth8bit)) {
+    if (mask.depth != ICNSEntry::DepthMono && mask.depth != ICNSEntry::Depth8bit) {
         qWarning("readMask(): Failed, unusual bit depth: %u OSType: \"%s\"",
                  mask.depth, nameFromOSType(mask.header.ostype).constData());
         return QImage();
     }
-    const bool isMono = (mask.depth == ICNSEntry::DepthMono);
-    const bool doubleSize = (mask.mask == ICNSEntry::IconPlusMask);
+    const bool isMono = mask.depth == ICNSEntry::DepthMono;
+    const bool doubleSize = mask.mask == ICNSEntry::IconPlusMask;
     const quint32 imageDataSize = (mask.width * mask.height * mask.depth) / 8;
     const qint64 pos = doubleSize ? (mask.dataOffset + imageDataSize) : mask.dataOffset;
     const qint64 oldPos = stream.device()->pos();
@@ -531,7 +536,8 @@ static QImage readLowDepthIcon(const ICNSEntry &icon, QDataStream &stream)
 {
     Q_STATIC_ASSERT(depth == ICNSEntry::DepthMono || depth == ICNSEntry::Depth4bit
                     || depth == ICNSEntry::Depth8bit);
-    const bool isMono = (depth == ICNSEntry::DepthMono);
+
+    const bool isMono = depth == ICNSEntry::DepthMono;
     const QImage::Format format = isMono ? QImage::Format_Mono : QImage::Format_Indexed8;
     const QVector<QRgb> colortable = getColorTable(depth);
     if (colortable.isEmpty())
@@ -588,17 +594,17 @@ static QImage read32bitIcon(const ICNSEntry &icon, QDataStream &stream)
         for (quint8 colorNRun = 0; colorNRun < 3; colorNRun++) {
             quint32 pixel = 0;
             QRgb *line = 0;
-            while ((pixel < estPxsNum) && !stream.atEnd()) {
+            while (pixel < estPxsNum && !stream.atEnd()) {
                 quint8 byte, value;
                 stream >> byte;
-                const bool bitIsClear = ((byte & 0x80) == 0);
+                const bool bitIsClear = (byte & 0x80) == 0;
                 // If high bit is clear: run of different values; else: same value
                 quint8 runLength = bitIsClear ? ((0xFF & byte) + 1) : ((0xFF & byte) - 125);
                 // Length of the run for for different values: 1 <= len <= 128
                 // Length of the run for same values: 3 <= len <= 130
                 if (!bitIsClear)
                     stream >> value;
-                for (quint8 i = 0; (i < runLength) && (pixel < estPxsNum); i++) {
+                for (quint8 i = 0; i < runLength && pixel < estPxsNum; i++) {
                     if (bitIsClear)
                         stream >> value;
                     const quint32 y = pixel / icon.height;
@@ -643,7 +649,7 @@ bool QICNSHandler::canRead(QIODevice *device)
 
 bool QICNSHandler::canRead() const
 {
-    if (canRead(device())) {
+    if (canRead(device()) && m_state != ScanError) {
         setFormat(QByteArrayLiteral("icns"));
         return true;
     }
@@ -664,32 +670,28 @@ bool QICNSHandler::read(QImage *outImage)
     if (!device()->seek(icon.dataOffset))
         return false;
 
-    const QByteArray magicHex = device()->peek(12).toHex();
-    const bool isPNG = magicHex.startsWith(ICNSMagicPNGHex);
-    const bool isJP2 = (magicHex == ICNSMagicJP2Hex);
-    const bool isPortable = (icon.group == ICNSEntry::GroupPortable);
-    const bool isCompressed = (isPortable || (icon.group == ICNSEntry::GroupCompressed));
-    if (isPNG || isJP2 || isCompressed) {
+    const QByteArray magic = device()->peek(12);
+    const bool isPNG = magic.startsWith(ICNSMagicPNG);
+    const bool isJP2 = magic == QByteArray::fromRawData(ICNSMagicJP2, 12);
+    if (isPNG || isJP2 || isIconCompressed(icon)) {
         const QByteArray ba = device()->read(icon.dataLength);
         if (ba.isEmpty()) {
             qWarning("QICNSHandler::read(): Failed, compressed image data is empty. OSType: \"%s\"",
                      nameFromOSType(icon.header.ostype).constData());
             return false;
         }
-        if (isPNG || isJP2) {
-            const char *format = isPNG ? "png" : "jp2";
-            img = QImage::fromData(ba, format);
-            if (img.isNull()) {
-                qWarning("QICNSHandler::read(): Failed, format \"%s\" is not supported by your Qt lib. OSType: \"%s\"",
-                         format, nameFromOSType(icon.header.ostype).constData());
-            }
-        } else {
-            // Try anyway
-            img = QImage::fromData(ba);
-            if (img.isNull()) {
-                qWarning("QICNSHandler::read(): Failed, unsupported compressed icon format, OSType: \"%s\"",
-                         nameFromOSType(icon.header.ostype).constData());
-            }
+        const char *format = 0;
+        if (isPNG)
+            format = "png";
+        else if (isJP2)
+            format = "jp2";
+        // Even if JP2 or PNG magic is not detected, try anyway
+        img = QImage::fromData(ba, format);
+        if (img.isNull()) {
+            if (format == 0)
+                format = "unknown";
+            qWarning("QICNSHandler::read(): Failed, compressed format \"%s\" is not supported by your Qt lib. OSType: \"%s\"",
+                     format, nameFromOSType(icon.header.ostype).constData());
         }
     } else if (qMin(icon.width, icon.height) > 0) {
         switch (icon.depth) {
@@ -739,9 +741,9 @@ bool QICNSHandler::write(const QImage &image)
     int size = oldSize;
     uint pow = 0;
     // Note: Values over 10 are reserved for retina icons.
-    while ((pow < 10) && (size >>= 1))
+    while (pow < 10 && (size >>= 1))
         pow++;
-    const int newSize = (1 << pow);
+    const int newSize = 1 << pow;
     QImage img = image;
     // Let's enforce resizing if size differs:
     if (newSize != oldSize || qMax(image.width(), image.height()) != minSize)
@@ -759,9 +761,11 @@ bool QICNSHandler::write(const QImage &image)
     if (!buffer.open(QIODevice::WriteOnly) || !img.save(&buffer, "png"))
         return false;
     buffer.close();
-    iconEntry.length = (ICNSBlockHeaderSize + imageData.size());
-    tocHeader.length = (ICNSBlockHeaderSize * 2);
-    fileHeader.length = (ICNSBlockHeaderSize + tocHeader.length + iconEntry.length);
+    iconEntry.length = ICNSBlockHeaderSize + imageData.size();
+    tocHeader.length = ICNSBlockHeaderSize * 2;
+    fileHeader.length = ICNSBlockHeaderSize + tocHeader.length + iconEntry.length;
+    if (!isBlockHeaderValid(iconEntry))
+        return false;
     QDataStream stream(device);
     // iconEntry is also a TOC entry
     stream << fileHeader << tocHeader << iconEntry << iconEntry;
@@ -822,7 +826,7 @@ void QICNSHandler::addEntry(const ICNSBlockHeader &header, quint32 imgDataOffset
     entry.header.length = header.length;
     // Image data:
     entry.dataOffset = imgDataOffset;
-    entry.dataLength = (header.length - ICNSBlockHeaderSize);
+    entry.dataLength = header.length - ICNSBlockHeaderSize;
     entry.dataIsRLE = false;
     // Parse everything else and index this entry:
     if (parseIconEntry(entry)) {
@@ -847,7 +851,7 @@ bool QICNSHandler::scanDevice()
     bool scanIsIncomplete = false;
     qint64 filelength = device()->size();
     ICNSBlockHeader blockHeader;
-    while (!stream.atEnd() || (device()->pos() < filelength)) {
+    while (!stream.atEnd() || device()->pos() < filelength) {
         stream >> blockHeader;
         if (stream.status() != QDataStream::Ok)
             return false;
@@ -859,7 +863,7 @@ bool QICNSHandler::scanDevice()
                      nameFromOSType(blockHeader.ostype).constData(), blockHeader.length);
             return false;
         }
-        const quint64 blockDataLength = (blockHeader.length - ICNSBlockHeaderSize);
+        const quint64 blockDataLength = blockHeader.length - ICNSBlockHeaderSize;
 
         switch (blockHeader.ostype) {
         case ICNSBlockHeader::TypeIcns:
@@ -880,15 +884,15 @@ bool QICNSHandler::scanDevice()
             break;
         case ICNSBlockHeader::TypeToc: {
             // Quick scan, table of contents
-            if (blockDataOffset != (ICNSBlockHeaderSize * 2)) {
+            if (blockDataOffset != ICNSBlockHeaderSize * 2) {
                 // TOC should be the first block in the file after container definition.
                 // Ignore and go on with a deep scan.
                 stream.skipRawData(blockDataLength);
                 break;
             }
-            // First image offset:
-            quint32 imgDataOffset = (blockDataOffset + blockDataLength + ICNSBlockHeaderSize);
-            for (uint i = 0; i < (blockDataLength / ICNSBlockHeaderSize); i++) {
+            // First image data offset:
+            qint64 imgDataOffset = blockDataOffset + blockHeader.length;
+            for (uint i = 0, count = blockDataLength / ICNSBlockHeaderSize; i < count; i++) {
                 ICNSBlockHeader tocEntry;
                 stream >> tocEntry;
                 if (!isBlockHeaderValid(tocEntry)) {
@@ -900,7 +904,7 @@ bool QICNSHandler::scanDevice()
                 addEntry(tocEntry, imgDataOffset);
                 imgDataOffset += tocEntry.length;
                 // If TOC covers all the blocks in the file, then quick scan is complete
-                if (imgDataOffset == (quint64)filelength)
+                if (imgDataOffset == filelength)
                     return true;
             }
             // Else just start a deep scan to salvage anything that is left behind
@@ -913,10 +917,10 @@ bool QICNSHandler::scanDevice()
                 // Check if entry with this offset is added somewhere
                 // But only if we have incomplete TOC, otherwise just try to add
                 bool exists = false;
-                for (int i = 0; (i < m_icons.size()) && !exists; i++)
-                    exists = (m_icons.at(i).dataOffset == blockDataOffset);
-                for (int i = 0; (i < m_masks.size()) && !exists; i++)
-                    exists = (m_masks.at(i).dataOffset == blockDataOffset);
+                for (int i = 0; i < m_icons.size() && !exists; i++)
+                    exists = m_icons.at(i).dataOffset == blockDataOffset;
+                for (int i = 0; i < m_masks.size() && !exists; i++)
+                    exists = m_masks.at(i).dataOffset == blockDataOffset;
                 if (!exists)
                     addEntry(blockHeader, blockDataOffset);
             } else {
@@ -931,15 +935,16 @@ bool QICNSHandler::scanDevice()
 
 const ICNSEntry &QICNSHandler::getIconMask(const ICNSEntry &icon) const
 {
-    const bool is32bit = (icon.depth == ICNSEntry::Depth32bit);
+    const bool is32bit = icon.depth == ICNSEntry::Depth32bit;
     ICNSEntry::Depth targetDepth = is32bit ? ICNSEntry::Depth8bit : ICNSEntry::DepthMono;
     for (int i = 0; i < m_masks.size(); i++) {
         const ICNSEntry &entry = m_masks.at(i);
-        const bool suitableDepth = (entry.depth == targetDepth);
-        if (suitableDepth && (entry.height == icon.height) && (entry.width == icon.width))
+        if (entry.depth == targetDepth && entry.height == icon.height && entry.width == icon.width)
             return entry;
     }
     return icon;
 }
 
 QT_END_NAMESPACE
+
+#endif // QT_NO_DATASTREAM

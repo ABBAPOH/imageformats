@@ -59,11 +59,12 @@ void tst_qicns::readIcons_data()
     QTest::addColumn<QString>("fileName");
     QTest::addColumn<QSize>("size");
     QTest::addColumn<int>("imageCount");
+    QTest::addColumn<QByteArray>("format");
 
-    QTest::newRow("1") << QStringLiteral("test-png") << QSize(128, 128) << 7;
-    QTest::newRow("2") << QStringLiteral("test-jp2") << QSize(128, 128) << 7;
-    QTest::newRow("3") << QStringLiteral("test-32bit") << QSize(128, 128) << 4;
-    QTest::newRow("4") << QStringLiteral("test-legacy") << QSize(48, 48) << 12;
+    QTest::newRow("1") << QStringLiteral("test-png") << QSize(128, 128) << 7 << QByteArrayLiteral("png");
+    QTest::newRow("2") << QStringLiteral("test-jp2") << QSize(128, 128) << 7 << QByteArrayLiteral("jp2");
+    QTest::newRow("3") << QStringLiteral("test-32bit") << QSize(128, 128) << 4 << QByteArray();
+    QTest::newRow("4") << QStringLiteral("test-legacy") << QSize(48, 48) << 12 << QByteArray();
 }
 
 void tst_qicns::readIcons()
@@ -71,7 +72,10 @@ void tst_qicns::readIcons()
     QFETCH(QString, fileName);
     QFETCH(QSize, size);
     QFETCH(int, imageCount);
+    QFETCH(QByteArray, format);
 
+    if (!format.isEmpty() && !QImageReader::supportedImageFormats().contains(format))
+        QSKIP("This test requires another image format plugin");
     const QString path = QStringLiteral(":/data/") + fileName + QStringLiteral(".icns");
     QImageReader reader(path);
     QVERIFY(reader.canRead());

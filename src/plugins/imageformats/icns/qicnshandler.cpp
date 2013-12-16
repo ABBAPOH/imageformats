@@ -4,7 +4,7 @@
 ** Copyright (C) 2013 Alex Char.
 ** Contact: http://www.qt-project.org/legal
 **
-** This file is part of the ICNS plugin in the Qt ImageFormats module.
+** This file is part of the plugins of the Qt Toolkit.
 **
 ** $QT_BEGIN_LICENSE:LGPL$
 ** Commercial License Usage

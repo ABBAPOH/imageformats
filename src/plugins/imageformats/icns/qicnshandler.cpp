@@ -354,9 +354,9 @@ static inline QDataStream &operator<<(QDataStream &out, const ICNSBlockHeader &p
     return out;
 }
 
-static inline bool isPowOf2OrDevidesBy16(quint32 u, qreal r)
+static inline bool isPowOf2OrDividesBy16(quint32 u, qreal r)
 {
-    return (u == r && u % 16 == 0) || (u == r && r >= 16 && (u & (u - 1)) == 0);
+    return u == r && ((u % 16 == 0) || (r >= 16 && (u & (u - 1)) == 0));
 }
 
 static inline bool isBlockHeaderValid(const ICNSBlockHeader &header)
@@ -447,8 +447,8 @@ static bool parseIconEntry(ICNSEntry &icon)
         const qreal r2 = qSqrt((icon.dataLength / bytespp) / 2);
         const quint32 r1u = qRound(r1);
         const quint32 r2u = qRound(r2);
-        const bool singleEntry = isPowOf2OrDevidesBy16(r1u, r1);
-        const bool doubleSize = isPowOf2OrDevidesBy16(r2u, r2);
+        const bool singleEntry = isPowOf2OrDividesBy16(r1u, r1);
+        const bool doubleSize = isPowOf2OrDividesBy16(r2u, r2);
         if (singleEntry) {
             icon.mask = mask.isEmpty() ? ICNSEntry::IsIcon : ICNSEntry::IsMask;
             icon.width = r1u;

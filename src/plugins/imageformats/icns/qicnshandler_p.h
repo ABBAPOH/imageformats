@@ -59,7 +59,7 @@ struct ICNSBlockHeader
         TypeToc  = MAKEOSTYPE('T', 'O', 'C', ' '), // Table of contents
         TypeIcnv = MAKEOSTYPE('i', 'c', 'n', 'V'), // Version of the icns tool
         // Legacy:
-        TypeClut = MAKEOSTYPE('c', 'l', 'u', 't')  // Color look-up table (pre-OSX resources)
+        TypeClut = MAKEOSTYPE('c', 'l', 'u', 't')  // Color look-up table (pre-OS X resources)
     };
 
     quint32 ostype;

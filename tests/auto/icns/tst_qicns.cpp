@@ -76,7 +76,7 @@ void tst_qicns::readIcons()
 
     if (!format.isEmpty() && !QImageReader::supportedImageFormats().contains(format))
         QSKIP("This test requires another image format plugin");
-    const QString path = QStringLiteral(":/data/") + fileName + QStringLiteral(".icns");
+    const QString path = QStringLiteral(":/icns/") + fileName + QStringLiteral(".icns");
     QImageReader reader(path);
     QVERIFY(reader.canRead());
     QCOMPARE(reader.imageCount(), imageCount);
@@ -112,7 +112,7 @@ void tst_qicns::writeIcons()
     QFETCH(QSize, size);
 
     const QString distPath = QStringLiteral("%1/%2.icns").arg(temp.path()).arg(fileName);
-    const QString sourcePath = QStringLiteral(":/data/%1.png").arg(fileName);
+    const QString sourcePath = QStringLiteral(":/icns/%1.png").arg(fileName);
 
     QImage image(sourcePath);
     QVERIFY(!image.isNull());

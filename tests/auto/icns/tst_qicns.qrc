@@ -1,15 +1,15 @@
 <RCC>
     <qresource prefix="/">
-        <file>data/test-32bit.icns</file>
-        <file>data/test-jp2.icns</file>
-        <file>data/test-legacy.icns</file>
-        <file>data/test-png.icns</file>
-        <file>data/test-write-16.png</file>
-        <file>data/test-write-32.png</file>
-        <file>data/test-write-64.png</file>
-        <file>data/test-write-128.png</file>
-        <file>data/test-write-256.png</file>
-        <file>data/test-write-512.png</file>
-        <file>data/test-write-1024.png</file>
+        <file>icns/test-32bit.icns</file>
+        <file>icns/test-jp2.icns</file>
+        <file>icns/test-legacy.icns</file>
+        <file>icns/test-png.icns</file>
+        <file>icns/test-write-16.png</file>
+        <file>icns/test-write-32.png</file>
+        <file>icns/test-write-64.png</file>
+        <file>icns/test-write-128.png</file>
+        <file>icns/test-write-256.png</file>
+        <file>icns/test-write-512.png</file>
+        <file>icns/test-write-1024.png</file>
     </qresource>
 </RCC>

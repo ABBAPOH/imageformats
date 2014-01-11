@@ -221,7 +221,12 @@ static inline QRgb yuv2rgb(quint8 Y, quint8 U, quint8 V)
 static Format getFormat(const DDSHeader &dds)
 {
     const DDSPixelFormat &format = dds.pixelFormat;
-    if (format.flags & DDSPixelFormat::FlagFourCC) {
+    if (format.flags & DDSPixelFormat::FlagPaletteIndexed8) {
+        if (format.flags & DDSPixelFormat::FlagAlphaPixels)
+            return FormatA8P8;
+        else
+            return FormatP8;
+    } else if (format.flags & DDSPixelFormat::FlagFourCC) {
         for (size_t i = 0; i < knownFourCCsSize; ++i) {
             if (dds.pixelFormat.fourCC == knownFourCCs[i])
                 return knownFourCCs[i];
@@ -729,7 +734,7 @@ static QImage readCxV8U8(QDataStream &s, const quint32 width, const quint32 heig
     return image;
 }
 
-static QImage readPaletteImage(QDataStream &s, quint32 width, quint32 height)
+static QImage readPalette8Image(QDataStream &s, quint32 width, quint32 height)
 {
     QImage image(width, height, QImage::Format_Indexed8);
     for (int i = 0; i < 256; ++i) {
@@ -1004,9 +1009,8 @@ static QImage readLayer(QDataStream &s, const DDSHeader &dds, const int format, 
     case FormatA2B10G10R10:
         return readA2R10G10B10(s, dds, width, height);
     case FormatP8:
-        return readPaletteImage(s, width, height);
     case FormatA8P8:
-        break;
+        return readPalette8Image(s, width, height);
     case FormatA16B16G16R16:
         return readARGB16(s, width, height);
     case FormatV8U8:

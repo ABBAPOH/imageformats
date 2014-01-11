@@ -10,6 +10,8 @@
         <file>data/A2W10V10U10.png</file>
         <file>data/A4L4.dds</file>
         <file>data/A4L4.png</file>
+        <file>data/A4P4.dds</file>
+        <file>data/A4P4.png</file>
         <file>data/A4R4G4B4.dds</file>
         <file>data/A4R4G4B4.png</file>
         <file>data/A8.dds</file>
@@ -66,6 +68,8 @@
         <file>data/mipmaps 5.png</file>
         <file>data/mipmaps 6.png</file>
         <file>data/mipmaps.dds</file>
+        <file>data/P4.dds</file>
+        <file>data/P4.png</file>
         <file>data/P8.dds</file>
         <file>data/P8.png</file>
         <file>data/Q8W8V8U8.dds</file>

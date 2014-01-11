@@ -221,7 +221,12 @@ static inline QRgb yuv2rgb(quint8 Y, quint8 U, quint8 V)
 static Format getFormat(const DDSHeader &dds)
 {
     const DDSPixelFormat &format = dds.pixelFormat;
-    if (format.flags & DDSPixelFormat::FlagPaletteIndexed8) {
+    if (format.flags & DDSPixelFormat::FlagPaletteIndexed4) {
+        if (format.flags & DDSPixelFormat::FlagAlphaPixels)
+            return FormatA4P4;
+        else
+            return FormatP4;
+    } else if (format.flags & DDSPixelFormat::FlagPaletteIndexed8) {
         if (format.flags & DDSPixelFormat::FlagAlphaPixels)
             return FormatA8P8;
         else
@@ -754,6 +759,31 @@ static QImage readPalette8Image(QDataStream &s, quint32 width, quint32 height)
     return image;
 }
 
+static QImage readPalette4Image(QDataStream &s, quint32 width, quint32 height)
+{
+    QImage image(width, height, QImage::Format_Indexed8);
+    for (int i = 0; i < 16; ++i) {
+        quint8 r, g, b, a;
+        s >> r >> g >> b >> a;
+        image.setColor(i, qRgba(r, g, b, a));
+    }
+
+    for (quint32 y = 0; y < height; y++) {
+        quint8 index;
+        for (quint32 x = 0; x < width - 1; ) {
+            s >> index;
+            image.setPixel(x++, y, (index & 0x0f) >> 0);
+            image.setPixel(x++, y, (index & 0xf0) >> 4);
+        }
+        if (width % 2 == 1) {
+            s >> index;
+            image.setPixel(width - 1, y, (index & 0x0f) >> 0);
+        }
+    }
+
+    return image;
+}
+
 static QImage readARGB16(QDataStream &s, quint32 width, quint32 height)
 {
     QImage image(width, height, QImage::Format_ARGB32);
@@ -1011,6 +1041,9 @@ static QImage readLayer(QDataStream &s, const DDSHeader &dds, const int format, 
     case FormatP8:
     case FormatA8P8:
         return readPalette8Image(s, width, height);
+    case FormatP4:
+    case FormatA4P4:
+        return readPalette4Image(s, width, height);
     case FormatA16B16G16R16:
         return readARGB16(s, width, height);
     case FormatV8U8:

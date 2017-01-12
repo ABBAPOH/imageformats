@@ -43,7 +43,7 @@
 #include <QtTest/QtTest>
 #include <QtGui/QtGui>
 
-class tst_qdds: public QObject
+class TestDds: public QObject
 {
     Q_OBJECT
 
@@ -73,7 +73,7 @@ static bool compareImages(const QImage &first, const QImage &second)
     return true;
 }
 
-void tst_qdds::readImage_data()
+void TestDds::readImage_data()
 {
     QTest::addColumn<QString>("fileName");
     QTest::addColumn<QSize>("size");
@@ -130,7 +130,7 @@ void tst_qdds::readImage_data()
     QTest::newRow("50") << QString("A4P4") << QSize(64, 64);
 }
 
-void tst_qdds::readImage()
+void TestDds::readImage()
 {
     QFETCH(QString, fileName);
     QFETCH(QSize, size);
@@ -149,7 +149,7 @@ void tst_qdds::readImage()
     QVERIFY(compareImages(image, QImage(sourcePath)) == true);
 }
 
-void tst_qdds::testMipmaps_data()
+void TestDds::testMipmaps_data()
 {
     QTest::addColumn<QString>("fileName");
     QTest::addColumn<QSize>("size");
@@ -158,7 +158,7 @@ void tst_qdds::testMipmaps_data()
     QTest::newRow("1") << QString("mipmaps") << QSize(64, 64) << 7;
 }
 
-void tst_qdds::testMipmaps()
+void TestDds::testMipmaps()
 {
     QFETCH(QString, fileName);
     QFETCH(QSize, size);
@@ -179,7 +179,7 @@ void tst_qdds::testMipmaps()
     }
 }
 
-void tst_qdds::testWriteImage_data()
+void TestDds::testWriteImage_data()
 {
     QTest::addColumn<QString>("fileName");
     QTest::addColumn<QSize>("size");
@@ -187,7 +187,7 @@ void tst_qdds::testWriteImage_data()
     QTest::newRow("1") << QString("A8R8G8B8") << QSize(64, 64);
 }
 
-void tst_qdds::testWriteImage()
+void TestDds::testWriteImage()
 {
     QFETCH(QString, fileName);
     QFETCH(QSize, size);
@@ -212,5 +212,5 @@ void tst_qdds::testWriteImage()
     QCOMPARE(reader.subType(), fileName.toLatin1());
 }
 
-QTEST_MAIN(tst_qdds)
+QTEST_MAIN(TestDds)
 #include "tst_qdds.moc"

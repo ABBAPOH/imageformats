@@ -1,8 +1,8 @@
 /****************************************************************************
 **
-** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
-** Copyright (C) 2013 Ivan Komissarov.
-** Contact: http://www.qt-project.org/legal
+** Copyright (C) 2016 The Qt Company Ltd.
+** Copyright (C) 2016 Ivan Komissarov.
+** Contact: https://www.qt.io/licensing/
 **
 ** This file is part of the DDS plugin in the Qt ImageFormats module.
 **
@@ -11,30 +11,28 @@
 ** Licensees holding valid commercial Qt licenses may use this file in
 ** accordance with the commercial license agreement provided with the
 ** Software or, alternatively, in accordance with the terms contained in
-** a written agreement between you and Digia.  For licensing terms and
-** conditions see http://qt.digia.com/licensing.  For further information
-** use the contact form at http://qt.digia.com/contact-us.
+** a written agreement between you and The Qt Company. For licensing terms
+** and conditions see https://www.qt.io/terms-conditions. For further
+** information use the contact form at https://www.qt.io/contact-us.
 **
 ** GNU Lesser General Public License Usage
 ** Alternatively, this file may be used under the terms of the GNU Lesser
-** General Public License version 2.1 as published by the Free Software
-** Foundation and appearing in the file LICENSE.LGPL included in the
-** packaging of this file.  Please review the following information to
-** ensure the GNU Lesser General Public License version 2.1 requirements
-** will be met: http://www.gnu.org/licenses/old-licenses/lgpl-2.1.html.
-**
-** In addition, as a special exception, Digia gives you certain additional
-** rights.  These rights are described in the Digia Qt LGPL Exception
-** version 1.1, included in the file LGPL_EXCEPTION.txt in this package.
+** General Public License version 3 as published by the Free Software
+** Foundation and appearing in the file LICENSE.LGPL3 included in the
+** packaging of this file. Please review the following information to
+** ensure the GNU Lesser General Public License version 3 requirements
+** will be met: https://www.gnu.org/licenses/lgpl-3.0.html.
 **
 ** GNU General Public License Usage
 ** Alternatively, this file may be used under the terms of the GNU
-** General Public License version 3.0 as published by the Free Software
-** Foundation and appearing in the file LICENSE.GPL included in the
-** packaging of this file.  Please review the following information to
-** ensure the GNU General Public License version 3.0 requirements will be
-** met: http://www.gnu.org/copyleft/gpl.html.
-**
+** General Public License version 2.0 or (at your option) the GNU General
+** Public license version 3 or any later version approved by the KDE Free
+** Qt Foundation. The licenses are as published by the Free Software
+** Foundation and appearing in the file LICENSE.GPL2 and LICENSE.GPL3
+** included in the packaging of this file. Please review the following
+** information to ensure the GNU General Public License requirements will
+** be met: https://www.gnu.org/licenses/gpl-2.0.html and
+** https://www.gnu.org/licenses/gpl-3.0.html.
 **
 ** $QT_END_LICENSE$
 **
@@ -43,11 +41,13 @@
 #include "qddshandler.h"
 
 #include <QtCore/qdebug.h>
-#include <QtCore/qmath.h>
-
 #include <QtGui/qimage.h>
 
+#include <cmath>
+
 #include "ddsheader.h"
+
+#include <cmath>
 
 #ifndef QT_NO_DATASTREAM
 
@@ -109,7 +109,7 @@ struct FormatInfo
 static const FormatInfo formatInfos[] = {
     { FormatA8R8G8B8,    DDSPixelFormat::FlagRGBA, 32, 0x00ff0000, 0x0000ff00, 0x000000ff, 0xff000000 },
     { FormatX8R8G8B8,    DDSPixelFormat::FlagRGB,  32, 0x00ff0000, 0x0000ff00, 0x000000ff, 0x00000000 },
-    { FormatA2B10G10R10, DDSPixelFormat::FlagRGBA, 32, 0x000003ff, 0x0000fc00, 0x3ff00000, 0xc0000000 },
+    { FormatA2B10G10R10, DDSPixelFormat::FlagRGBA, 32, 0x000003ff, 0x000ffc00, 0x3ff00000, 0xc0000000 },
     { FormatA8B8G8R8,    DDSPixelFormat::FlagRGBA, 32, 0x000000ff, 0x0000ff00, 0x00ff0000, 0xff000000 },
     { FormatX8B8G8R8,    DDSPixelFormat::FlagRGB,  32, 0x000000ff, 0x0000ff00, 0x00ff0000, 0x00000000 },
     { FormatG16R16,      DDSPixelFormat::FlagRGBA, 32, 0x0000ffff, 0xffff0000, 0x00000000, 0x00000000 },
@@ -331,7 +331,7 @@ static Format getFormat(const DDSHeader &dds)
             if ((format.flags & info.flags) == info.flags &&
                  format.rgbBitCount == info.bitCount &&
                  format.rBitMask == info.rBitMask &&
-                 format.bBitMask == info.bBitMask &&
+                 format.gBitMask == info.gBitMask &&
                  format.bBitMask == info.bBitMask &&
                  format.aBitMask == info.aBitMask) {
                 return info.format;
@@ -340,6 +340,14 @@ static Format getFormat(const DDSHeader &dds)
     }
 
     return FormatUnknown;
+}
+
+static inline quint8 getNormalZ(quint8 nx, quint8 ny)
+{
+    const double fx = nx / 127.5 - 1.0;
+    const double fy = ny / 127.5 - 1.0;
+    const double fxfy = 1.0 - fx * fx - fy * fy;
+    return fxfy > 0 ? 255 * std::sqrt(fxfy) : 0;
 }
 
 static inline void decodeColor(quint16 color, quint8 &red, quint8 &green, quint8 &blue)
@@ -589,14 +597,7 @@ static QImage readATI2(QDataStream &s, quint32 width, quint32 height)
                     QRgb pixel = arr[k * 4 + l];
                     const quint8 nx = qAlpha(pixel);
                     const quint8 ny = qBlue(pixel);
-
-                    // TODO: formulas can be incorrect
-                    const double fx = nx / 127.5 - 1.0;
-                    const double fy = ny / 127.5 - 1.0;
-                    const double fxfy = 1.0 - fx * fx - fy * fy;
-                    const double fz = fxfy > 0 ? sqrt(fxfy) : -1.0;
-                    const quint8 nz = quint8((fz + 1.0) * 127.5);
-
+                    const quint8 nz = getNormalZ(nx, ny);
                     line[j + l] = qRgb(nx, ny, nz);
                 }
             }
@@ -672,9 +673,9 @@ static double readFloat16(QDataStream &s)
     quint16 fraction = value & 0x3FF;
 
     if (exp == 0)
-        return sign * qPow(2.0, -14.0) * fraction / 1024.0;
+        return sign * std::pow(2.0, -14.0) * fraction / 1024.0;
     else
-        return sign * qPow(2.0, exp - 15) * (1 + fraction / 1024.0);
+        return sign * std::pow(2.0, exp - 15) * (1 + fraction / 1024.0);
 }
 
 static inline float readFloat32(QDataStream &s)
@@ -806,7 +807,6 @@ static QImage readQ16W16V16U16(QDataStream &s, const quint32 width, const quint3
     return image;
 }
 
-// TODO: this seems incorrect
 static QImage readCxV8U8(QDataStream &s, const quint32 width, const quint32 height)
 {
     QImage image(width, height, QImage::Format_RGB32);
@@ -817,10 +817,10 @@ static QImage readCxV8U8(QDataStream &s, const quint32 width, const quint32 heig
             qint8 v, u;
             s >> v >> u;
 
-            const quint8 vn = v + 128, un = u + 128;
+            const quint8 vn = v + 128;
+            const quint8 un = u + 128;
+            const quint8 c = getNormalZ(vn, un);
 
-            const double vd = vn / 127.5 - 1.0, ud = un / 127.5 - 1.0;
-            const quint8 c = 255 * sqrt(1.0 - vd * vd - ud * ud);
             line[x] = qRgb(vn, un, c);
         }
     }
@@ -996,7 +996,8 @@ static QImage readA2W10V10U10(QDataStream &s, quint32 width, quint32 height)
             quint8 b = qint8((tmp & 0x000003ff) >> 0 >> 2) + 128;
             quint8 a = 0xff * ((tmp & 0xc0000000) >> 30) / 3;
             // dunno why we should swap b and r here
-            line[x] = qRgba(b, g, r, a);
+            std::swap(b, r);
+            line[x] = qRgba(r, g, b, a);
         }
     }
 
@@ -1373,7 +1374,9 @@ static int formatByName(const QByteArray &name)
 }
 
 QDDSHandler::QDDSHandler() :
+    m_header(),
     m_format(FormatA8R8G8B8),
+    m_header10(),
     m_currentImage(0),
     m_scanState(ScanNotScanned)
 {
@@ -1575,6 +1578,8 @@ bool QDDSHandler::ensureScanned() const
         return false;
 
     that->m_format = getFormat(m_header);
+    if (that->m_format == FormatUnknown)
+        return false;
 
     m_scanState = ScanSuccess;
     return true;

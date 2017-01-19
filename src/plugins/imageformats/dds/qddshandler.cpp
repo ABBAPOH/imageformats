@@ -606,7 +606,7 @@ static QImage readATI2(QDataStream &s, quint32 width, quint32 height)
     return image;
 }
 
-static QImage readUnsignedImage(QDataStream &s, const DDSHeader &dds, quint32 width, quint32 height, bool hasAlpha)
+static QImage readUnsignedImage(QDataStream &s, const DDSHeader &dds, quint32 width, quint32 height, QImage::Format format)
 {
     quint32 flags = dds.pixelFormat.flags;
 
@@ -625,8 +625,6 @@ static QImage readUnsignedImage(QDataStream &s, const DDSHeader &dds, quint32 wi
         if (bits[i] <= 8)
             masks[i] = (masks[i] >> shifts[i]) << (8 - bits[i]);
     }
-
-    const QImage::Format format = hasAlpha ? QImage::Format_ARGB32 : QImage::Format_RGB32;
 
     QImage image(width, height, format);
 
@@ -1088,7 +1086,7 @@ static QImage readG8R8G8B8(QDataStream &s, quint32 width, quint32 height)
 
 static QImage readA2R10G10B10(QDataStream &s, const DDSHeader &dds, quint32 width, quint32 height)
 {
-    QImage image = readUnsignedImage(s, dds, width, height, true);
+    QImage image = readUnsignedImage(s, dds, width, height, QImage::Format_ARGB32);
     for (quint32 y = 0; y < height; y++) {
         QRgb *line = reinterpret_cast<QRgb *>(image.scanLine(y));
         for (quint32 x = 0; x < width; x++) {
@@ -1106,25 +1104,35 @@ static QImage readLayer(QDataStream &s, const DDSHeader &dds, const int format, 
 
     switch (format) {
     case FormatR8G8B8:
+        return readUnsignedImage(s, dds, width, height, QImage::Format_RGB32);
     case FormatX8R8G8B8:
+        return readUnsignedImage(s, dds, width, height, QImage::Format_RGBX8888);
     case FormatR5G6B5:
+        return readUnsignedImage(s, dds, width, height, QImage::Format_RGB16);
     case FormatR3G3B2:
     case FormatX1R5G5B5:
+        return readUnsignedImage(s, dds, width, height, QImage::Format_RGB555);
     case FormatX4R4G4B4:
+        return readUnsignedImage(s, dds, width, height, QImage::Format_RGB444);
     case FormatX8B8G8R8:
+        return readUnsignedImage(s, dds, width, height, QImage::Format_RGB32);
     case FormatG16R16:
+        return readUnsignedImage(s, dds, width, height, QImage::Format_RGB32);
     case FormatL8:
+        return readUnsignedImage(s, dds, width, height, QImage::Format_Grayscale8);
     case FormatL16:
-        return readUnsignedImage(s, dds, width, height, false);
+        return readUnsignedImage(s, dds, width, height, QImage::Format_Grayscale8);
     case FormatA8R8G8B8:
     case FormatA1R5G5B5:
     case FormatA4R4G4B4:
+        return readUnsignedImage(s, dds, width, height, QImage::Format_ARGB32);
     case FormatA8:
+        return readUnsignedImage(s, dds, width, height, QImage::Format_Alpha8);
     case FormatA8R3G3B2:
     case FormatA8B8G8R8:
     case FormatA8L8:
     case FormatA4L4:
-        return readUnsignedImage(s, dds, width, height, true);
+        return readUnsignedImage(s, dds, width, height, QImage::Format_ARGB32);
     case FormatA2R10G10B10:
     case FormatA2B10G10R10:
         return readA2R10G10B10(s, dds, width, height);

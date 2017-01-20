@@ -1,0 +1,114 @@
+<RCC>
+    <qresource prefix="/dds/">
+        <file>A1R5G5B5.dds</file>
+        <file>A1R5G5B5.png</file>
+        <file>A2B10G10R10.dds</file>
+        <file>A2B10G10R10.png</file>
+        <file>A2R10G10B10.dds</file>
+        <file>A2R10G10B10.png</file>
+        <file>A2W10V10U10.dds</file>
+        <file>A2W10V10U10.png</file>
+        <file>A4L4.dds</file>
+        <file>A4L4.png</file>
+        <file>A4P4.dds</file>
+        <file>A4P4.png</file>
+        <file>A4R4G4B4.dds</file>
+        <file>A4R4G4B4.png</file>
+        <file>A8.dds</file>
+        <file>A8.png</file>
+        <file>A8B8G8R8.dds</file>
+        <file>A8B8G8R8.png</file>
+        <file>A8L8.dds</file>
+        <file>A8L8.png</file>
+        <file>A8P8.dds</file>
+        <file>A8P8.png</file>
+        <file>A8R3G3B2.dds</file>
+        <file>A8R3G3B2.png</file>
+        <file>A8R8G8B8.dds</file>
+        <file>A8R8G8B8.png</file>
+        <file>A16B16G16R16.dds</file>
+        <file>A16B16G16R16.png</file>
+        <file>A16B16G16R16F.dds</file>
+        <file>A16B16G16R16F.png</file>
+        <file>A32B32G32R32F.dds</file>
+        <file>A32B32G32R32F.png</file>
+        <file>cubemap.dds</file>
+        <file>cubemap.png</file>
+        <file>CxV8U8.dds</file>
+        <file>CxV8U8.png</file>
+        <file>DXT1.dds</file>
+        <file>DXT1.png</file>
+        <file>DXT2.dds</file>
+        <file>DXT2.png</file>
+        <file>DXT3.dds</file>
+        <file>DXT3.png</file>
+        <file>DXT4.dds</file>
+        <file>DXT4.png</file>
+        <file>DXT5.dds</file>
+        <file>DXT5.png</file>
+        <file>G8R8_G8B8.dds</file>
+        <file>G8R8_G8B8.png</file>
+        <file>G16R16.dds</file>
+        <file>G16R16.png</file>
+        <file>G16R16F.dds</file>
+        <file>G16R16F.png</file>
+        <file>G32R32F.dds</file>
+        <file>G32R32F.png</file>
+        <file>L6V5U5.dds</file>
+        <file>L6V5U5.png</file>
+        <file>L8.dds</file>
+        <file>L8.png</file>
+        <file>L16.dds</file>
+        <file>L16.png</file>
+        <file>mipmaps 0.png</file>
+        <file>mipmaps 1.png</file>
+        <file>mipmaps 2.png</file>
+        <file>mipmaps 3.png</file>
+        <file>mipmaps 4.png</file>
+        <file>mipmaps 5.png</file>
+        <file>mipmaps 6.png</file>
+        <file>mipmaps.dds</file>
+        <file>P4.dds</file>
+        <file>P4.png</file>
+        <file>P8.dds</file>
+        <file>P8.png</file>
+        <file>Q8W8V8U8.dds</file>
+        <file>Q8W8V8U8.png</file>
+        <file>Q16W16V16U16.dds</file>
+        <file>Q16W16V16U16.png</file>
+        <file>R3G3B2.dds</file>
+        <file>R3G3B2.png</file>
+        <file>R5G6B5.dds</file>
+        <file>R5G6B5.png</file>
+        <file>R8G8_B8G8.dds</file>
+        <file>R8G8_B8G8.png</file>
+        <file>R8G8B8.dds</file>
+        <file>R8G8B8.png</file>
+        <file>R16F.dds</file>
+        <file>R16F.png</file>
+        <file>R32F.dds</file>
+        <file>R32F.png</file>
+        <file>UYVY.dds</file>
+        <file>UYVY.png</file>
+        <file>V8U8.dds</file>
+        <file>V8U8.png</file>
+        <file>V16U16.dds</file>
+        <file>V16U16.png</file>
+        <file>X1R5G5B5.dds</file>
+        <file>X1R5G5B5.png</file>
+        <file>X4R4G4B4.dds</file>
+        <file>X4R4G4B4.png</file>
+        <file>X8B8G8R8.dds</file>
+        <file>X8B8G8R8.png</file>
+        <file>X8L8V8U8.dds</file>
+        <file>X8L8V8U8.png</file>
+        <file>X8R8G8B8.dds</file>
+        <file>X8R8G8B8.png</file>
+        <file>YUY2.dds</file>
+        <file>YUY2.png</file>
+        <file>RXGB.dds</file>
+        <file>RXGB.png</file>
+        <file>ATI2.dds</file>
+        <file>ATI2.png</file>
+    </qresource>
+</RCC>

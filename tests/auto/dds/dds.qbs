@@ -7,7 +7,7 @@ Product {
     Depends { name: "cpp" }
     Depends { name: "Qt"; submodules: ["core", "gui", "test"] }
     files: [
-        "tst_qdds.cpp",
-        "tst_qdds.qrc"
+        "data/data.qrc",
+        "tst_qdds.cpp"
     ]
 }

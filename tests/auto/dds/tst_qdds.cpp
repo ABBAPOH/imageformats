@@ -135,8 +135,8 @@ void TestDds::readImage()
     QFETCH(QString, fileName);
     QFETCH(QSize, size);
 
-    const QString path = QStringLiteral(":/data/") + fileName + QStringLiteral(".dds");
-    const QString sourcePath = QStringLiteral(":/data/") + fileName + QStringLiteral(".png");
+    const QString path = QStringLiteral(":/dds/") + fileName + QStringLiteral(".dds");
+    const QString sourcePath = QStringLiteral(":/dds/") + fileName + QStringLiteral(".png");
     QImageReader reader(path);
     QVERIFY(reader.canRead());
     QVERIFY(reader.supportsOption(QImageIOHandler::Size));
@@ -164,7 +164,7 @@ void TestDds::testMipmaps()
     QFETCH(QSize, size);
     QFETCH(int, imageCount);
 
-    const QString path = QStringLiteral(":/data/") + fileName + QStringLiteral(".dds");
+    const QString path = QStringLiteral(":/dds/") + fileName + QStringLiteral(".dds");
     QImageReader reader(path);
     QVERIFY(reader.canRead());
     QCOMPARE(reader.imageCount(), imageCount);
@@ -174,7 +174,7 @@ void TestDds::testMipmaps()
         QImage image = reader.read();
         QVERIFY2(!image.isNull(), qPrintable(reader.errorString()));
         QCOMPARE(image.size(), size / (1 << i));
-        QString sourcePath = QString(":/data/%1 %2.png").arg(fileName).arg(i);
+        QString sourcePath = QString(":/dds/%1 %2.png").arg(fileName).arg(i);
         QVERIFY(compareImages(image, QImage(sourcePath)) == true);
     }
 }
@@ -193,7 +193,7 @@ void TestDds::testWriteImage()
     QFETCH(QSize, size);
 
     const QString path = fileName + QStringLiteral(".dds");
-    const QString sourcePath = QStringLiteral(":/data/") + fileName + QStringLiteral(".png");
+    const QString sourcePath = QStringLiteral(":/dds/") + fileName + QStringLiteral(".png");
 
     QImage image(sourcePath);
     QVERIFY(!image.isNull());

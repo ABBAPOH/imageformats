@@ -317,9 +317,9 @@ static Format getFormat(const DDSHeader &dds)
 {
     const DDSPixelFormat &format = dds.pixelFormat;
     if (format.flags & DDSPixelFormat::FlagPaletteIndexed4) {
-        return FormatP4;
+        return format.flags & DDSPixelFormat::FlagAlpha ? FormatA4P4 : FormatP4;
     } else if (format.flags & DDSPixelFormat::FlagPaletteIndexed8) {
-        return FormatP8;
+        return format.flags & DDSPixelFormat::FlagAlpha ? FormatA8P8 : FormatP8;
     } else if (format.flags & DDSPixelFormat::FlagFourCC) {
         for (size_t i = 0; i < knownFourCCsSize; ++i) {
             if (dds.pixelFormat.fourCC == knownFourCCs[i])
@@ -616,7 +616,7 @@ static QImage readUnsignedImage(QDataStream &s, const DDSHeader &dds, quint32 wi
     masks[Red] = dds.pixelFormat.rBitMask;
     masks[Green] = dds.pixelFormat.gBitMask;
     masks[Blue] = dds.pixelFormat.bBitMask;
-    masks[Alpha] = hasAlpha ? dds.pixelFormat.aBitMask : 0;
+    masks[Alpha] = dds.pixelFormat.aBitMask;
     for (int i = 0; i < ColorCount; ++i) {
         shifts[i] = maskToShift(masks[i]);
         bits[i] = maskLength(masks[i]);
